@@ -1,26 +1,585 @@
-@import "tailwindcss";
+/* app/globals.css */
+
+/* ============================================
+   CSS RESET & BASE STYLES
+   ============================================ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ============================================
+   CSS VARIABLES
+   ============================================ */
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Colors */
+  --color-primary: #00ff41;
+  --color-primary-dim: rgba(0, 255, 65, 0.7);
+  --color-primary-dimmer: rgba(0, 255, 65, 0.4);
+  --color-primary-dimmest: rgba(0, 255, 65, 0.2);
+  --color-bg-dark: #0a0f0a;
+  --color-bg-darker: #0d1a0d;
+
+  /* Spacing */
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 20px;
+  --spacing-lg: 30px;
+  --spacing-xl: 40px;
+  --spacing-2xl: 60px;
+
+  /* Typography */
+  --font-mono: 'Courier New', monospace;
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-base: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 20px;
+  --font-size-xl: 32px;
+  --font-size-2xl: 48px;
+
+  /* Borders */
+  --border-width: 1px;
+  --border-radius: 2px;
+
+  /* Transitions */
+  --transition-fast: 0.2s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.6s ease;
+
+  /* Z-index layers */
+  --z-background: 0;
+  --z-grid: 1;
+  --z-particles: 2;
+  --z-vignette: 3;
+  --z-code-snippets: 5;
+  --z-content: 10;
+  --z-indicators: 100;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ============================================
+   HTML & BODY - SCROLL SNAP SETUP
+   ============================================ */
+
+html {
+  scroll-behavior: smooth;
+  overflow-y: scroll;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+/* Apply scroll snap to html for full-page snapping */
+html.scroll-snap-y {
+  scroll-snap-type: y mandatory;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg-dark);
+  font-family: var(--font-mono);
+  color: var(--color-primary);
+  overflow-x: hidden;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  min-height: 100vh;
+}
+
+body::-webkit-scrollbar {
+  display: none;
+}
+
+/* ============================================
+   SECTION SCROLL SNAP
+   ============================================ */
+
+section {
+  position: relative;
+  z-index: var(--z-content);
+  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  padding: var(--spacing-xl) var(--spacing-md);
+}
+
+/* ============================================
+   TERMINAL STYLES
+   ============================================ */
+
+.terminal-container {
+  background: transparent;
+  backdrop-filter: blur(5px);
+  border: var(--border-width) solid var(--color-primary-dimmer);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-xl) var(--spacing-2xl);
+  max-width: 1000px;
+  width: 95%;
+  max-height: 90vh;
+  overflow-y: auto;
+  text-align: left;
+  box-shadow: 0 0 1px var(--color-primary);
+}
+
+/* Terminal scrollbar styling */
+.terminal-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.terminal-container::-webkit-scrollbar-track {
+  background: rgba(0, 255, 65, 0.05);
+}
+
+.terminal-container::-webkit-scrollbar-thumb {
+  background: var(--color-primary-dimmest);
+  border-radius: 3px;
+}
+
+.terminal-container::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
+
+.terminal-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: var(--border-width) solid var(--color-primary-dimmest);
+}
+
+.terminal-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-primary-dim);
+}
+
+.terminal-title {
+  color: var(--color-primary-dim);
+  font-size: var(--font-size-base);
+  margin-left: 10px;
+  font-weight: normal;
+}
+
+.command-line {
+  color: var(--color-primary);
+  font-size: var(--font-size-md);
+  margin-bottom: var(--spacing-xs);
+}
+
+.prompt {
+  color: var(--color-primary-dim);
+}
+
+.output-section {
+  margin-top: 25px;
+  padding-top: var(--spacing-md);
+  border-top: var(--border-width) solid var(--color-primary-dimmest);
+}
+
+/* ============================================
+   BUTTON STYLES
+   ============================================ */
+
+.cta-btn {
+  padding: var(--spacing-sm) 28px;
+  background: transparent;
+  border: var(--border-width) solid var(--color-primary);
+  color: var(--color-primary);
+  font-size: var(--font-size-base);
+  font-weight: normal;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-decoration: none;
+  display: inline-block;
+  font-family: var(--font-mono);
+}
+
+.cta-btn:hover {
+  background: rgba(0, 255, 65, 0.1);
+  box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+  transform: translateY(-2px);
+}
+
+.cta-btn.primary {
+  background: rgba(0, 255, 65, 0.05);
+}
+
+.cta-buttons {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+/* ============================================
+   SKILLS / TECH STACK STYLES
+   ============================================ */
+
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.skill-category {
+  border: var(--border-width) solid var(--color-primary-dimmest);
+  padding: 18px;
+  background: rgba(0, 255, 65, 0.02);
+  transition: all var(--transition-normal);
+}
+
+.skill-category:hover {
+  background: rgba(0, 255, 65, 0.05);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 15px var(--color-primary-dimmest);
+  transform: translateY(-2px);
+}
+
+.category-title {
+  font-size: var(--font-size-md);
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.category-icon {
+  font-size: 18px;
+}
+
+.tech-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.tech-badge {
+  padding: 5px 10px;
+  border: var(--border-width) solid var(--color-primary-dimmer);
+  background: transparent;
+  color: var(--color-primary);
+  font-size: var(--font-size-xs);
+  transition: all var(--transition-fast);
+  cursor: default;
+}
+
+.tech-badge:hover {
+  background: rgba(0, 255, 65, 0.1);
+  box-shadow: 0 0 8px rgba(0, 255, 65, 0.3);
+  transform: translateY(-2px);
+}
+
+/* ============================================
+   SPECIALIZATION STYLES
+   ============================================ */
+
+.specializations {
+  margin-top: 25px;
+  padding-top: 25px;
+  border-top: var(--border-width) solid var(--color-primary-dimmest);
+}
+
+.spec-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.spec-item {
+  padding: var(--spacing-xs) var(--spacing-md);
+  border: var(--border-width) solid var(--color-primary-dimmer);
+  background: rgba(0, 255, 65, 0.03);
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+}
+
+.spec-item::before {
+  content: '>';
+  margin-right: var(--spacing-xs);
+  color: var(--color-primary-dim);
+}
+
+/* ============================================
+   TYPOGRAPHY UTILITIES
+   ============================================ */
+
+.text-primary {
+  color: var(--color-primary);
+}
+
+.text-dim {
+  color: var(--color-primary-dim);
+}
+
+.bio-text {
+  font-size: var(--font-size-md);
+  line-height: 1.8;
+  margin-bottom: var(--spacing-lg);
+  color: var(--color-primary);
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+/* Fade In Up Animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  opacity: 0;
+  animation: fadeInUp var(--transition-slow) ease forwards;
+}
+
+/* Typing Effect Animation */
+@keyframes typing {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes blinkTypingCursor {
+  50% {
+    border-color: transparent;
+  }
+}
+
+.typing-text {
+  display: inline-block;
+  overflow: hidden;
+  border-right: 2px solid var(--color-primary);
+  white-space: nowrap;
+  animation: typing 2s steps(28) forwards,
+  blinkTypingCursor 0.75s step-end infinite;
+  width: 0;
+}
+
+/* Cursor Blink Animation */
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+.cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: var(--color-primary);
+  margin-left: 4px;
+  animation: blink 1s infinite;
+  vertical-align: baseline;
+}
+
+.name-cursor {
+  display: inline-block;
+  width: 12px;
+  height: 48px;
+  background: var(--color-primary);
+  margin-left: 4px;
+  animation: blink 1s infinite;
+  vertical-align: bottom;
+}
+
+/* Gradient Shift Animation */
+@keyframes gradientShift {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+/* Floating Code Animation */
+@keyframes floatCode {
+  0%, 100% {
+    opacity: 0;
+    transform: translateY(0px);
+  }
+  10%, 90% {
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+/* Type Command Animation */
+@keyframes typeCommand {
+  to {
+    width: 100%;
+  }
+}
+
+/* Pulse Animation */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+.hidden {
+  display: none;
+}
+
+.visible {
+  display: block;
+}
+
+.opacity-0 {
+  opacity: 0;
+}
+
+.pointer-events-none {
+  pointer-events: none;
+}
+
+/* Flex utilities */
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.gap-sm {
+  gap: var(--spacing-sm);
+}
+
+.gap-md {
+  gap: var(--spacing-md);
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media (max-width: 768px) {
+  :root {
+    --font-size-xl: 28px;
+    --font-size-2xl: 32px;
+    --spacing-2xl: 25px;
+  }
+
+  section {
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+
+  .terminal-container {
+    padding: var(--spacing-lg) 25px;
+    width: 100%;
+  }
+
+  .name-cursor {
+    height: 32px;
+  }
+
+  .cta-buttons {
+    flex-direction: column;
+  }
+
+  .skills-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .spec-list {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --font-size-xl: 24px;
+    --font-size-2xl: 28px;
+  }
+
+  .terminal-container {
+    padding: var(--spacing-md) var(--spacing-md);
+  }
+}
+
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+
+/* Focus styles for keyboard navigation */
+a:focus-visible,
+button:focus-visible,
+.cta-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+
+@media print {
+  .page-indicators,
+  .floating-code,
+  .cta-buttons {
+    display: none;
+  }
+
+  section {
+    page-break-inside: avoid;
+  }
 }
