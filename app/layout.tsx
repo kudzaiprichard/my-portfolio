@@ -2,8 +2,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import Background from '@/components/layout/Background'
-import PageIndicators from '@/components/layout/PageIndicators'
-import FloatingCode from '@/components/layout/FloatingCode'
+import ScrollHint from '@/components/layout/ScrollHint'
 
 export const metadata: Metadata = {
     title: 'Kudzai Prichard | AI & Full Stack Developer',
@@ -27,10 +26,13 @@ export const metadata: Metadata = {
         index: true,
         follow: true,
     },
-    viewport: {
-        width: 'device-width',
-        initialScale: 1,
-    },
+    // viewport REMOVED from here
+}
+
+// Add this separate viewport export
+export const viewport = {
+    width: 'device-width',
+    initialScale: 1,
 }
 
 export default function RootLayout({
@@ -39,20 +41,17 @@ export default function RootLayout({
     children: React.ReactNode
 }) {
     return (
-        <html lang="en" className="scroll-snap-y">
+        <html lang="en" suppressHydrationWarning>
         <head>
             <meta charSet="UTF-8" />
             <link rel="icon" href="/favicon.ico" />
         </head>
-        <body>
+        <body suppressHydrationWarning>
         {/* Fixed background elements - always visible */}
         <Background />
 
-        {/* Floating code snippets */}
-        <FloatingCode />
-
-        {/* Page navigation indicators */}
-        <PageIndicators />
+        {/* Scroll hint indicator */}
+        <ScrollHint />
 
         {/* Main content */}
         {children}

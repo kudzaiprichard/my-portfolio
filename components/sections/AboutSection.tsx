@@ -1,8 +1,10 @@
 // components/sections/AboutSection.tsx
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import TerminalContainer from '@/components/shared/TerminalContainer'
+import { useInView } from '@/hooks/useInView'
+import { startCharacterGlitch } from '@/lib/glitch'
 import { delay } from '@/lib/utils'
 
 interface SkillCategory {
@@ -44,6 +46,12 @@ const specializations = [
 ]
 
 export default function AboutSection() {
+    // Detect when section is in view
+    const { ref, isInView } = useInView({
+        threshold: 0.3,
+        triggerOnce: true
+    })
+
     const [commandStage, setCommandStage] = useState(0)
     const [typingCommand1, setTypingCommand1] = useState('')
     const [typingCommand2, setTypingCommand2] = useState('')
@@ -52,11 +60,75 @@ export default function AboutSection() {
     const [showOutput2, setShowOutput2] = useState(false)
     const [showOutput3, setShowOutput3] = useState(false)
 
+    const animationStartedRef = useRef(false)
+
+    // Refs for glitch effects on specific words
+    const word1Ref = useRef<HTMLSpanElement>(null) // artificial intelligence
+    const word2Ref = useRef<HTMLSpanElement>(null) // cutting-edge
+    const word3Ref = useRef<HTMLSpanElement>(null) // innovative
+    const word4Ref = useRef<HTMLSpanElement>(null) // emerging technologies
+
     const command1 = 'cat about.txt'
     const command2 = 'ls -la ./tech_stack/'
     const command3 = './list_specializations.sh'
 
+    // Apply character glitch to specific words when bio is visible
     useEffect(() => {
+        if (!showOutput1 || !isInView) return
+
+        const cleanups: (() => void)[] = []
+
+        // Glitch "artificial intelligence"
+        if (word1Ref.current) {
+            cleanups.push(
+                startCharacterGlitch(word1Ref.current, {
+                    intensity: 'low',
+                    textGlitchInterval: 8000,
+                })
+            )
+        }
+
+        // Glitch "cutting-edge"
+        if (word2Ref.current) {
+            cleanups.push(
+                startCharacterGlitch(word2Ref.current, {
+                    intensity: 'low',
+                    textGlitchInterval: 9000,
+                })
+            )
+        }
+
+        // Glitch "innovative"
+        if (word3Ref.current) {
+            cleanups.push(
+                startCharacterGlitch(word3Ref.current, {
+                    intensity: 'low',
+                    textGlitchInterval: 10000,
+                })
+            )
+        }
+
+        // Glitch "emerging technologies"
+        if (word4Ref.current) {
+            cleanups.push(
+                startCharacterGlitch(word4Ref.current, {
+                    intensity: 'low',
+                    textGlitchInterval: 11000,
+                })
+            )
+        }
+
+        return () => {
+            cleanups.forEach(cleanup => cleanup())
+        }
+    }, [showOutput1, isInView])
+
+    useEffect(() => {
+        // Only start animation when in view and hasn't started yet
+        if (!isInView || animationStartedRef.current) return
+
+        animationStartedRef.current = true
+
         const runAnimation = async () => {
             // Stage 1: Type first command
             await delay(500)
@@ -81,7 +153,7 @@ export default function AboutSection() {
         }
 
         runAnimation()
-    }, [])
+    }, [isInView])
 
     const typeText = async (
         text: string,
@@ -95,180 +167,190 @@ export default function AboutSection() {
     }
 
     return (
-        <TerminalContainer title="developer@portfolio:~/skills$">
-            <div className="skills-content">
-                {/* Command 1: cat about.txt */}
-                {commandStage >= 1 && (
-                    <div className="skills-command-wrapper">
-                        <span className="prompt">$</span>{' '}
-                        <span className="typed-command">
-              {typingCommand1}
-                            {commandStage === 1 && typingCommand1.length < command1.length && (
-                                <span className="typing-cursor">|</span>
-                            )}
-            </span>
-                    </div>
-                )}
-
-                {/* Output 1: Bio */}
-                {showOutput1 && (
-                    <div className="skills-output visible">
-                        <p className="bio-text">
-                            Passionate developer with expertise in artificial intelligence and full-stack
-                            development. I combine cutting-edge AI technologies with robust backend systems to
-                            create innovative solutions. Committed to writing clean, efficient code and staying
-                            current with emerging technologies.
-                        </p>
-                    </div>
-                )}
-
-                {/* Command 2: ls -la ./tech_stack/ */}
-                {commandStage >= 2 && (
-                    <div className="skills-command-wrapper" style={{ marginTop: '20px' }}>
-                        <span className="prompt">$</span>{' '}
-                        <span className="typed-command">
-              {typingCommand2}
-                            {commandStage === 2 && typingCommand2.length < command2.length && (
-                                <span className="typing-cursor">|</span>
-                            )}
-            </span>
-                    </div>
-                )}
-
-                {/* Output 2: Skills Grid */}
-                {showOutput2 && (
-                    <div className="skills-output visible">
-                        <div className="skills-grid">
-                            {skillCategories.map((category, index) => (
-                                <div
-                                    key={category.title}
-                                    className="skill-category"
-                                    style={{
-                                        animation: `fadeInUp 0.4s ease forwards`,
-                                        animationDelay: `${index * 0.1}s`,
-                                        opacity: 0,
-                                    }}
-                                >
-                                    <div className="category-title">
-                                        <span className="category-icon">{category.icon}</span>
-                                        <span>{category.title}</span>
-                                    </div>
-                                    <div className="tech-stack">
-                                        {category.technologies.map((tech) => (
-                                            <span key={tech} className="tech-badge">
-                        {tech}
-                      </span>
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Command 3: ./list_specializations.sh */}
-                {commandStage >= 3 && (
-                    <div className="specializations">
+        <div ref={ref} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+            <TerminalContainer title="developer@portfolio:~/skills$">
+                <div className="skills-content">
+                    {/* Command 1: cat about.txt */}
+                    {commandStage >= 1 && (
                         <div className="skills-command-wrapper">
                             <span className="prompt">$</span>{' '}
                             <span className="typed-command">
-                {typingCommand3}
-                                {commandStage === 3 && typingCommand3.length < command3.length && (
+                                {typingCommand1}
+                                {commandStage === 1 && typingCommand1.length < command1.length && (
                                     <span className="typing-cursor">|</span>
                                 )}
-              </span>
+                            </span>
                         </div>
+                    )}
 
-                        {/* Output 3: Specializations */}
-                        {showOutput3 && (
-                            <div className="skills-output visible">
-                                <div className="spec-list">
-                                    {specializations.map((spec, index) => (
-                                        <div
-                                            key={spec}
-                                            className="spec-item"
-                                            style={{
-                                                animation: `fadeInUp 0.3s ease forwards`,
-                                                animationDelay: `${index * 0.08}s`,
-                                                opacity: 0,
-                                            }}
-                                        >
-                                            {spec}
+                    {/* Output 1: Bio with glitched words */}
+                    {showOutput1 && (
+                        <div className="skills-output" style={{
+                            animation: 'fadeInUp 0.8s ease forwards',
+                            opacity: 0
+                        }}>
+                            <p className="bio-text">
+                                Passionate developer with expertise in <span ref={word1Ref}>artificial intelligence</span> and full-stack
+                                development. I combine <span ref={word2Ref}>cutting-edge</span> AI technologies with robust backend systems to
+                                create <span ref={word3Ref}>innovative</span> solutions. Committed to writing clean, efficient code and staying
+                                current with <span ref={word4Ref}>emerging technologies</span>.
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Command 2: ls -la ./tech_stack/ */}
+                    {commandStage >= 2 && (
+                        <div className="skills-command-wrapper" style={{ marginTop: '20px' }}>
+                            <span className="prompt">$</span>{' '}
+                            <span className="typed-command">
+                                {typingCommand2}
+                                {commandStage === 2 && typingCommand2.length < command2.length && (
+                                    <span className="typing-cursor">|</span>
+                                )}
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Output 2: Skills Grid */}
+                    {showOutput2 && (
+                        <div className="skills-output" style={{
+                            animation: 'fadeInUp 0.8s ease forwards',
+                            opacity: 0
+                        }}>
+                            <div className="skills-grid">
+                                {skillCategories.map((category, index) => (
+                                    <div
+                                        key={category.title}
+                                        className="skill-category"
+                                        style={{
+                                            animation: `fadeInUp 0.6s ease forwards`,
+                                            animationDelay: `${0.2 + index * 0.1}s`,
+                                            opacity: 0,
+                                        }}
+                                    >
+                                        <div className="category-title">
+                                            <span className="category-icon">{category.icon}</span>
+                                            <span>{category.title}</span>
                                         </div>
-                                    ))}
-                                </div>
+                                        <div className="tech-stack">
+                                            {category.technologies.map((tech) => (
+                                                <span key={tech} className="tech-badge">
+                                                    {tech}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
-                        )}
-                    </div>
-                )}
-            </div>
+                        </div>
+                    )}
 
-            <style jsx>{`
-        .skills-content {
-          color: #00ff41;
-        }
+                    {/* Command 3: ./list_specializations.sh with permanent cursor */}
+                    {commandStage >= 3 && (
+                        <div className="specializations">
+                            <div className="skills-command-wrapper">
+                                <span className="prompt">$</span>{' '}
+                                <span className="typed-command">
+                                    {typingCommand3}
+                                    {/* Always show cursor after command is fully typed */}
+                                    {typingCommand3.length === command3.length && (
+                                        <span className="typing-cursor">|</span>
+                                    )}
+                                    {/* Show cursor while typing */}
+                                    {commandStage === 3 && typingCommand3.length < command3.length && (
+                                        <span className="typing-cursor">|</span>
+                                    )}
+                                </span>
+                            </div>
 
-        .skills-command-wrapper {
-          margin-bottom: 12px;
-          display: flex;
-          align-items: baseline;
-        }
+                            {/* Output 3: Specializations */}
+                            {showOutput3 && (
+                                <div className="skills-output" style={{
+                                    animation: 'fadeInUp 1s ease forwards',
+                                    opacity: 0
+                                }}>
+                                    <div className="spec-list">
+                                        {specializations.map((spec, index) => (
+                                            <div
+                                                key={spec}
+                                                className="spec-item"
+                                                style={{
+                                                    animation: `fadeInUp 0.5s ease forwards`,
+                                                    animationDelay: `${0.3 + index * 0.1}s`,
+                                                    opacity: 0,
+                                                }}
+                                            >
+                                                {spec}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
 
-        .typed-command {
-          display: inline;
-          color: #00ff41;
-          font-size: 16px;
-        }
+                <style jsx>{`
+                    .skills-content {
+                        color: #00ff41;
+                    }
 
-        .typing-cursor {
-          display: inline-block;
-          margin-left: 4px;
-          animation: blink 0.7s infinite;
-        }
+                    .skills-command-wrapper {
+                        margin-bottom: 12px;
+                        display: flex;
+                        align-items: baseline;
+                    }
 
-        .skills-output {
-          opacity: 0;
-          display: none;
-          margin-bottom: 20px;
-        }
+                    .typed-command {
+                        display: inline;
+                        color: #00ff41;
+                        font-size: 16px;
+                    }
 
-        .skills-output.visible {
-          display: block;
-          animation: fadeInUp 0.4s ease forwards;
-        }
+                    .typing-cursor {
+                        display: inline-block;
+                        margin-left: 4px;
+                        animation: blink 0.7s infinite;
+                    }
 
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
+                    .skills-output {
+                        display: block;
+                        margin-bottom: 20px;
+                    }
 
-        @keyframes blink {
-          0%,
-          50% {
-            opacity: 1;
-          }
-          51%,
-          100% {
-            opacity: 0;
-          }
-        }
+                    @keyframes fadeInUp {
+                        from {
+                            opacity: 0;
+                            transform: translateY(15px);
+                        }
+                        to {
+                            opacity: 1;
+                            transform: translateY(0);
+                        }
+                    }
 
-        @media (max-width: 768px) {
-          .typed-command {
-            font-size: 14px;
-          }
+                    @keyframes blink {
+                        0%,
+                        50% {
+                            opacity: 1;
+                        }
+                        51%,
+                        100% {
+                            opacity: 0;
+                        }
+                    }
 
-          .bio-text {
-            font-size: 14px;
-          }
-        }
-      `}</style>
-        </TerminalContainer>
+                    @media (max-width: 768px) {
+                        .typed-command {
+                            font-size: 14px;
+                        }
+
+                        .bio-text {
+                            font-size: 14px;
+                        }
+                    }
+                `}</style>
+            </TerminalContainer>
+        </div>
     )
 }
