@@ -19,12 +19,13 @@ export default function ScrollSection({
         const observer = new IntersectionObserver(
             ([entry]) => {
                 if (entry.isIntersecting) {
-                    // Update URL when section comes into view
-                    const newUrl = `/${id}`
+                    // Update URL hash when section comes into view
+                    const newHash = `#${id}`
 
-                    // Only update if the URL is different
-                    if (window.location.pathname !== newUrl) {
-                        window.history.replaceState(null, '', newUrl)
+                    // Only update if the hash is different
+                    if (window.location.hash !== newHash) {
+                        // Use replaceState to update hash without triggering scroll
+                        window.history.replaceState(null, '', newHash)
                     }
                 }
             },
@@ -41,11 +42,12 @@ export default function ScrollSection({
         }
     }, [id])
 
-    // Handle initial page load - scroll to section if URL matches
+    // Handle initial page load - scroll to section if hash matches
     useEffect(() => {
-        const currentPath = window.location.pathname.replace('/', '')
+        // Check if there's a hash in the URL
+        const hash = window.location.hash.replace('#', '')
 
-        if (currentPath === id) {
+        if (hash === id) {
             const section = sectionRef.current
             if (section) {
                 // Small delay to ensure page is fully loaded
