@@ -14,6 +14,12 @@ export interface Particle {
     opacity: number
     isHub: boolean
     pulsePhase: number
+    zone?: {           // NEW: Optional zone constraint for area-restricted particles
+        minX: number
+        maxX: number
+        minY: number
+        maxY: number
+    }
 }
 
 export interface MouseTrailPoint {
