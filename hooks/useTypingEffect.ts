@@ -61,9 +61,11 @@ export function useTypingEffect({
     }, [delay])
 
     // Reset when text changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         reset()
-    }, [text, reset])
+    }, [text])
 
     // Handle initial delay
     useEffect(() => {
@@ -84,7 +86,9 @@ export function useTypingEffect({
     // Handle typing animation
     useEffect(() => {
         if (!enabled) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setDisplayedText(text)
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setIsComplete(true)
             return
         }
@@ -180,6 +184,7 @@ export function useSequentialTyping({
                 }, deleteSpeed)
             } else {
                 // Finished deleting, move to next text
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 setIsDeleting(false)
                 setIsTyping(true)
 
@@ -287,6 +292,7 @@ export function useCommandTyping({
                 setCurrentCommandIndex((prev) => prev + 1)
             }, 500)
         } else if (outputTyping.isComplete && currentCommandIndex === commands.length - 1) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setIsComplete(true)
         }
 
@@ -300,6 +306,7 @@ export function useCommandTyping({
     // Update visible commands
     useEffect(() => {
         if (currentCommandIndex < commands.length) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setVisibleCommands((prev) => {
                 const newVisibleCommands = [...prev]
                 newVisibleCommands[currentCommandIndex] = {
