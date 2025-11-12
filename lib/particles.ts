@@ -13,6 +13,7 @@ export interface Particle {
     speedY: number
     opacity: number
     isHub: boolean
+    isFastParticle: boolean
     pulsePhase: number
     zone?: ParticleZone
 }
@@ -37,16 +38,23 @@ interface ParticleZone {
     maxY: number
 }
 
+interface ClusterZone {
+    x: number
+    y: number
+    radius: number
+    particleCount: number
+}
+
 /* ============================================
    PARTICLE SYSTEM CONFIGURATION
    ============================================ */
 
 export const defaultParticleConfig: ParticleSystemConfig = {
-    numberOfParticles: 90,
+    numberOfParticles: 140, // Increased from 90
     maxTrailLength: 8,
-    connectionDistance: 150,
-    hubConnectionDistance: 180,
-    mouseConnectionDistance: 200,
+    connectionDistance: 180, // Increased from 150
+    hubConnectionDistance: 210, // Increased from 180
+    mouseConnectionDistance: 240, // Increased from 200
 }
 
 /* ============================================
@@ -76,34 +84,89 @@ function createZones(canvasWidth: number, canvasHeight: number): ParticleZone[] 
 }
 
 /* ============================================
+   CLUSTER ZONES - High-density areas
+   ============================================ */
+
+function createClusterZones(canvasWidth: number, canvasHeight: number): ClusterZone[] {
+    return [
+        // Center cluster (around terminal area) - fewer particles, more spread out
+        {
+            x: canvasWidth * 0.5,
+            y: canvasHeight * 0.4,
+            radius: 250, // Increased from 200 for more spread
+            particleCount: 18, // Reduced from 25
+        },
+        // Top-right cluster
+        {
+            x: canvasWidth * 0.8,
+            y: canvasHeight * 0.2,
+            radius: 150,
+            particleCount: 15,
+        },
+        // Bottom-left cluster
+        {
+            x: canvasWidth * 0.2,
+            y: canvasHeight * 0.8,
+            radius: 150,
+            particleCount: 15,
+        },
+        // Bottom-right cluster (NEW)
+        {
+            x: canvasWidth * 0.85,
+            y: canvasHeight * 0.85,
+            radius: 140,
+            particleCount: 14,
+        },
+        // Top-left corner cluster
+        {
+            x: canvasWidth * 0.15,
+            y: canvasHeight * 0.15,
+            radius: 120,
+            particleCount: 12,
+        },
+    ]
+}
+
+/* ============================================
    PARTICLE CREATION WITH ZONES & DEPTH
    ============================================ */
 
-export function createParticle(x: number, y: number, zone?: ParticleZone): Particle {
-    const isHub = Math.random() < 0.15
+export function createParticle(x: number, y: number, zone?: ParticleZone, isFastParticle: boolean = false): Particle {
+    const isHub = Math.random() < 0.20 // Increased from 0.15 to 0.20 (20% hubs)
 
+    // Three distinct depth/speed tiers with more variation
     const depthLayer = Math.random()
     let baseSize: number
     let speed: number
     let opacity: number
 
     if (depthLayer < 0.3) {
-        baseSize = Math.random() * 0.8 + 0.3
-        speed = 0.08
-        opacity = Math.random() * 0.12 + 0.05
+        // Far particles (30%) - tiny and slow (background layer)
+        baseSize = Math.random() * 0.8 + 0.3 // 0.3 to 1.1
+        speed = 0.12 // Slightly increased from 0.08
+        opacity = Math.random() * 0.12 + 0.05 // 0.05 to 0.17
     } else if (depthLayer < 0.7) {
-        baseSize = Math.random() * 1.2 + 0.8
-        speed = 0.15
-        opacity = Math.random() * 0.2 + 0.15
+        // Mid particles (40%) - small to medium (middle layer)
+        baseSize = Math.random() * 1.2 + 0.8 // 0.8 to 2.0
+        speed = 0.20 // Increased from 0.15
+        opacity = Math.random() * 0.2 + 0.15 // 0.15 to 0.35
     } else {
-        baseSize = Math.random() * 1.5 + 1.5
-        speed = 0.25
-        opacity = Math.random() * 0.25 + 0.25
+        // Close particles (30%) - medium size (foreground layer)
+        baseSize = Math.random() * 1.5 + 1.5 // 1.5 to 3.0
+        speed = 0.35 // Increased from 0.25
+        opacity = Math.random() * 0.25 + 0.25 // 0.25 to 0.5
     }
 
+    // Hub particles are 1.5x larger with enhanced glow
     if (isHub) {
-        baseSize = Math.random() * 1.5 + 2.5
-        opacity = Math.random() * 0.3 + 0.3
+        baseSize = (Math.random() * 1.5 + 2.5) * 1.5 // 3.75 to 6.0 (1.5x larger)
+        opacity = Math.random() * 0.3 + 0.4 // 0.4 to 0.7 (brighter)
+    }
+
+    // Fast particles move 3x faster
+    if (isFastParticle) {
+        speed = speed * 3
+        opacity = Math.random() * 0.2 + 0.3 // Slightly dimmer for "shooting star" effect
     }
 
     // Give particles initial velocity so they start moving immediately
@@ -119,6 +182,7 @@ export function createParticle(x: number, y: number, zone?: ParticleZone): Parti
         speedY: initialSpeedY,
         opacity,
         isHub,
+        isFastParticle,
         pulsePhase: Math.random() * Math.PI * 2,
         zone,
     }
@@ -132,13 +196,42 @@ export function initializeParticles(
     const particles: Particle[] = []
     const numParticles = config.numberOfParticles
 
-    const zones = createZones(canvasWidth, canvasHeight)
+    // Create cluster zones for high-density areas
+    const clusterZones = createClusterZones(canvasWidth, canvasHeight)
 
-    const zonedParticleCount = Math.floor(numParticles * 0.6)
+    // Calculate particles for clusters (about 50% of total)
+    let clusterParticleCount = 0
+    clusterZones.forEach(cluster => {
+        clusterParticleCount += cluster.particleCount
+    })
+
+    // Add cluster particles
+    clusterZones.forEach((cluster) => {
+        for (let i = 0; i < cluster.particleCount; i++) {
+            // Random position within cluster radius
+            const angle = Math.random() * Math.PI * 2
+            const distance = Math.random() * cluster.radius
+            const x = cluster.x + Math.cos(angle) * distance
+            const y = cluster.y + Math.sin(angle) * distance
+
+            // Clamp to canvas bounds
+            const clampedX = Math.max(20, Math.min(canvasWidth - 20, x))
+            const clampedY = Math.max(20, Math.min(canvasHeight - 20, y))
+
+            const particle = createParticle(clampedX, clampedY) // No zone = free-roaming
+            particles.push(particle)
+        }
+    })
+
+    // Remaining particles distributed across zones (40% zoned, 10% free-roaming)
+    const remainingParticles = numParticles - clusterParticleCount
+    const zonedParticleCount = Math.floor(remainingParticles * 0.8) // 80% of remaining
+    const zones = createZones(canvasWidth, canvasHeight)
     const particlesPerZone = Math.ceil(zonedParticleCount / zones.length)
 
+    // Distribute zoned particles across all zones
     zones.forEach((zone) => {
-        for (let i = 0; i < particlesPerZone; i++) {
+        for (let i = 0; i < particlesPerZone && particles.length < numParticles - Math.floor(remainingParticles * 0.2); i++) {
             const padding = 20
             const x = zone.minX + padding + Math.random() * (zone.maxX - zone.minX - padding * 2)
             const y = zone.minY + padding + Math.random() * (zone.maxY - zone.minY - padding * 2)
@@ -148,12 +241,17 @@ export function initializeParticles(
         }
     })
 
-    const freeRoamingCount = numParticles - particles.length
-    for (let i = 0; i < freeRoamingCount; i++) {
+    // Add free-roaming particles and fast particles (5% of total are fast)
+    const fastParticleCount = Math.floor(numParticles * 0.05)
+    let fastParticlesAdded = 0
+
+    while (particles.length < numParticles) {
         const x = Math.random() * canvasWidth
         const y = Math.random() * canvasHeight
-        const particle = createParticle(x, y)
+        const isFast = fastParticlesAdded < fastParticleCount
+        const particle = createParticle(x, y, undefined, isFast)
         particles.push(particle)
+        if (isFast) fastParticlesAdded++
     }
 
     return particles
@@ -223,7 +321,11 @@ export function updateParticle(
             particle.speedY += Math.sin(angle) * attractionForce
         }
 
-        const maxSpeed = particle.baseSize > 2 ? 1.8 : (particle.baseSize > 1 ? 1.2 : 0.8)
+        // Different max speeds for different particle types
+        const maxSpeed = particle.isFastParticle
+            ? 3.0
+            : (particle.baseSize > 2 ? 1.8 : (particle.baseSize > 1 ? 1.2 : 0.8))
+
         const speed = Math.sqrt(particle.speedX ** 2 + particle.speedY ** 2)
         if (speed > maxSpeed) {
             particle.speedX = (particle.speedX / speed) * maxSpeed
@@ -233,9 +335,11 @@ export function updateParticle(
         // Reset to base size when mouse is not present
         particle.currentSize = particle.baseSize
 
-        // Maintain constant movement - no slowing down
-        // Ensure particles always have minimum speed based on their depth
-        const minSpeed = particle.baseSize < 1 ? 0.03 : (particle.baseSize < 2 ? 0.08 : 0.15)
+        // Maintain constant movement - ensure minimum speed based on particle type
+        const minSpeed = particle.isFastParticle
+            ? 0.8
+            : (particle.baseSize < 1 ? 0.05 : (particle.baseSize < 2 ? 0.12 : 0.20))
+
         const currentSpeed = Math.sqrt(particle.speedX ** 2 + particle.speedY ** 2)
 
         // If speed is too low, give it a gentle push
@@ -246,16 +350,16 @@ export function updateParticle(
         }
     }
 
-    // Hub particles pulse gently
+    // Hub particles pulse more noticeably
     if (particle.isHub) {
-        particle.pulsePhase += 0.02
-        const pulseFactor = Math.sin(particle.pulsePhase) * 0.08 + 1
+        particle.pulsePhase += 0.03 // Increased from 0.02 for more noticeable pulse
+        const pulseFactor = Math.sin(particle.pulsePhase) * 0.12 + 1 // Increased from 0.08
         particle.currentSize = particle.baseSize * pulseFactor
     }
 }
 
 /* ============================================
-   PARTICLE DRAWING WITH SUBTLE DEPTH BLUR
+   PARTICLE DRAWING WITH DEPTH BLUR
    ============================================ */
 
 export function drawParticle(
@@ -272,8 +376,15 @@ export function drawParticle(
         blurAmount = 5
         glowIntensity = 0.3
     } else {
-        blurAmount = particle.isHub ? 10 : 7
-        glowIntensity = particle.isHub ? 0.5 : 0.4
+        // Enhanced glow for hub particles
+        blurAmount = particle.isHub ? 15 : 7 // Increased from 10
+        glowIntensity = particle.isHub ? 0.7 : 0.4 // Increased from 0.5
+    }
+
+    // Fast particles have trail-like glow
+    if (particle.isFastParticle) {
+        blurAmount = 12
+        glowIntensity = 0.5
     }
 
     ctx.fillStyle = `rgba(0, 255, 65, ${particle.opacity})`
@@ -286,7 +397,7 @@ export function drawParticle(
 }
 
 /* ============================================
-   PARTICLE CONNECTIONS WITH DEPTH AWARENESS
+   PARTICLE CONNECTIONS WITH DYNAMIC THICKNESS
    ============================================ */
 
 export function connectParticles(
@@ -300,25 +411,57 @@ export function connectParticles(
             const dy = particles[a].y - particles[b].y
             const dist = Math.sqrt(dx * dx + dy * dy)
 
-            const maxDist =
-                particles[a].isHub || particles[b].isHub
+            // Hub-to-hub connections are special (strong connections)
+            const bothHubs = particles[a].isHub && particles[b].isHub
+
+            // Determine connection distance
+            const maxDist = bothHubs
+                ? config.hubConnectionDistance * 1.2 // Hub-to-hub can connect further
+                : (particles[a].isHub || particles[b].isHub
                     ? config.hubConnectionDistance
-                    : config.connectionDistance
+                    : config.connectionDistance)
 
             if (dist < maxDist) {
+                // Calculate average size for depth-aware connection opacity
                 const avgSize = (particles[a].baseSize + particles[b].baseSize) / 2
-                const depthOpacity = avgSize < 1 ? 0.08 : (avgSize < 2 ? 0.12 : 0.15)
+                let depthOpacity = avgSize < 1 ? 0.08 : (avgSize < 2 ? 0.12 : 0.15)
+
+                // Hub-to-hub connections are brighter and thicker
+                if (bothHubs) {
+                    depthOpacity *= 1.8 // Much brighter
+                }
 
                 const opacityValue = depthOpacity * (1 - dist / maxDist)
-                const lineWidth =
-                    particles[a].isHub || particles[b].isHub ? 1.0 : 0.7
+
+                // Dynamic line width based on proximity and particle types
+                let lineWidth: number
+                if (bothHubs) {
+                    lineWidth = 1.5 // Thick hub-to-hub connections
+                } else if (particles[a].isHub || particles[b].isHub) {
+                    lineWidth = 1.0
+                } else {
+                    // Vary thickness based on proximity
+                    const proximityFactor = 1 - (dist / maxDist)
+                    lineWidth = 0.5 + (proximityFactor * 0.3) // 0.5 to 0.8
+                }
 
                 ctx.strokeStyle = `rgba(0, 255, 65, ${opacityValue})`
                 ctx.lineWidth = lineWidth
+
+                // Add subtle glow to hub connections
+                if (bothHubs) {
+                    ctx.shadowBlur = 3
+                    ctx.shadowColor = `rgba(0, 255, 65, ${opacityValue * 0.5})`
+                }
+
                 ctx.beginPath()
                 ctx.moveTo(particles[a].x, particles[a].y)
                 ctx.lineTo(particles[b].x, particles[b].y)
                 ctx.stroke()
+
+                if (bothHubs) {
+                    ctx.shadowBlur = 0
+                }
             }
         }
     }
