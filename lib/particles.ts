@@ -50,11 +50,11 @@ interface ClusterZone {
    ============================================ */
 
 export const defaultParticleConfig: ParticleSystemConfig = {
-    numberOfParticles: 140, // Increased from 90
+    numberOfParticles: 200, // Increased from 140 to 200
     maxTrailLength: 8,
-    connectionDistance: 180, // Increased from 150
-    hubConnectionDistance: 210, // Increased from 180
-    mouseConnectionDistance: 240, // Increased from 200
+    connectionDistance: 180,
+    hubConnectionDistance: 210,
+    mouseConnectionDistance: 240,
 }
 
 /* ============================================
@@ -93,8 +93,8 @@ function createClusterZones(canvasWidth: number, canvasHeight: number): ClusterZ
         {
             x: canvasWidth * 0.5,
             y: canvasHeight * 0.4,
-            radius: 250, // Increased from 200 for more spread
-            particleCount: 18, // Reduced from 25
+            radius: 250,
+            particleCount: 18,
         },
         // Top-right cluster
         {
@@ -110,7 +110,7 @@ function createClusterZones(canvasWidth: number, canvasHeight: number): ClusterZ
             radius: 150,
             particleCount: 15,
         },
-        // Bottom-right cluster (NEW)
+        // Bottom-right cluster
         {
             x: canvasWidth * 0.85,
             y: canvasHeight * 0.85,
@@ -131,8 +131,8 @@ function createClusterZones(canvasWidth: number, canvasHeight: number): ClusterZ
    PARTICLE CREATION WITH ZONES & DEPTH
    ============================================ */
 
-export function createParticle(x: number, y: number, zone?: ParticleZone, isFastParticle: boolean = false): Particle {
-    const isHub = Math.random() < 0.20 // Increased from 0.15 to 0.20 (20% hubs)
+export function createParticle(x: number, y: number, zone?: ParticleZone, isFastParticle: boolean = false, isFillerParticle: boolean = false): Particle {
+    const isHub = Math.random() < 0.20 // 20% hubs
 
     // Three distinct depth/speed tiers with more variation
     const depthLayer = Math.random()
@@ -140,25 +140,31 @@ export function createParticle(x: number, y: number, zone?: ParticleZone, isFast
     let speed: number
     let opacity: number
 
-    if (depthLayer < 0.3) {
+    // Filler particles are specifically small to medium
+    if (isFillerParticle) {
+        // Small to medium particles (0.5 to 2.5)
+        baseSize = Math.random() * 2.0 + 0.5
+        speed = 0.15
+        opacity = Math.random() * 0.15 + 0.1 // 0.1 to 0.25 (subtle)
+    } else if (depthLayer < 0.3) {
         // Far particles (30%) - tiny and slow (background layer)
         baseSize = Math.random() * 0.8 + 0.3 // 0.3 to 1.1
-        speed = 0.12 // Slightly increased from 0.08
+        speed = 0.12
         opacity = Math.random() * 0.12 + 0.05 // 0.05 to 0.17
     } else if (depthLayer < 0.7) {
         // Mid particles (40%) - small to medium (middle layer)
         baseSize = Math.random() * 1.2 + 0.8 // 0.8 to 2.0
-        speed = 0.20 // Increased from 0.15
+        speed = 0.20
         opacity = Math.random() * 0.2 + 0.15 // 0.15 to 0.35
     } else {
         // Close particles (30%) - medium size (foreground layer)
         baseSize = Math.random() * 1.5 + 1.5 // 1.5 to 3.0
-        speed = 0.35 // Increased from 0.25
+        speed = 0.35
         opacity = Math.random() * 0.25 + 0.25 // 0.25 to 0.5
     }
 
     // Hub particles are 1.5x larger with enhanced glow
-    if (isHub) {
+    if (isHub && !isFillerParticle) {
         baseSize = (Math.random() * 1.5 + 2.5) * 1.5 // 3.75 to 6.0 (1.5x larger)
         opacity = Math.random() * 0.3 + 0.4 // 0.4 to 0.7 (brighter)
     }
@@ -181,7 +187,7 @@ export function createParticle(x: number, y: number, zone?: ParticleZone, isFast
         speedX: initialSpeedX,
         speedY: initialSpeedY,
         opacity,
-        isHub,
+        isHub: isHub && !isFillerParticle, // Filler particles can't be hubs
         isFastParticle,
         pulsePhase: Math.random() * Math.PI * 2,
         zone,
@@ -199,7 +205,7 @@ export function initializeParticles(
     // Create cluster zones for high-density areas
     const clusterZones = createClusterZones(canvasWidth, canvasHeight)
 
-    // Calculate particles for clusters (about 50% of total)
+    // Calculate particles for clusters
     let clusterParticleCount = 0
     clusterZones.forEach(cluster => {
         clusterParticleCount += cluster.particleCount
@@ -223,15 +229,34 @@ export function initializeParticles(
         }
     })
 
-    // Remaining particles distributed across zones (40% zoned, 10% free-roaming)
+    // Calculate remaining particles to distribute
     const remainingParticles = numParticles - clusterParticleCount
-    const zonedParticleCount = Math.floor(remainingParticles * 0.8) // 80% of remaining
+
+    // 60 additional filler particles distributed evenly across the entire canvas
+    const fillerParticleCount = 60
     const zones = createZones(canvasWidth, canvasHeight)
+    const fillersPerZone = Math.ceil(fillerParticleCount / zones.length) // ~7 per zone
+
+    // Add filler particles to each zone for balanced coverage
+    zones.forEach((zone) => {
+        for (let i = 0; i < fillersPerZone; i++) {
+            const padding = 20
+            const x = zone.minX + padding + Math.random() * (zone.maxX - zone.minX - padding * 2)
+            const y = zone.minY + padding + Math.random() * (zone.maxY - zone.minY - padding * 2)
+
+            const particle = createParticle(x, y, zone, false, true) // Mark as filler particle
+            particles.push(particle)
+        }
+    })
+
+    // Remaining particles distributed as before (zoned and free-roaming)
+    const normalRemainingCount = remainingParticles - fillerParticleCount
+    const zonedParticleCount = Math.floor(normalRemainingCount * 0.8)
     const particlesPerZone = Math.ceil(zonedParticleCount / zones.length)
 
     // Distribute zoned particles across all zones
     zones.forEach((zone) => {
-        for (let i = 0; i < particlesPerZone && particles.length < numParticles - Math.floor(remainingParticles * 0.2); i++) {
+        for (let i = 0; i < particlesPerZone && particles.length < numParticles - Math.floor(normalRemainingCount * 0.2); i++) {
             const padding = 20
             const x = zone.minX + padding + Math.random() * (zone.maxX - zone.minX - padding * 2)
             const y = zone.minY + padding + Math.random() * (zone.maxY - zone.minY - padding * 2)
@@ -314,12 +339,37 @@ export function updateParticle(
             particle.speedY += Math.sin(angle) * force
         }
 
+        // Gentle attraction toward cursor - moves particles at normal speed toward mouse
         if (dist < 300 && dist > 150) {
             const angle = Math.atan2(-dy, -dx)
-            const attractionForce = particle.baseSize > 2 ? 0.008 : 0.003
-            particle.speedX += Math.cos(angle) * attractionForce
-            particle.speedY += Math.sin(angle) * attractionForce
+            // Get the particle's normal base speed for its depth tier
+            const normalSpeed = particle.isFastParticle
+                ? 0.8
+                : (particle.baseSize < 1 ? 0.05 : (particle.baseSize < 2 ? 0.12 : 0.20))
+
+            // Calculate current speed
+            const currentSpeed = Math.sqrt(particle.speedX ** 2 + particle.speedY ** 2)
+
+            // Only adjust direction if particle is already moving at normal speed
+            // This makes it turn toward cursor at its normal movement speed
+            if (currentSpeed > normalSpeed * 0.5) {
+                // Blend current direction with cursor direction (very gentle steering)
+                const blendFactor = 0.02 // How quickly it turns toward cursor
+                const targetSpeedX = Math.cos(angle) * normalSpeed
+                const targetSpeedY = Math.sin(angle) * normalSpeed
+
+                particle.speedX += (targetSpeedX - particle.speedX) * blendFactor
+                particle.speedY += (targetSpeedY - particle.speedY) * blendFactor
+            }
         }
+
+        // ORIGINAL ATTRACTION CODE (COMMENTED OUT)
+        // if (dist < 300 && dist > 150) {
+        //     const angle = Math.atan2(-dy, -dx)
+        //     const attractionForce = particle.baseSize > 2 ? 0.008 : 0.003
+        //     particle.speedX += Math.cos(angle) * attractionForce
+        //     particle.speedY += Math.sin(angle) * attractionForce
+        // }
 
         // Different max speeds for different particle types
         const maxSpeed = particle.isFastParticle
@@ -352,8 +402,8 @@ export function updateParticle(
 
     // Hub particles pulse more noticeably
     if (particle.isHub) {
-        particle.pulsePhase += 0.03 // Increased from 0.02 for more noticeable pulse
-        const pulseFactor = Math.sin(particle.pulsePhase) * 0.12 + 1 // Increased from 0.08
+        particle.pulsePhase += 0.03
+        const pulseFactor = Math.sin(particle.pulsePhase) * 0.12 + 1
         particle.currentSize = particle.baseSize * pulseFactor
     }
 }
@@ -377,8 +427,8 @@ export function drawParticle(
         glowIntensity = 0.3
     } else {
         // Enhanced glow for hub particles
-        blurAmount = particle.isHub ? 15 : 7 // Increased from 10
-        glowIntensity = particle.isHub ? 0.7 : 0.4 // Increased from 0.5
+        blurAmount = particle.isHub ? 15 : 7
+        glowIntensity = particle.isHub ? 0.7 : 0.4
     }
 
     // Fast particles have trail-like glow
