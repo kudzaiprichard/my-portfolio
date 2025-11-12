@@ -621,10 +621,10 @@ button:focus-visible,
 }
 
 /* ============================================
-   GLITCH EFFECTS
+   GLITCH EFFECTS - VINTAGE ONLY
    ============================================ */
 
-/* RGB Split Glitch Animation */
+/* RGB Split Glitch Animation - VINTAGE EFFECT */
 @keyframes glitch-rgb {
   0% {
     text-shadow: 0 0 0 rgba(0, 255, 65, 0);
@@ -669,74 +669,7 @@ button:focus-visible,
   }
 }
 
-/* Scanline Effect */
-@keyframes scanline {
-  0% {
-    transform: translateY(-100%);
-  }
-  100% {
-    transform: translateY(100vh);
-  }
-}
-
-/* Scanline overlay */
-.scanline {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: linear-gradient(
-          to bottom,
-          transparent,
-          var(--color-primary-dimmer),
-          transparent
-  );
-  opacity: 0.1;
-  pointer-events: none;
-  animation: scanline 8s linear infinite;
-  z-index: var(--z-vignette);
-}
-
-/* Text flicker - subtle version that preserves layout */
-.text-flicker-smooth {
-  animation: text-flicker-subtle 0.15s ease-in-out;
-}
-
-@keyframes text-flicker-subtle {
-  0%, 100% {
-    opacity: 1;
-    filter: brightness(1);
-  }
-  25% {
-    opacity: 0.9;
-    filter: brightness(1.1);
-  }
-  50% {
-    opacity: 0.85;
-    filter: brightness(0.95);
-  }
-  75% {
-    opacity: 0.95;
-    filter: brightness(1.05);
-  }
-}
-
-/* Subtle shimmer that doesn't break layout */
-.text-shimmer-smooth {
-  animation: text-shimmer 0.1s ease-in-out;
-}
-
-@keyframes text-shimmer {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.8;
-  }
-}
-
-/* Chromatic aberration effect */
+/* Chromatic aberration effect - VINTAGE EFFECT */
 .chromatic-aberration {
   animation: chromaticAberration 0.2s ease;
 }
@@ -752,32 +685,7 @@ button:focus-visible,
   }
 }
 
-/* Scan line pass effect */
-.scan-line-pass {
-  animation: scanLine 0.4s ease;
-}
-
-@keyframes scanLine {
-  0% {
-    box-shadow: 0 -100% 0 0 rgba(0, 255, 65, 0.3) inset;
-  }
-  100% {
-    box-shadow: 0 100% 0 0 rgba(0, 255, 65, 0.3) inset;
-  }
-}
-
-/* Wave distortion effect */
-.wave-distortion {
-  animation: waveDistort 0.3s ease;
-}
-
-@keyframes waveDistort {
-  0%, 100% { transform: skewX(0deg); }
-  25% { transform: skewX(2deg); }
-  75% { transform: skewX(-2deg); }
-}
-
-/* Digital noise effect */
+/* Digital noise effect - VINTAGE EFFECT */
 .digital-noise {
   animation: digitalNoise 0.18s ease;
 }
@@ -785,44 +693,6 @@ button:focus-visible,
 @keyframes digitalNoise {
   0%, 100% { filter: contrast(1); }
   50% { filter: contrast(1.2); }
-}
-
-/* Screen shake for intense glitch moments */
-@keyframes screen-shake {
-  0%, 100% {
-    transform: translate(0, 0);
-  }
-  10% {
-    transform: translate(-1px, 1px);
-  }
-  20% {
-    transform: translate(1px, -1px);
-  }
-  30% {
-    transform: translate(-1px, -1px);
-  }
-  40% {
-    transform: translate(1px, 1px);
-  }
-  50% {
-    transform: translate(-1px, 1px);
-  }
-  60% {
-    transform: translate(1px, -1px);
-  }
-  70% {
-    transform: translate(-1px, -1px);
-  }
-  80% {
-    transform: translate(1px, 1px);
-  }
-  90% {
-    transform: translate(-1px, 1px);
-  }
-}
-
-.screen-shake {
-  animation: screen-shake 0.3s ease-in-out;
 }
 
 /* Preserve white-space for pre-formatted text */
@@ -837,6 +707,46 @@ button:focus-visible,
 .skills-content .glitch-text,
 .typed-command {
   white-space: pre-wrap;
+}
+
+/* ============================================
+   GLITCH CHARACTER WRAPPER - OVERLAY METHOD
+   ============================================ */
+
+/* Container for each character with glitch overlay */
+.glitch-char-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* The original character (always visible, maintains layout) */
+.glitch-char-original {
+  visibility: visible;
+  color: var(--color-primary);
+}
+
+/* The glitch overlay (positioned absolutely, doesn't affect layout) */
+.glitch-char-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  color: var(--color-primary);
+  opacity: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* When glitching, hide original and show overlay */
+.glitch-char-wrapper.glitching .glitch-char-original {
+  opacity: 0;
+}
+
+.glitch-char-wrapper.glitching .glitch-char-overlay {
+  opacity: 1;
 }
 
 /* ============================================

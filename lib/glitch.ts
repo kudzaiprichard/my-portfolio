@@ -13,6 +13,9 @@ export interface GlitchConfig {
     textFlickerInterval?: number
     charGlitchChance?: number
     intensity?: 'low' | 'medium' | 'high'
+    // Custom interval overrides
+    singleCharInterval?: number
+    multiCharInterval?: number
 }
 
 export const defaultGlitchConfig: GlitchConfig = {
@@ -29,28 +32,31 @@ const intensityPresets = {
         singleCharInterval: 3000,    // Every 3 seconds
         multiCharInterval: 6000,     // Every 6 seconds
         numChars: 1,                 // 1 character at a time
-        duration: 100,               // Show for 100ms
+        duration: 800,               // Show glitch char for 800ms (increased for readability)
+        displayDuration: 600,        // Time glitch char is visible before restoring
     },
     medium: {
         singleCharInterval: 1500,    // Every 1.5 seconds
         multiCharInterval: 3000,     // Every 3 seconds
         numChars: 2,                 // 2-3 characters at a time
-        duration: 120,               // Show for 120ms
+        duration: 900,               // Show glitch char for 900ms
+        displayDuration: 700,        // Time glitch char is visible
     },
     high: {
         singleCharInterval: 800,     // Every 0.8 seconds
         multiCharInterval: 1800,     // Every 1.8 seconds
         numChars: 3,                 // 3-5 characters at a time
-        duration: 150,               // Show for 150ms
+        duration: 1000,              // Show glitch char for 1000ms
+        displayDuration: 800,        // Time glitch char is visible
     },
 }
 
 /* ============================================
-   CSS-BASED GLITCH EFFECTS
+   CSS-BASED GLITCH EFFECTS (VINTAGE ONLY)
    ============================================ */
 
 /**
- * Applies RGB split glitch effect (CSS animation only)
+ * Applies RGB split glitch effect (CSS animation only) - VINTAGE EFFECT
  */
 export function applyTextGlitch(element: HTMLElement, duration: number = 150): void {
     element.style.animation = `glitch-rgb ${duration}ms ease-in-out`
@@ -72,23 +78,7 @@ export function applyBorderGlitch(element: HTMLElement, duration: number = 150):
 }
 
 /**
- * Subtle flicker effect (CSS-only)
- */
-export function subtleFlicker(element: HTMLElement): void {
-    element.classList.add('text-flicker-smooth')
-    setTimeout(() => element.classList.remove('text-flicker-smooth'), 200)
-}
-
-/**
- * Shimmer text effect (CSS-only)
- */
-export function shimmerText(element: HTMLElement): void {
-    element.classList.add('text-shimmer-smooth')
-    setTimeout(() => element.classList.remove('text-shimmer-smooth'), 150)
-}
-
-/**
- * Chromatic aberration effect (CSS-only, looks like character glitching)
+ * Chromatic aberration effect (CSS-only) - VINTAGE EFFECT
  */
 export function chromaticAberration(element: HTMLElement): void {
     element.classList.add('chromatic-aberration')
@@ -96,23 +86,7 @@ export function chromaticAberration(element: HTMLElement): void {
 }
 
 /**
- * Scan line pass effect
- */
-export function scanLineEffect(element: HTMLElement): void {
-    element.classList.add('scan-line-pass')
-    setTimeout(() => element.classList.remove('scan-line-pass'), 400)
-}
-
-/**
- * Wave distortion effect
- */
-export function waveDistortion(element: HTMLElement): void {
-    element.classList.add('wave-distortion')
-    setTimeout(() => element.classList.remove('wave-distortion'), 300)
-}
-
-/**
- * Digital noise overlay
+ * Digital noise overlay - VINTAGE EFFECT
  */
 export function digitalNoise(element: HTMLElement): void {
     element.classList.add('digital-noise')
@@ -120,98 +94,199 @@ export function digitalNoise(element: HTMLElement): void {
 }
 
 /* ============================================
-   CHARACTER REPLACEMENT GLITCH EFFECTS
+   CHARACTER REPLACEMENT GLITCH EFFECTS - WITH VINTAGE
    ============================================ */
 
 /**
- * SMOOTH single character replacement - uses RAF for smoothness
+ * Wraps each character with overlay divs for glitch replacement
+ * Original character stays in place, glitch appears as overlay
+ * PRESERVES SPACES - doesn't wrap them
  */
-export function smoothCharacterGlitch(element: HTMLElement, duration: number = 120): void {
+function wrapCharactersWithOverlay(element: HTMLElement): void {
+    // Check if already wrapped
+    if (element.dataset.glitchWrapped === 'true') return
+
     const text = element.textContent || ''
-    if (text.length === 0) return
+    const fragment = document.createDocumentFragment()
 
-    // Pick one random position (skip spaces)
-    let randomPos
-    let attempts = 0
-    do {
-        randomPos = Math.floor(Math.random() * text.length)
-        attempts++
-    } while (text[randomPos].trim() === '' && attempts < 10)
+    // Wrap each character
+    for (let i = 0; i < text.length; i++) {
+        const char = text[i]
 
-    if (text[randomPos].trim() === '') return
+        // If it's a space, just add it as text node (don't wrap)
+        if (char === ' ') {
+            fragment.appendChild(document.createTextNode(' '))
+            continue
+        }
+
+        // Create wrapper for non-space characters
+        const wrapper = document.createElement('span')
+        wrapper.className = 'glitch-char-wrapper'
+        wrapper.dataset.charIndex = i.toString()
+
+        // Create original character (maintains layout)
+        const original = document.createElement('span')
+        original.className = 'glitch-char-original'
+        original.textContent = char
+        original.dataset.originalChar = char
+
+        // Create overlay (for glitch character)
+        const overlay = document.createElement('span')
+        overlay.className = 'glitch-char-overlay'
+        overlay.textContent = char // Initially same as original
+
+        wrapper.appendChild(original)
+        wrapper.appendChild(overlay)
+        fragment.appendChild(wrapper)
+    }
+
+    // Clear and replace
+    element.innerHTML = ''
+    element.appendChild(fragment)
+    element.dataset.glitchWrapped = 'true'
+}
+
+/**
+ * SMOOTH single character replacement using overlay method
+ * WITH VINTAGE EFFECTS applied during character change
+ */
+export function smoothCharacterGlitch(element: HTMLElement, duration: number = 800, displayDuration: number = 600): void {
+    // Wrap if not already wrapped
+    wrapCharactersWithOverlay(element)
+
+    const wrappers = element.querySelectorAll('.glitch-char-wrapper')
+    if (wrappers.length === 0) return
+
+    // Find non-space characters
+    const nonSpaceWrappers: HTMLElement[] = []
+    wrappers.forEach((wrapper) => {
+        const original = wrapper.querySelector('.glitch-char-original')
+        if (original && (original.textContent || '').trim() !== '') {
+            nonSpaceWrappers.push(wrapper as HTMLElement)
+        }
+    })
+
+    if (nonSpaceWrappers.length === 0) return
+
+    // Pick random wrapper
+    const randomWrapper = nonSpaceWrappers[Math.floor(Math.random() * nonSpaceWrappers.length)]
+    const overlay = randomWrapper.querySelector('.glitch-char-overlay') as HTMLElement
+
+    if (!overlay) return
 
     const glitchChars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノ!@#$%^&*█▓▒░'
     const randomChar = glitchChars[Math.floor(Math.random() * glitchChars.length)]
+    const original = randomWrapper.querySelector('.glitch-char-original') as HTMLElement
+    const originalChar = original?.dataset.originalChar || original?.textContent || ''
 
-    const originalText = text
-    const glitchedText = text.substring(0, randomPos) + randomChar + text.substring(randomPos + 1)
-
-    // Use requestAnimationFrame for smooth rendering
+    // PHASE 1: Apply vintage effect WHEN changing to glitch character
     requestAnimationFrame(() => {
-        element.textContent = glitchedText
+        // Apply vintage effects to the entire element
+        applyTextGlitch(element, 150)
+        digitalNoise(element)
 
-        // Restore after delay using RAF
+        // Show glitch character
+        overlay.textContent = randomChar
+        randomWrapper.classList.add('glitching')
+
+        // PHASE 2: Keep glitch character visible for displayDuration (user can read it)
         setTimeout(() => {
+            // PHASE 3: Apply vintage effect WHEN restoring original character
             requestAnimationFrame(() => {
-                if (element.textContent === glitchedText) {
-                    element.textContent = originalText
-                }
+                applyTextGlitch(element, 150)
+                chromaticAberration(element)
+
+                // Restore original character
+                overlay.textContent = originalChar
+                randomWrapper.classList.remove('glitching')
             })
-        }, duration)
+        }, displayDuration)
     })
 }
 
 /**
- * SMOOTH multi-character replacement - glitches multiple characters smoothly
+ * SMOOTH multi-character replacement using overlay method
+ * WITH VINTAGE EFFECTS applied during character changes
  */
 export function smoothMultiCharGlitch(
     element: HTMLElement,
     numChars: number = 2,
-    duration: number = 150
+    duration: number = 900,
+    displayDuration: number = 700
 ): void {
-    const text = element.textContent || ''
-    if (text.length < 2) return
+    // Wrap if not already wrapped
+    wrapCharactersWithOverlay(element)
+
+    const wrappers = element.querySelectorAll('.glitch-char-wrapper')
+    if (wrappers.length < 2) return
 
     const glitchChars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノ!@#$%^&*█▓▒░'
-    const actualNumChars = Math.min(numChars + Math.floor(Math.random() * 2), text.length)
+    const actualNumChars = Math.min(numChars + Math.floor(Math.random() * 2), wrappers.length)
 
-    const positions: number[] = []
+    // Find non-space characters
+    const nonSpaceWrappers: HTMLElement[] = []
+    wrappers.forEach((wrapper) => {
+        const original = wrapper.querySelector('.glitch-char-original')
+        if (original && (original.textContent || '').trim() !== '') {
+            nonSpaceWrappers.push(wrapper as HTMLElement)
+        }
+    })
+
+    if (nonSpaceWrappers.length === 0) return
+
+    // Pick random positions
+    const selectedWrappers: HTMLElement[] = []
+    const overlays: HTMLElement[] = []
+    const originals: HTMLElement[] = []
+    const originalChars: string[] = []
     const replacements: string[] = []
 
-    // Pick random positions (avoid spaces)
     let attempts = 0
-    while (positions.length < actualNumChars && attempts < actualNumChars * 3) {
-        const pos = Math.floor(Math.random() * text.length)
-        if (text[pos].trim() !== '' && !positions.includes(pos)) {
-            positions.push(pos)
-            replacements.push(glitchChars[Math.floor(Math.random() * glitchChars.length)])
+    while (selectedWrappers.length < Math.min(actualNumChars, nonSpaceWrappers.length) && attempts < actualNumChars * 3) {
+        const randomWrapper = nonSpaceWrappers[Math.floor(Math.random() * nonSpaceWrappers.length)]
+        if (!selectedWrappers.includes(randomWrapper)) {
+            const overlay = randomWrapper.querySelector('.glitch-char-overlay') as HTMLElement
+            const original = randomWrapper.querySelector('.glitch-char-original') as HTMLElement
+
+            if (overlay && original) {
+                selectedWrappers.push(randomWrapper)
+                overlays.push(overlay)
+                originals.push(original)
+                originalChars.push(original.dataset.originalChar || original.textContent || '')
+                replacements.push(glitchChars[Math.floor(Math.random() * glitchChars.length)])
+            }
         }
         attempts++
     }
 
-    if (positions.length === 0) return
+    if (selectedWrappers.length === 0) return
 
-    // Build glitched text
-    const originalText = text
-    const glitchedArray = text.split('')
-
-    positions.forEach((pos, idx) => {
-        glitchedArray[pos] = replacements[idx]
-    })
-
-    const finalGlitchedText = glitchedArray.join('')
-
-    // Apply with RAF for smoothness
+    // PHASE 1: Apply vintage effect WHEN changing to glitch characters
     requestAnimationFrame(() => {
-        element.textContent = finalGlitchedText
+        // Apply vintage effects to the entire element
+        applyTextGlitch(element, 150)
+        digitalNoise(element)
 
+        // Show glitch characters
+        selectedWrappers.forEach((wrapper, idx) => {
+            overlays[idx].textContent = replacements[idx]
+            wrapper.classList.add('glitching')
+        })
+
+        // PHASE 2: Keep glitch characters visible for displayDuration (user can read them)
         setTimeout(() => {
+            // PHASE 3: Apply vintage effect WHEN restoring original characters
             requestAnimationFrame(() => {
-                if (element.textContent === finalGlitchedText) {
-                    element.textContent = originalText
-                }
+                applyTextGlitch(element, 150)
+                chromaticAberration(element)
+
+                // Restore original characters
+                selectedWrappers.forEach((wrapper, idx) => {
+                    overlays[idx].textContent = originalChars[idx]
+                    wrapper.classList.remove('glitching')
+                })
             })
-        }, duration)
+        }, displayDuration)
     })
 }
 
@@ -222,13 +297,18 @@ export function smoothMultiCharGlitch(
 /**
  * START CHARACTER GLITCH - Flexible for any element
  * Can be used on words, paragraphs, headings, spans, etc.
+ * NOW WITH VINTAGE EFFECTS SYNCHRONIZED TO CHARACTER CHANGES
  *
  * @param element - The HTML element to apply glitch effects to
- * @param config - Configuration options including intensity
+ * @param config - Configuration options including intensity and custom intervals
  * @returns Cleanup function to stop all glitch intervals
  *
  * @example
- * const cleanup = startCharacterGlitch(element, { intensity: 'high' })
+ * const cleanup = startCharacterGlitch(element, {
+ *   intensity: 'low',
+ *   singleCharInterval: 30000,
+ *   multiCharInterval: 60000
+ * })
  * // Later: cleanup() to stop glitching
  */
 export function startCharacterGlitch(
@@ -239,38 +319,27 @@ export function startCharacterGlitch(
     const preset = intensityPresets[fullConfig.intensity || 'medium']
     const intervals: NodeJS.Timeout[] = []
 
-    // Single character glitch
+    // Wrap characters immediately
+    wrapCharactersWithOverlay(element)
+
+    // Use custom intervals if provided, otherwise use preset values
+    const singleInterval = config.singleCharInterval ?? preset.singleCharInterval
+    const multiInterval = config.multiCharInterval ?? preset.multiCharInterval
+
+    // Single character glitch with vintage effects
     intervals.push(
         setInterval(() => {
-            smoothCharacterGlitch(element, preset.duration)
-        }, preset.singleCharInterval)
+            smoothCharacterGlitch(element, preset.duration, preset.displayDuration)
+        }, singleInterval)
     )
 
-    // Multi-character glitch
+    // Multi-character glitch with vintage effects
     intervals.push(
         setInterval(() => {
             if (Math.random() < 0.7) {
-                smoothMultiCharGlitch(element, preset.numChars, preset.duration)
+                smoothMultiCharGlitch(element, preset.numChars, preset.duration, preset.displayDuration)
             }
-        }, preset.multiCharInterval)
-    )
-
-    // RGB split effect
-    intervals.push(
-        setInterval(() => {
-            if (Math.random() < 0.5) {
-                applyTextGlitch(element, 150)
-            }
-        }, fullConfig.textGlitchInterval || 8000)
-    )
-
-    // Chromatic aberration (looks like glitching without changing text)
-    intervals.push(
-        setInterval(() => {
-            if (Math.random() < 0.4) {
-                chromaticAberration(element)
-            }
-        }, 3500)
+        }, multiInterval)
     )
 
     return () => {
@@ -279,7 +348,7 @@ export function startCharacterGlitch(
 }
 
 /**
- * SMOOTH periodic glitch - CSS-only, no character replacement
+ * SMOOTH periodic glitch - VINTAGE EFFECTS ONLY (no character replacement)
  * Use this for elements you DON'T want character replacement on
  *
  * @param element - The HTML element to apply CSS glitch effects to
@@ -292,7 +361,7 @@ export function startPeriodicGlitch(
 ): () => void {
     const intervals: NodeJS.Timeout[] = []
 
-    // RGB glitch effect
+    // RGB glitch effect - VINTAGE
     intervals.push(
         setInterval(() => {
             if (Math.random() < 0.5) {
@@ -301,7 +370,7 @@ export function startPeriodicGlitch(
         }, config.textGlitchInterval || 8000)
     )
 
-    // Chromatic aberration
+    // Chromatic aberration - VINTAGE
     intervals.push(
         setInterval(() => {
             if (Math.random() < 0.6) {
@@ -310,43 +379,7 @@ export function startPeriodicGlitch(
         }, 2500)
     )
 
-    // Shimmer effect
-    intervals.push(
-        setInterval(() => {
-            if (Math.random() < 0.5) {
-                shimmerText(element)
-            }
-        }, 3000)
-    )
-
-    // Subtle flicker
-    intervals.push(
-        setInterval(() => {
-            if (Math.random() < 0.4) {
-                subtleFlicker(element)
-            }
-        }, 4000)
-    )
-
-    // Scan line effect
-    intervals.push(
-        setInterval(() => {
-            if (Math.random() < 0.3) {
-                scanLineEffect(element)
-            }
-        }, 5000)
-    )
-
-    // Wave distortion
-    intervals.push(
-        setInterval(() => {
-            if (Math.random() < 0.25) {
-                waveDistortion(element)
-            }
-        }, 6000)
-    )
-
-    // Digital noise
+    // Digital noise - VINTAGE
     intervals.push(
         setInterval(() => {
             if (Math.random() < 0.4) {
@@ -385,16 +418,6 @@ export function startBorderGlitch(
    ============================================ */
 
 /**
- * Creates screen shake effect
- */
-export function screenShake(duration: number = 300): void {
-    document.body.style.animation = `screen-shake ${duration}ms ease-in-out`
-    setTimeout(() => {
-        document.body.style.animation = ''
-    }, duration)
-}
-
-/**
  * Random glitch trigger - applies random effect to random element
  */
 export function randomGlitchEvent(elements: HTMLElement[]): void {
@@ -403,8 +426,8 @@ export function randomGlitchEvent(elements: HTMLElement[]): void {
     if (randomElement) {
         const effects = [
             () => applyTextGlitch(randomElement),
-            () => shimmerText(randomElement),
             () => chromaticAberration(randomElement),
+            () => digitalNoise(randomElement),
             () => smoothCharacterGlitch(randomElement),
         ]
 
