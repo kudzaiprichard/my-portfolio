@@ -1,12 +1,48 @@
 // lib/particles.ts
-import type { Particle, MouseTrailPoint, ParticleSystemConfig } from '@/types'
+
+/* ============================================
+   TYPE DEFINITIONS
+   ============================================ */
+
+export interface Particle {
+    x: number
+    y: number
+    baseSize: number
+    currentSize: number
+    speedX: number
+    speedY: number
+    opacity: number
+    isHub: boolean
+    pulsePhase: number
+    zone?: ParticleZone
+}
+
+export interface MouseTrailPoint {
+    x: number
+    y: number
+}
+
+export interface ParticleSystemConfig {
+    numberOfParticles: number
+    maxTrailLength: number
+    connectionDistance: number
+    hubConnectionDistance: number
+    mouseConnectionDistance: number
+}
+
+interface ParticleZone {
+    minX: number
+    maxX: number
+    minY: number
+    maxY: number
+}
 
 /* ============================================
    PARTICLE SYSTEM CONFIGURATION
    ============================================ */
 
 export const defaultParticleConfig: ParticleSystemConfig = {
-    numberOfParticles: 90, // Increased for better coverage
+    numberOfParticles: 90,
     maxTrailLength: 8,
     connectionDistance: 150,
     hubConnectionDistance: 180,
@@ -17,15 +53,7 @@ export const defaultParticleConfig: ParticleSystemConfig = {
    PARTICLE ZONES - Keep particles in areas
    ============================================ */
 
-interface ParticleZone {
-    minX: number
-    maxX: number
-    minY: number
-    maxY: number
-}
-
 function createZones(canvasWidth: number, canvasHeight: number): ParticleZone[] {
-    // Divide screen into 9 zones (3x3 grid)
     const cols = 3
     const rows = 3
     const zoneWidth = canvasWidth / cols
@@ -52,56 +80,50 @@ function createZones(canvasWidth: number, canvasHeight: number): ParticleZone[] 
    ============================================ */
 
 export function createParticle(x: number, y: number, zone?: ParticleZone): Particle {
-    const isHub = Math.random() < 0.15 // 15% chance to be a hub particle
+    const isHub = Math.random() < 0.15
 
-    // Create subtle depth layers - sizes are smaller and more varied
     const depthLayer = Math.random()
     let baseSize: number
     let speed: number
     let opacity: number
 
     if (depthLayer < 0.3) {
-        // Far particles (30%) - tiny and slow (background layer)
-        baseSize = Math.random() * 0.8 + 0.3 // 0.3 to 1.1
+        baseSize = Math.random() * 0.8 + 0.3
         speed = 0.08
-        opacity = Math.random() * 0.12 + 0.05 // 0.05 to 0.17 (very dim)
+        opacity = Math.random() * 0.12 + 0.05
     } else if (depthLayer < 0.7) {
-        // Mid particles (40%) - small to medium (middle layer)
-        baseSize = Math.random() * 1.2 + 0.8 // 0.8 to 2.0
+        baseSize = Math.random() * 1.2 + 0.8
         speed = 0.15
-        opacity = Math.random() * 0.2 + 0.15 // 0.15 to 0.35 (medium)
+        opacity = Math.random() * 0.2 + 0.15
     } else {
-        // Close particles (30%) - medium size (foreground layer)
-        baseSize = Math.random() * 1.5 + 1.5 // 1.5 to 3.0
+        baseSize = Math.random() * 1.5 + 1.5
         speed = 0.25
-        opacity = Math.random() * 0.25 + 0.25 // 0.25 to 0.5 (brighter)
+        opacity = Math.random() * 0.25 + 0.25
     }
 
-    // Hub particles are slightly larger but not huge
     if (isHub) {
-        baseSize = Math.random() * 1.5 + 2.5 // 2.5 to 4.0 (prominent but not massive)
-        opacity = Math.random() * 0.3 + 0.3 // 0.3 to 0.6 (clearly visible)
+        baseSize = Math.random() * 1.5 + 2.5
+        opacity = Math.random() * 0.3 + 0.3
     }
+
+    // Give particles initial velocity so they start moving immediately
+    const initialSpeedX = (Math.random() - 0.5) * speed
+    const initialSpeedY = (Math.random() - 0.5) * speed
 
     return {
         x,
         y,
         baseSize,
-        currentSize: baseSize, // Start with full size immediately
-        speedX: (Math.random() - 0.5) * speed,
-        speedY: (Math.random() - 0.5) * speed,
+        currentSize: baseSize,
+        speedX: initialSpeedX,
+        speedY: initialSpeedY,
         opacity,
         isHub,
         pulsePhase: Math.random() * Math.PI * 2,
-        zone, // Optional: undefined means free-roaming
+        zone,
     }
 }
 
-/**
- * Initialize particles with mixed zoned and free-roaming distribution
- * 60% of particles are zoned (stay in their area)
- * 40% are free-roaming (can go anywhere)
- */
 export function initializeParticles(
     canvasWidth: number,
     canvasHeight: number,
@@ -110,17 +132,13 @@ export function initializeParticles(
     const particles: Particle[] = []
     const numParticles = config.numberOfParticles
 
-    // Create zones (3x3 grid = 9 zones)
     const zones = createZones(canvasWidth, canvasHeight)
 
-    // 60% zoned particles (ensure coverage in all areas)
     const zonedParticleCount = Math.floor(numParticles * 0.6)
     const particlesPerZone = Math.ceil(zonedParticleCount / zones.length)
 
-    // Distribute zoned particles across all zones
     zones.forEach((zone) => {
         for (let i = 0; i < particlesPerZone; i++) {
-            // Random position within the zone with padding from edges
             const padding = 20
             const x = zone.minX + padding + Math.random() * (zone.maxX - zone.minX - padding * 2)
             const y = zone.minY + padding + Math.random() * (zone.maxY - zone.minY - padding * 2)
@@ -130,12 +148,11 @@ export function initializeParticles(
         }
     })
 
-    // 40% free-roaming particles (can move anywhere)
     const freeRoamingCount = numParticles - particles.length
     for (let i = 0; i < freeRoamingCount; i++) {
         const x = Math.random() * canvasWidth
         const y = Math.random() * canvasHeight
-        const particle = createParticle(x, y) // No zone = free-roaming
+        const particle = createParticle(x, y)
         particles.push(particle)
     }
 
@@ -154,25 +171,20 @@ export function updateParticle(
     mouseY: number | null,
     mouseClickEffect: boolean = false
 ): void {
-    // Update position
+    // Update position - particles always move
     particle.x += particle.speedX
     particle.y += particle.speedY
 
-    // Bounce off edges - different behavior for zoned vs free-roaming
     if (particle.zone) {
-        // ZONED PARTICLE - stays within its zone
         if (particle.x < particle.zone.minX || particle.x > particle.zone.maxX) {
             particle.speedX = -particle.speedX
-            // Clamp to zone boundaries
             particle.x = Math.max(particle.zone.minX, Math.min(particle.zone.maxX, particle.x))
         }
         if (particle.y < particle.zone.minY || particle.y > particle.zone.maxY) {
             particle.speedY = -particle.speedY
-            // Clamp to zone boundaries
             particle.y = Math.max(particle.zone.minY, Math.min(particle.zone.maxY, particle.y))
         }
     } else {
-        // FREE-ROAMING PARTICLE - bounces off canvas edges
         if (particle.x < 0 || particle.x > canvasWidth) {
             particle.speedX = -particle.speedX
             particle.x = Math.max(0, Math.min(canvasWidth, particle.x))
@@ -183,7 +195,6 @@ export function updateParticle(
         }
     }
 
-    // Mouse interaction - GENTLE growth near cursor (depth-aware)
     if (mouseX !== null && mouseY !== null) {
         const dx = particle.x - mouseX
         const dy = particle.y - mouseY
@@ -191,33 +202,27 @@ export function updateParticle(
 
         if (dist < 150) {
             const influence = 1 - dist / 150
-            // Larger particles (closer) react more to mouse
             const growthFactor = particle.baseSize > 2 ? 0.4 : 0.25
             particle.currentSize = particle.baseSize + influence * particle.baseSize * growthFactor
         } else {
             particle.currentSize = particle.baseSize
         }
 
-        // GENTLE ripple away effect on click (depth-aware)
         if (mouseClickEffect && dist < 250) {
             const angle = Math.atan2(dy, dx)
-            // Larger particles (closer) move more dramatically
             const depthFactor = particle.baseSize > 2 ? 2.5 : (particle.baseSize > 1 ? 1.5 : 1)
             const force = (1 - dist / 250) * depthFactor
             particle.speedX += Math.cos(angle) * force
             particle.speedY += Math.sin(angle) * force
         }
 
-        // VERY SUBTLE attraction when hovering (depth-aware)
         if (dist < 300 && dist > 150) {
             const angle = Math.atan2(-dy, -dx)
-            // Smaller particles (farther) are less affected
             const attractionForce = particle.baseSize > 2 ? 0.008 : 0.003
             particle.speedX += Math.cos(angle) * attractionForce
             particle.speedY += Math.sin(angle) * attractionForce
         }
 
-        // Limit speed to prevent harsh movements (depth-aware max speed)
         const maxSpeed = particle.baseSize > 2 ? 1.8 : (particle.baseSize > 1 ? 1.2 : 0.8)
         const speed = Math.sqrt(particle.speedX ** 2 + particle.speedY ** 2)
         if (speed > maxSpeed) {
@@ -228,17 +233,16 @@ export function updateParticle(
         // Reset to base size when mouse is not present
         particle.currentSize = particle.baseSize
 
-        // Gradually slow down particles when mouse leaves
-        particle.speedX *= 0.99
-        particle.speedY *= 0.99
-
-        // Maintain gentle minimum movement based on particle depth
+        // Maintain constant movement - no slowing down
+        // Ensure particles always have minimum speed based on their depth
         const minSpeed = particle.baseSize < 1 ? 0.03 : (particle.baseSize < 2 ? 0.08 : 0.15)
-        if (Math.abs(particle.speedX) < minSpeed) {
-            particle.speedX = (Math.random() - 0.5) * (minSpeed * 2)
-        }
-        if (Math.abs(particle.speedY) < minSpeed) {
-            particle.speedY = (Math.random() - 0.5) * (minSpeed * 2)
+        const currentSpeed = Math.sqrt(particle.speedX ** 2 + particle.speedY ** 2)
+
+        // If speed is too low, give it a gentle push
+        if (currentSpeed < minSpeed) {
+            const angle = Math.atan2(particle.speedY, particle.speedX)
+            particle.speedX = Math.cos(angle) * minSpeed
+            particle.speedY = Math.sin(angle) * minSpeed
         }
     }
 
@@ -258,20 +262,16 @@ export function drawParticle(
     ctx: CanvasRenderingContext2D,
     particle: Particle
 ): void {
-    // Subtle depth-based blur (smaller particles = more blur = farther)
     let blurAmount: number
     let glowIntensity: number
 
     if (particle.baseSize < 1) {
-        // Far particles - subtle blur
         blurAmount = 3
         glowIntensity = 0.2
     } else if (particle.baseSize < 2) {
-        // Mid particles - medium blur
         blurAmount = 5
         glowIntensity = 0.3
     } else {
-        // Close particles - sharp with strong glow
         blurAmount = particle.isHub ? 10 : 7
         glowIntensity = particle.isHub ? 0.5 : 0.4
     }
@@ -300,20 +300,18 @@ export function connectParticles(
             const dy = particles[a].y - particles[b].y
             const dist = Math.sqrt(dx * dx + dy * dy)
 
-            // Hub particles have longer connection distance
             const maxDist =
                 particles[a].isHub || particles[b].isHub
                     ? config.hubConnectionDistance
                     : config.connectionDistance
 
             if (dist < maxDist) {
-                // Calculate average size for depth-aware connection opacity
                 const avgSize = (particles[a].baseSize + particles[b].baseSize) / 2
-                const depthOpacity = avgSize < 1 ? 0.04 : (avgSize < 2 ? 0.06 : 0.08)
+                const depthOpacity = avgSize < 1 ? 0.08 : (avgSize < 2 ? 0.12 : 0.15)
 
                 const opacityValue = depthOpacity * (1 - dist / maxDist)
                 const lineWidth =
-                    particles[a].isHub || particles[b].isHub ? 0.8 : 0.5
+                    particles[a].isHub || particles[b].isHub ? 1.0 : 0.7
 
                 ctx.strokeStyle = `rgba(0, 255, 65, ${opacityValue})`
                 ctx.lineWidth = lineWidth
@@ -376,23 +374,20 @@ export function connectToMouse(
     mouseY: number,
     config: ParticleSystemConfig = defaultParticleConfig
 ): void {
-    // Draw connections to particles with enhanced glow
     for (let i = 0; i < particles.length; i++) {
         const dx = particles[i].x - mouseX
         const dy = particles[i].y - mouseY
         const dist = Math.sqrt(dx * dx + dy * dy)
 
         if (dist < config.mouseConnectionDistance) {
-            // Closer particles (larger) have stronger connections
-            const depthFactor = particles[i].baseSize > 2 ? 0.6 : (particles[i].baseSize > 1 ? 0.5 : 0.3)
+            const depthFactor = particles[i].baseSize > 2 ? 0.25 : (particles[i].baseSize > 1 ? 0.2 : 0.15)
             const opacityValue = depthFactor * (1 - dist / config.mouseConnectionDistance)
-            const lineWidth = particles[i].isHub ? 2.5 : (particles[i].baseSize > 2 ? 2 : 1.5)
+            const lineWidth = particles[i].isHub ? 0.8 : 0.5
 
-            // Enhanced glow for connections
             ctx.strokeStyle = `rgba(0, 255, 65, ${opacityValue})`
             ctx.lineWidth = lineWidth
-            ctx.shadowBlur = 20
-            ctx.shadowColor = `rgba(0, 255, 65, ${opacityValue})`
+            ctx.shadowBlur = 8
+            ctx.shadowColor = `rgba(0, 255, 65, ${opacityValue * 0.5})`
             ctx.beginPath()
             ctx.moveTo(particles[i].x, particles[i].y)
             ctx.lineTo(mouseX, mouseY)
@@ -401,12 +396,11 @@ export function connectToMouse(
         }
     }
 
-    // Draw enhanced cursor glow
-    ctx.fillStyle = 'rgba(0, 255, 65, 0.4)'
-    ctx.shadowBlur = 30
-    ctx.shadowColor = 'rgba(0, 255, 65, 1)'
+    ctx.fillStyle = 'rgba(0, 255, 65, 0.3)'
+    ctx.shadowBlur = 15
+    ctx.shadowColor = 'rgba(0, 255, 65, 0.6)'
     ctx.beginPath()
-    ctx.arc(mouseX, mouseY, 8, 0, Math.PI * 2)
+    ctx.arc(mouseX, mouseY, 4, 0, Math.PI * 2)
     ctx.fill()
     ctx.shadowBlur = 0
 }
@@ -426,24 +420,21 @@ export function animateParticles(
     mouseClickEffect: boolean,
     config: ParticleSystemConfig = defaultParticleConfig
 ): void {
-    // Clear canvas
     ctx.clearRect(0, 0, canvasWidth, canvasHeight)
 
-    // Draw mouse trail
-    if (mouseTrail.length > 0) {
-        drawMouseTrail(ctx, mouseTrail)
+    if (mouseX !== null && mouseY !== null) {
+        if (mouseTrail.length > 0) {
+            drawMouseTrail(ctx, mouseTrail)
+        }
     }
 
-    // Update and draw particles
     for (let i = 0; i < particles.length; i++) {
         updateParticle(particles[i], canvasWidth, canvasHeight, mouseX, mouseY, mouseClickEffect)
         drawParticle(ctx, particles[i])
     }
 
-    // Draw connections between particles
     connectParticles(ctx, particles, config)
 
-    // Draw connections to mouse
     if (mouseX !== null && mouseY !== null) {
         connectToMouse(ctx, particles, mouseX, mouseY, config)
     }

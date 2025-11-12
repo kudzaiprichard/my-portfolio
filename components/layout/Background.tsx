@@ -45,10 +45,15 @@ export default function Background() {
             )
         }
 
-        // Mouse leave handler - particles roam freely
+        // Mouse leave handler - cursor disappears when leaving page
         const handleMouseLeave = () => {
             mouseRef.current = { x: null, y: null }
-            mouseTrailRef.current = []
+            mouseTrailRef.current = [] // Clear trail immediately
+        }
+
+        // Mouse enter handler - cursor reappears when entering page
+        const handleMouseEnter = (e: MouseEvent) => {
+            mouseRef.current = { x: e.clientX, y: e.clientY }
         }
 
         // Mouse click handler - creates ripple effect
@@ -74,9 +79,11 @@ export default function Background() {
             }, 100)
         }
 
-        window.addEventListener('mousemove', handleMouseMove)
-        window.addEventListener('mouseleave', handleMouseLeave)
-        window.addEventListener('click', handleMouseClick)
+        // Use document to properly detect when mouse leaves the entire page
+        document.addEventListener('mousemove', handleMouseMove)
+        document.addEventListener('mouseleave', handleMouseLeave)
+        document.addEventListener('mouseenter', handleMouseEnter)
+        document.addEventListener('click', handleMouseClick)
 
         // Animation loop
         const animate = () => {
@@ -98,9 +105,10 @@ export default function Background() {
 
         return () => {
             window.removeEventListener('resize', handleResize)
-            window.removeEventListener('mousemove', handleMouseMove)
-            window.removeEventListener('mouseleave', handleMouseLeave)
-            window.removeEventListener('click', handleMouseClick)
+            document.removeEventListener('mousemove', handleMouseMove)
+            document.removeEventListener('mouseleave', handleMouseLeave)
+            document.removeEventListener('mouseenter', handleMouseEnter)
+            document.removeEventListener('click', handleMouseClick)
             if (animationFrameRef.current !== undefined) {
                 cancelAnimationFrame(animationFrameRef.current)
             }
