@@ -4,7 +4,7 @@
 import {useEffect, useRef, useState} from 'react'
 import TerminalContainer from '@/components/shared/TerminalContainer'
 import {useInView} from '@/hooks/useInView'
-import {useGlitch} from '@/hooks/useGlitch'
+// REMOVED: import {useGlitch} from '@/hooks/useGlitch'
 import {startCharacterGlitch} from '@/lib/glitch'
 
 export default function HeroSection() {
@@ -36,23 +36,16 @@ export default function HeroSection() {
     const command2 = 'cat role.txt'
     const command3 = 'cat description.txt'
 
-    // Apply CSS-only glitch effects to the main content (no character replacement)
-    const glitchRef = useGlitch({
-        enabled: isInView,
-        config: {
-            textGlitchInterval: 7000,
-            textFlickerInterval: 4000,
-            charGlitchChance: 0.02,
-        }
-    })
 
     // Apply CHARACTER GLITCH to name when it's visible
+    // This now includes vintage effects automatically
     useEffect(() => {
         if (!nameRef.current || !showNameOutput || !isInView) return
 
         return startCharacterGlitch(nameRef.current, {
             intensity: 'low',
-            textGlitchInterval: 6000,
+            singleCharInterval: 10000,    // Wait 10 seconds between single char glitches
+            multiCharInterval: 15000,     // Wait 15 seconds between multi char glitches
         })
     }, [showNameOutput, isInView])
 
@@ -204,7 +197,8 @@ export default function HeroSection() {
     return (
         <div ref={ref} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
             <TerminalContainer title="developer@portfolio:~$">
-                <div ref={glitchRef} style={{ minHeight: '400px' }}>
+                {/* REMOVED: glitchRef from this div */}
+                <div style={{ minHeight: '400px' }}>
                     {/* Command 1: whoami (typed) */}
                     {stage >= 1 && (
                         <div className="command-line fade-in" style={{ marginBottom: '8px' }}>
@@ -220,7 +214,7 @@ export default function HeroSection() {
                         </div>
                     )}
 
-                    {/* Output 1: Name - WITH CHARACTER GLITCH */}
+                    {/* Output 1: Name - WITH CHARACTER GLITCH (includes vintage effects) */}
                     {showNameOutput && (
                         <div style={{
                             marginBottom: '20px',

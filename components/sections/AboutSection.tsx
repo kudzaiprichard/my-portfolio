@@ -1,7 +1,7 @@
 // components/sections/AboutSection.tsx
 "use client"
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import TerminalContainer from '@/components/shared/TerminalContainer'
 import { useInView } from '@/hooks/useInView'
 import { startCharacterGlitch } from '@/lib/glitch'
@@ -72,48 +72,64 @@ export default function AboutSection() {
     const command2 = 'ls -la ./tech_stack/'
     const command3 = './list_specializations.sh'
 
+    // Define typeText function BEFORE it's used in useEffect
+    const typeText = useCallback(async (
+        text: string,
+        setter: React.Dispatch<React.SetStateAction<string>>,
+        speed: number
+    ) => {
+        for (let i = 0; i <= text.length; i++) {
+            setter(text.slice(0, i))
+            await delay(speed)
+        }
+    }, [])
+
     // Apply character glitch to specific words when bio is visible
     useEffect(() => {
         if (!showOutput1 || !isInView) return
 
         const cleanups: (() => void)[] = []
 
-        // Glitch "artificial intelligence"
+        // Glitch "artificial intelligence" - every 30 seconds
         if (word1Ref.current) {
             cleanups.push(
                 startCharacterGlitch(word1Ref.current, {
                     intensity: 'low',
-                    textGlitchInterval: 8000,
+                    singleCharInterval: 10000,    // Wait 10 seconds between single char glitches
+                    multiCharInterval: 15000,     // Wait 15 seconds between multi char glitches
                 })
             )
         }
 
-        // Glitch "cutting-edge"
+        // Glitch "cutting-edge" - every 35 seconds (staggered timing)
         if (word2Ref.current) {
             cleanups.push(
                 startCharacterGlitch(word2Ref.current, {
                     intensity: 'low',
-                    textGlitchInterval: 9000,
+                    singleCharInterval: 15000,
+                    multiCharInterval: 10000,
                 })
             )
         }
 
-        // Glitch "innovative"
+        // Glitch "innovative" - every 40 seconds (staggered timing)
         if (word3Ref.current) {
             cleanups.push(
                 startCharacterGlitch(word3Ref.current, {
                     intensity: 'low',
-                    textGlitchInterval: 10000,
+                    singleCharInterval: 5000,
+                    multiCharInterval: 10000,
                 })
             )
         }
 
-        // Glitch "emerging technologies"
+        // Glitch "emerging technologies" - every 45 seconds (staggered timing)
         if (word4Ref.current) {
             cleanups.push(
                 startCharacterGlitch(word4Ref.current, {
                     intensity: 'low',
-                    textGlitchInterval: 11000,
+                    singleCharInterval: 18000,
+                    multiCharInterval: 15000,
                 })
             )
         }
@@ -153,18 +169,7 @@ export default function AboutSection() {
         }
 
         runAnimation()
-    }, [isInView])
-
-    const typeText = async (
-        text: string,
-        setter: React.Dispatch<React.SetStateAction<string>>,
-        speed: number
-    ) => {
-        for (let i = 0; i <= text.length; i++) {
-            setter(text.slice(0, i))
-            await delay(speed)
-        }
-    }
+    }, [isInView, typeText, command1, command2, command3])
 
     return (
         <div ref={ref} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
