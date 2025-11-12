@@ -8,8 +8,9 @@ import {
     updateMouseTrail,
     getCanvasContext,
     resizeCanvas,
+    type Particle,
+    type MouseTrailPoint,
 } from '@/lib/particles'
-import type { Particle, MouseTrailPoint } from '@/types'
 
 export default function Background() {
     const canvasRef = useRef<HTMLCanvasElement>(null)
