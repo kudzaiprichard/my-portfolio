@@ -1,7 +1,7 @@
 // lib/glitch.ts
 
 /* ============================================
-   FLEXIBLE CHARACTER GLITCH SYSTEM
+   FLEXIBLE CHARACTER GLITCH SYSTEM - 2-PHASE CYCLE
    ============================================ */
 
 /**
@@ -16,6 +16,8 @@ export interface GlitchConfig {
     // Custom interval overrides
     singleCharInterval?: number
     multiCharInterval?: number
+    // NEW: How long the glitch character stays visible before reverting
+    glitchCharDisplayDuration?: number
 }
 
 export const defaultGlitchConfig: GlitchConfig = {
@@ -29,25 +31,25 @@ export const defaultGlitchConfig: GlitchConfig = {
 // Intensity presets
 const intensityPresets = {
     low: {
-        singleCharInterval: 3000,    // Every 3 seconds
-        multiCharInterval: 6000,     // Every 6 seconds
-        numChars: 1,                 // 1 character at a time
-        duration: 800,               // Show glitch char for 800ms (increased for readability)
-        displayDuration: 600,        // Time glitch char is visible before restoring
+        singleCharInterval: 3000,           // Every 3 seconds
+        multiCharInterval: 6000,            // Every 6 seconds
+        numChars: 1,                        // 1 character at a time
+        vintageDuration: 150,               // How long vintage effects last (ms)
+        glitchCharDisplayDuration: 2000,    // NEW: Random char stays for 2 seconds
     },
     medium: {
-        singleCharInterval: 1500,    // Every 1.5 seconds
-        multiCharInterval: 3000,     // Every 3 seconds
-        numChars: 2,                 // 2-3 characters at a time
-        duration: 900,               // Show glitch char for 900ms
-        displayDuration: 700,        // Time glitch char is visible
+        singleCharInterval: 1500,           // Every 1.5 seconds
+        multiCharInterval: 3000,            // Every 3 seconds
+        numChars: 2,                        // 2-3 characters at a time
+        vintageDuration: 150,               // How long vintage effects last (ms)
+        glitchCharDisplayDuration: 1500,    // NEW: Random char stays for 1.5 seconds
     },
     high: {
-        singleCharInterval: 800,     // Every 0.8 seconds
-        multiCharInterval: 1800,     // Every 1.8 seconds
-        numChars: 3,                 // 3-5 characters at a time
-        duration: 1000,              // Show glitch char for 1000ms
-        displayDuration: 800,        // Time glitch char is visible
+        singleCharInterval: 800,            // Every 0.8 seconds
+        multiCharInterval: 1800,            // Every 1.8 seconds
+        numChars: 3,                        // 3-5 characters at a time
+        vintageDuration: 150,               // How long vintage effects last (ms)
+        glitchCharDisplayDuration: 1000,    // NEW: Random char stays for 1 second
     },
 }
 
@@ -94,7 +96,7 @@ export function digitalNoise(element: HTMLElement): void {
 }
 
 /* ============================================
-   CHARACTER REPLACEMENT GLITCH EFFECTS - WITH VINTAGE
+   CHARACTER REPLACEMENT GLITCH EFFECTS - 2-PHASE CYCLE
    ============================================ */
 
 /**
@@ -147,10 +149,16 @@ function wrapCharactersWithOverlay(element: HTMLElement): void {
 }
 
 /**
- * SMOOTH single character replacement using overlay method
- * WITH VINTAGE EFFECTS applied during character change
+ * 2-PHASE CHARACTER GLITCH - Single character
+ *
+ * PHASE 1: Vintage effects + random char appears → vintage effects fade → random char STAYS
+ * PHASE 2: Vintage effects return + restore original char → vintage effects fade
  */
-export function smoothCharacterGlitch(element: HTMLElement, duration: number = 800, displayDuration: number = 600): void {
+export function smoothCharacterGlitch(
+    element: HTMLElement,
+    vintageDuration: number = 150,
+    glitchCharDisplayDuration: number = 2000
+): void {
     // Wrap if not already wrapped
     wrapCharactersWithOverlay(element)
 
@@ -179,40 +187,46 @@ export function smoothCharacterGlitch(element: HTMLElement, duration: number = 8
     const original = randomWrapper.querySelector('.glitch-char-original') as HTMLElement
     const originalChar = original?.dataset.originalChar || original?.textContent || ''
 
-    // PHASE 1: Apply vintage effect WHEN changing to glitch character
+    // ========== PHASE 1: Show glitch character ==========
     requestAnimationFrame(() => {
-        // Apply vintage effects to the entire element
-        applyTextGlitch(element, 150)
+        // Apply vintage effects
+        applyTextGlitch(element, vintageDuration)
         digitalNoise(element)
 
         // Show glitch character
         overlay.textContent = randomChar
         randomWrapper.classList.add('glitching')
 
-        // PHASE 2: Keep glitch character visible for displayDuration (user can read it)
+        // Vintage effects fade away after vintageDuration, but glitch char STAYS
+        // Wait for glitchCharDisplayDuration before phase 2
         setTimeout(() => {
-            // PHASE 3: Apply vintage effect WHEN restoring original character
+            // ========== PHASE 2: Restore original character ==========
             requestAnimationFrame(() => {
-                applyTextGlitch(element, 150)
+                // Apply vintage effects again
+                applyTextGlitch(element, vintageDuration)
                 chromaticAberration(element)
 
                 // Restore original character
                 overlay.textContent = originalChar
                 randomWrapper.classList.remove('glitching')
+
+                // Vintage effects will fade away after vintageDuration
             })
-        }, displayDuration)
+        }, glitchCharDisplayDuration)
     })
 }
 
 /**
- * SMOOTH multi-character replacement using overlay method
- * WITH VINTAGE EFFECTS applied during character changes
+ * 2-PHASE MULTI-CHARACTER GLITCH
+ *
+ * PHASE 1: Vintage effects + random chars appear → vintage effects fade → random chars STAY
+ * PHASE 2: Vintage effects return + restore original chars → vintage effects fade
  */
 export function smoothMultiCharGlitch(
     element: HTMLElement,
     numChars: number = 2,
-    duration: number = 900,
-    displayDuration: number = 700
+    vintageDuration: number = 150,
+    glitchCharDisplayDuration: number = 2000
 ): void {
     // Wrap if not already wrapped
     wrapCharactersWithOverlay(element)
@@ -261,10 +275,10 @@ export function smoothMultiCharGlitch(
 
     if (selectedWrappers.length === 0) return
 
-    // PHASE 1: Apply vintage effect WHEN changing to glitch characters
+    // ========== PHASE 1: Show glitch characters ==========
     requestAnimationFrame(() => {
-        // Apply vintage effects to the entire element
-        applyTextGlitch(element, 150)
+        // Apply vintage effects
+        applyTextGlitch(element, vintageDuration)
         digitalNoise(element)
 
         // Show glitch characters
@@ -273,11 +287,13 @@ export function smoothMultiCharGlitch(
             wrapper.classList.add('glitching')
         })
 
-        // PHASE 2: Keep glitch characters visible for displayDuration (user can read them)
+        // Vintage effects fade away after vintageDuration, but glitch chars STAY
+        // Wait for glitchCharDisplayDuration before phase 2
         setTimeout(() => {
-            // PHASE 3: Apply vintage effect WHEN restoring original characters
+            // ========== PHASE 2: Restore original characters ==========
             requestAnimationFrame(() => {
-                applyTextGlitch(element, 150)
+                // Apply vintage effects again
+                applyTextGlitch(element, vintageDuration)
                 chromaticAberration(element)
 
                 // Restore original characters
@@ -285,8 +301,10 @@ export function smoothMultiCharGlitch(
                     overlays[idx].textContent = originalChars[idx]
                     wrapper.classList.remove('glitching')
                 })
+
+                // Vintage effects will fade away after vintageDuration
             })
-        }, displayDuration)
+        }, glitchCharDisplayDuration)
     })
 }
 
@@ -295,9 +313,9 @@ export function smoothMultiCharGlitch(
    ============================================ */
 
 /**
- * START CHARACTER GLITCH - Flexible for any element
+ * START CHARACTER GLITCH - Flexible for any element with 2-PHASE CYCLE
  * Can be used on words, paragraphs, headings, spans, etc.
- * NOW WITH VINTAGE EFFECTS SYNCHRONIZED TO CHARACTER CHANGES
+ * NOW WITH 2-PHASE GLITCH CYCLE
  *
  * @param element - The HTML element to apply glitch effects to
  * @param config - Configuration options including intensity and custom intervals
@@ -307,7 +325,8 @@ export function smoothMultiCharGlitch(
  * const cleanup = startCharacterGlitch(element, {
  *   intensity: 'low',
  *   singleCharInterval: 30000,
- *   multiCharInterval: 60000
+ *   multiCharInterval: 60000,
+ *   glitchCharDisplayDuration: 3000
  * })
  * // Later: cleanup() to stop glitching
  */
@@ -325,19 +344,20 @@ export function startCharacterGlitch(
     // Use custom intervals if provided, otherwise use preset values
     const singleInterval = config.singleCharInterval ?? preset.singleCharInterval
     const multiInterval = config.multiCharInterval ?? preset.multiCharInterval
+    const glitchDisplayDuration = config.glitchCharDisplayDuration ?? preset.glitchCharDisplayDuration
 
-    // Single character glitch with vintage effects
+    // Single character glitch with 2-phase cycle
     intervals.push(
         setInterval(() => {
-            smoothCharacterGlitch(element, preset.duration, preset.displayDuration)
+            smoothCharacterGlitch(element, preset.vintageDuration, glitchDisplayDuration)
         }, singleInterval)
     )
 
-    // Multi-character glitch with vintage effects
+    // Multi-character glitch with 2-phase cycle
     intervals.push(
         setInterval(() => {
             if (Math.random() < 0.7) {
-                smoothMultiCharGlitch(element, preset.numChars, preset.duration, preset.displayDuration)
+                smoothMultiCharGlitch(element, preset.numChars, preset.vintageDuration, glitchDisplayDuration)
             }
         }, multiInterval)
     )

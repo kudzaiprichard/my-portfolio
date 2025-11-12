@@ -84,52 +84,56 @@ export default function AboutSection() {
         }
     }, [])
 
-    // Apply character glitch to specific words when bio is visible
+    // Apply 2-phase character glitch to specific words when bio is visible
     useEffect(() => {
         if (!showOutput1 || !isInView) return
 
         const cleanups: (() => void)[] = []
 
-        // Glitch "artificial intelligence" - every 30 seconds
+        // Glitch "artificial intelligence" with 2-phase cycle
         if (word1Ref.current) {
             cleanups.push(
                 startCharacterGlitch(word1Ref.current, {
                     intensity: 'low',
-                    singleCharInterval: 10000,    // Wait 10 seconds between single char glitches
-                    multiCharInterval: 15000,     // Wait 15 seconds between multi char glitches
+                    singleCharInterval: 10000,           // Wait 10 seconds between single char glitches
+                    multiCharInterval: 15000,            // Wait 15 seconds between multi char glitches
+                    glitchCharDisplayDuration: 2500,     // Glitch char stays for 2.5 seconds
                 })
             )
         }
 
-        // Glitch "cutting-edge" - every 35 seconds (staggered timing)
+        // Glitch "cutting-edge" with 2-phase cycle (staggered timing)
         if (word2Ref.current) {
             cleanups.push(
                 startCharacterGlitch(word2Ref.current, {
                     intensity: 'low',
                     singleCharInterval: 15000,
                     multiCharInterval: 10000,
+                    glitchCharDisplayDuration: 2000,     // Glitch char stays for 2 seconds
                 })
             )
         }
 
-        // Glitch "innovative" - every 40 seconds (staggered timing)
+        // Glitch "innovative" with 2-phase cycle (staggered timing)
         if (word3Ref.current) {
             cleanups.push(
                 startCharacterGlitch(word3Ref.current, {
                     intensity: 'low',
                     singleCharInterval: 5000,
                     multiCharInterval: 10000,
+                    glitchCharDisplayDuration: 3000,     // Glitch char stays for 3 seconds
                 })
             )
         }
 
-        // Glitch "emerging technologies" - every 45 seconds (staggered timing)
+        // Glitch "emerging technologies" with 2-phase cycle (staggered timing)
         if (word4Ref.current) {
             cleanups.push(
                 startCharacterGlitch(word4Ref.current, {
                     intensity: 'low',
                     singleCharInterval: 18000,
                     multiCharInterval: 15000,
+                    glitchCharDisplayDuration: 2800,     // Glitch char stays for 2.8 seconds
                 })
             )
         }
@@ -188,7 +192,7 @@ export default function AboutSection() {
                         </div>
                     )}
 
-                    {/* Output 1: Bio with glitched words */}
+                    {/* Output 1: Bio with 2-phase glitched words */}
                     {showOutput1 && (
                         <div className="skills-output" style={{
                             animation: 'fadeInUp 0.8s ease forwards',

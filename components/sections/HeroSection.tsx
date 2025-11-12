@@ -4,7 +4,6 @@
 import {useEffect, useRef, useState} from 'react'
 import TerminalContainer from '@/components/shared/TerminalContainer'
 import {useInView} from '@/hooks/useInView'
-// REMOVED: import {useGlitch} from '@/hooks/useGlitch'
 import {startCharacterGlitch} from '@/lib/glitch'
 
 export default function HeroSection() {
@@ -38,14 +37,15 @@ export default function HeroSection() {
 
 
     // Apply CHARACTER GLITCH to name when it's visible
-    // This now includes vintage effects automatically
+    // Now with 2-phase glitch cycle
     useEffect(() => {
         if (!nameRef.current || !showNameOutput || !isInView) return
 
         return startCharacterGlitch(nameRef.current, {
             intensity: 'low',
-            singleCharInterval: 10000,    // Wait 10 seconds between single char glitches
-            multiCharInterval: 15000,     // Wait 15 seconds between multi char glitches
+            singleCharInterval: 10000,           // Wait 10 seconds between single char glitches
+            multiCharInterval: 15000,            // Wait 15 seconds between multi char glitches
+            glitchCharDisplayDuration: 3000,     // Glitch char stays visible for 3 seconds
         })
     }, [showNameOutput, isInView])
 
@@ -197,7 +197,6 @@ export default function HeroSection() {
     return (
         <div ref={ref} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
             <TerminalContainer title="developer@portfolio:~$">
-                {/* REMOVED: glitchRef from this div */}
                 <div style={{ minHeight: '400px' }}>
                     {/* Command 1: whoami (typed) */}
                     {stage >= 1 && (
@@ -214,7 +213,7 @@ export default function HeroSection() {
                         </div>
                     )}
 
-                    {/* Output 1: Name - WITH CHARACTER GLITCH (includes vintage effects) */}
+                    {/* Output 1: Name - WITH 2-PHASE CHARACTER GLITCH */}
                     {showNameOutput && (
                         <div style={{
                             marginBottom: '20px',
