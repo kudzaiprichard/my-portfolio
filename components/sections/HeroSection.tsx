@@ -197,7 +197,7 @@ export default function HeroSection() {
     return (
         <div ref={ref} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
             <TerminalContainer title="developer@portfolio:~$">
-                <div style={{ minHeight: '400px' }}>
+                <div>
                     {/* Command 1: whoami (typed) */}
                     {stage >= 1 && (
                         <div className="command-line fade-in" style={{ marginBottom: '8px' }}>
