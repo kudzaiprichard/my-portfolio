@@ -5,18 +5,15 @@ import { useEffect, useRef } from 'react'
 import {
     initializeParticles,
     animateParticles,
-    updateMouseTrail,
     getCanvasContext,
     resizeCanvas,
     type Particle,
-    type MouseTrailPoint,
 } from '@/lib/particles'
 
 export default function Background() {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const particlesRef = useRef<Particle[]>([])
     const mouseRef = useRef<{ x: number | null; y: number | null }>({ x: null, y: null })
-    const mouseTrailRef = useRef<MouseTrailPoint[]>([])
     const animationFrameRef = useRef<number | undefined>(undefined)
     const mouseClickEffectRef = useRef<boolean>(false)
 
@@ -39,17 +36,11 @@ export default function Background() {
         // Mouse move handler
         const handleMouseMove = (e: MouseEvent) => {
             mouseRef.current = { x: e.clientX, y: e.clientY }
-            mouseTrailRef.current = updateMouseTrail(
-                mouseTrailRef.current,
-                e.clientX,
-                e.clientY
-            )
         }
 
         // Mouse leave handler - cursor disappears when leaving page
         const handleMouseLeave = () => {
             mouseRef.current = { x: null, y: null }
-            mouseTrailRef.current = [] // Clear trail immediately
         }
 
         // Mouse enter handler - cursor reappears when entering page
@@ -95,7 +86,6 @@ export default function Background() {
                 canvas.height,
                 mouseRef.current.x,
                 mouseRef.current.y,
-                mouseTrailRef.current,
                 mouseClickEffectRef.current
             )
 

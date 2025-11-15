@@ -18,14 +18,8 @@ export interface Particle {
     zone?: ParticleZone
 }
 
-export interface MouseTrailPoint {
-    x: number
-    y: number
-}
-
 export interface ParticleSystemConfig {
     numberOfParticles: number
-    maxTrailLength: number
     connectionDistance: number
     hubConnectionDistance: number
     mouseConnectionDistance: number
@@ -51,7 +45,6 @@ interface ClusterZone {
 
 export const defaultParticleConfig: ParticleSystemConfig = {
     numberOfParticles: 200, // Increased from 140 to 200
-    maxTrailLength: 8,
     connectionDistance: 180,
     hubConnectionDistance: 210,
     mouseConnectionDistance: 240,
@@ -518,45 +511,6 @@ export function connectParticles(
 }
 
 /* ============================================
-   MOUSE TRAIL
-   ============================================ */
-
-export function updateMouseTrail(
-    trail: MouseTrailPoint[],
-    mouseX: number,
-    mouseY: number,
-    maxLength: number = defaultParticleConfig.maxTrailLength
-): MouseTrailPoint[] {
-    const newTrail = [...trail, { x: mouseX, y: mouseY }]
-
-    if (newTrail.length > maxLength) {
-        newTrail.shift()
-    }
-
-    return newTrail
-}
-
-export function drawMouseTrail(
-    ctx: CanvasRenderingContext2D,
-    trail: MouseTrailPoint[]
-): void {
-    if (trail.length < 2) return
-
-    for (let i = 0; i < trail.length - 1; i++) {
-        const opacity = (i / trail.length) * 0.3
-        const size = (i / trail.length) * 4
-
-        ctx.fillStyle = `rgba(0, 255, 65, ${opacity})`
-        ctx.shadowBlur = 10
-        ctx.shadowColor = `rgba(0, 255, 65, ${opacity})`
-        ctx.beginPath()
-        ctx.arc(trail[i].x, trail[i].y, size, 0, Math.PI * 2)
-        ctx.fill()
-    }
-    ctx.shadowBlur = 0
-}
-
-/* ============================================
    MOUSE CONNECTIONS
    ============================================ */
 
@@ -609,17 +563,10 @@ export function animateParticles(
     canvasHeight: number,
     mouseX: number | null,
     mouseY: number | null,
-    mouseTrail: MouseTrailPoint[],
     mouseClickEffect: boolean,
     config: ParticleSystemConfig = defaultParticleConfig
 ): void {
     ctx.clearRect(0, 0, canvasWidth, canvasHeight)
-
-    if (mouseX !== null && mouseY !== null) {
-        if (mouseTrail.length > 0) {
-            drawMouseTrail(ctx, mouseTrail)
-        }
-    }
 
     for (let i = 0; i < particles.length; i++) {
         updateParticle(particles[i], canvasWidth, canvasHeight, mouseX, mouseY, mouseClickEffect)

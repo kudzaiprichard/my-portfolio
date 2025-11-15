@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import Background from '@/components/layout/Background'
 import ScrollHint from '@/components/layout/ScrollHint'
+import CustomCursor from '@/components/layout/CustomCursor'
 
 export const metadata: Metadata = {
     title: 'Kudzai Prichard | AI & Full Stack Developer',
@@ -49,6 +50,9 @@ export default function RootLayout({
         <body suppressHydrationWarning>
         {/* Fixed background elements - always visible */}
         <Background />
+
+        {/* Custom cursor */}
+        <CustomCursor />
 
         {/* Scroll hint indicator */}
         <ScrollHint />
