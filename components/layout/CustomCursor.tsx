@@ -8,7 +8,6 @@ export default function CustomCursor() {
     const ringRef = useRef<HTMLDivElement>(null)
     const [isClicked, setIsClicked] = useState(false)
     const [isHovering, setIsHovering] = useState(false)
-    const [isVisible, setIsVisible] = useState(false)
 
     useEffect(() => {
         const dot = dotRef.current
@@ -20,10 +19,20 @@ export default function CustomCursor() {
         let ringX = 0
         let ringY = 0
 
+        // Show cursor immediately on first move
+        let hasMovedOnce = false
+
         // Update mouse position instantly for dot
         const handleMouseMove = (e: MouseEvent) => {
             mouseX = e.clientX
             mouseY = e.clientY
+
+            // Show cursor on first movement
+            if (!hasMovedOnce) {
+                dot.style.opacity = '1'
+                ring.style.opacity = '1'
+                hasMovedOnce = true
+            }
 
             // Dot follows immediately
             dot.style.left = `${mouseX}px`
@@ -46,14 +55,18 @@ export default function CustomCursor() {
         const handleMouseDown = () => setIsClicked(true)
         const handleMouseUp = () => setIsClicked(false)
 
-        // Mouse enter - show cursor
-        const handleMouseEnter = () => {
-            setIsVisible(true)
+        // Hide cursor when mouse leaves the window
+        const handleMouseLeave = () => {
+            dot.style.opacity = '0'
+            ring.style.opacity = '0'
         }
 
-        // Mouse leave - hide cursor
-        const handleMouseLeave = () => {
-            setIsVisible(false)
+        // Show cursor when mouse enters the window
+        const handleMouseEnter = () => {
+            if (hasMovedOnce) {
+                dot.style.opacity = '1'
+                ring.style.opacity = '1'
+            }
         }
 
         // Hover detection for interactive elements
@@ -76,8 +89,8 @@ export default function CustomCursor() {
         document.addEventListener('mouseover', handleMouseOver)
         document.addEventListener('mousedown', handleMouseDown)
         document.addEventListener('mouseup', handleMouseUp)
-        document.addEventListener('mouseenter', handleMouseEnter)
-        document.addEventListener('mouseleave', handleMouseLeave)
+        document.body.addEventListener('mouseleave', handleMouseLeave)
+        document.body.addEventListener('mouseenter', handleMouseEnter)
 
         const animationFrame = requestAnimationFrame(animateRing)
 
@@ -86,8 +99,8 @@ export default function CustomCursor() {
             document.removeEventListener('mouseover', handleMouseOver)
             document.removeEventListener('mousedown', handleMouseDown)
             document.removeEventListener('mouseup', handleMouseUp)
-            document.removeEventListener('mouseenter', handleMouseEnter)
-            document.removeEventListener('mouseleave', handleMouseLeave)
+            document.body.removeEventListener('mouseleave', handleMouseLeave)
+            document.body.removeEventListener('mouseenter', handleMouseEnter)
             cancelAnimationFrame(animationFrame)
         }
     }, [])
@@ -96,11 +109,13 @@ export default function CustomCursor() {
         <>
             <div
                 ref={dotRef}
-                className={`cursor-dot ${isClicked ? 'clicked' : ''} ${!isVisible ? 'hidden' : ''}`}
+                className={`cursor-dot ${isClicked ? 'clicked' : ''}`}
+                style={{ opacity: 0, transition: 'opacity 0.2s ease' }}
             />
             <div
                 ref={ringRef}
-                className={`cursor-ring ${isClicked ? 'clicked' : ''} ${isHovering ? 'hovering' : ''} ${!isVisible ? 'hidden' : ''}`}
+                className={`cursor-ring ${isClicked ? 'clicked' : ''} ${isHovering ? 'hovering' : ''}`}
+                style={{ opacity: 0, transition: 'opacity 0.2s ease' }}
             />
         </>
     )
