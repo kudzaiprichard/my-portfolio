@@ -224,24 +224,6 @@ section {
   box-shadow: 0 0 1px var(--color-primary);
 }
 
-/* Terminal scrollbar styling */
-.terminal-container::-webkit-scrollbar {
-  width: 6px;
-}
-
-.terminal-container::-webkit-scrollbar-track {
-  background: rgba(0, 255, 65, 0.05);
-}
-
-.terminal-container::-webkit-scrollbar-thumb {
-  background: var(--color-primary-dimmest);
-  border-radius: 3px;
-}
-
-.terminal-container::-webkit-scrollbar-thumb:hover {
-  background: var(--color-primary);
-}
-
 .terminal-header {
   display: flex;
   align-items: center;
