@@ -33,7 +33,7 @@ export default function ScrollHint() {
                     height="20"
                     viewBox="0 0 20 20"
                     fill="none"
-                    className="chevron"
+                    className="scroll-hint-chevron"
                 >
                     <path
                         d="M5 7.5L10 12.5L15 7.5"
@@ -45,7 +45,7 @@ export default function ScrollHint() {
                 </svg>
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .scroll-hint {
                     position: fixed;
                     bottom: 30px;
@@ -62,13 +62,13 @@ export default function ScrollHint() {
                     visibility: hidden;
                 }
 
-                .chevron {
+                .scroll-hint-chevron {
                     color: rgba(0, 255, 65, 0.7);
                     filter: drop-shadow(0 0 8px rgba(0, 255, 65, 0.6));
-                    animation: bounce 2s ease-in-out infinite;
+                    animation: scroll-hint-bounce 2s ease-in-out infinite;
                 }
 
-                @keyframes bounce {
+                @keyframes scroll-hint-bounce {
                     0%, 100% {
                         transform: translateY(0);
                         opacity: 0.6;
@@ -84,7 +84,7 @@ export default function ScrollHint() {
                         bottom: 25px;
                     }
                     
-                    .chevron {
+                    .scroll-hint-chevron {
                         width: 18px;
                         height: 18px;
                     }
@@ -95,7 +95,7 @@ export default function ScrollHint() {
                         bottom: 20px;
                     }
                     
-                    .chevron {
+                    .scroll-hint-chevron {
                         width: 16px;
                         height: 16px;
                     }
