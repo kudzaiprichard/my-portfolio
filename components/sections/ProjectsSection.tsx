@@ -131,7 +131,6 @@ export default function ProjectsSection() {
         steps.push(AnimationController.createActionStep(() => setShowProjects(true)))
         steps.push(AnimationController.createDelayStep(600))
 
-        // Footer command typing
         steps.push(AnimationController.createActionStep(() => {
             audio.resetVolumeRamp()
             setShowFooterCommand(true)
@@ -189,255 +188,488 @@ export default function ProjectsSection() {
         }
     }
 
-    return (
-        <div ref={ref} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-            <TerminalContainer title="developer@portfolio:~/projects$">
-                <div style={{ color: '#00ff41', fontFamily: 'Courier New, monospace' }}>
-                    {/* Command Line */}
-                    {showCommand && (
-                        <div style={{ fontSize: '16px', marginBottom: '20px' }}>
-                            <span style={{ color: 'rgba(0, 255, 65, 0.7)' }}>$ </span>
-                            <span>{commandTyping.text}</span>
-                            {commandTyping.text.length < command.length && (
-                                <span style={{ marginLeft: '2px', animation: 'blink 0.7s infinite' }}>|</span>
-                            )}
-                        </div>
-                    )}
+    const renderStaticContent = () => (
+        <div className="projects-section-content">
+            <div className="projects-section-command-line">
+                <span className="projects-section-prompt">$ </span>
+                <span>{command}</span>
+            </div>
 
-                    {/* Projects Grid - Asymmetric Layout */}
-                    {showProjects && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                            {/* Row 1: 2 cards (60/40 split) */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '14px' }}>
-                                {/* Featured Project */}
-                                <div
-                                    style={{
-                                        border: '1px solid rgba(0, 255, 65, 0.4)',
-                                        padding: '18px',
-                                        background: 'rgba(0, 20, 0, 0.2)',
-                                        transition: 'all 0.2s ease',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        minHeight: '220px',
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.borderColor = '#00ff41'
-                                        e.currentTarget.style.background = 'rgba(0, 30, 0, 0.3)'
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.borderColor = 'rgba(0, 255, 65, 0.4)'
-                                        e.currentTarget.style.background = 'rgba(0, 20, 0, 0.2)'
-                                    }}
-                                >
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                                        <span ref={el => { projectNameRefs.current[0] = el }} style={{ fontSize: '17px', fontWeight: 'bold' }}>
-                                            {projects[0].name}
-                                        </span>
-                                        <span style={{
-                                            fontSize: '9px',
-                                            padding: '3px 7px',
-                                            border: `1px solid ${getStatusColor(projects[0].status)}`,
-                                            color: getStatusColor(projects[0].status),
-                                        }}>
-                                            {projects[0].status}
-                                        </span>
-                                    </div>
-                                    <p style={{ fontSize: '13px', lineHeight: '1.6', color: 'rgba(0, 255, 65, 0.8)', margin: '0 0 14px 0', flexGrow: 1 }}>
-                                        {projects[0].description}
-                                    </p>
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
-                                        {projects[0].technologies.map((tech) => (
-                                            <span key={tech} style={{ fontSize: '11px', padding: '3px 8px', border: '1px solid rgba(0, 255, 65, 0.4)', color: 'rgba(0, 255, 65, 0.7)' }}>
-                                                {tech}
-                                            </span>
-                                        ))}
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '10px', paddingTop: '10px', borderTop: '1px solid rgba(0, 255, 65, 0.2)' }}>
-                                        <a href={projects[0].githubUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: '#00ff41', textDecoration: 'none' }}>
-                                            → GitHub
-                                        </a>
-                                        {projects[0].liveUrl && (
-                                            <a href={projects[0].liveUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: '#00ff41', textDecoration: 'none' }}>
-                                                → Demo
-                                            </a>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Second Project */}
-                                <div
-                                    style={{
-                                        border: '1px solid rgba(0, 255, 65, 0.4)',
-                                        padding: '18px',
-                                        background: 'rgba(0, 20, 0, 0.2)',
-                                        transition: 'all 0.2s ease',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        minHeight: '220px',
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.borderColor = '#00ff41'
-                                        e.currentTarget.style.background = 'rgba(0, 30, 0, 0.3)'
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.borderColor = 'rgba(0, 255, 65, 0.4)'
-                                        e.currentTarget.style.background = 'rgba(0, 20, 0, 0.2)'
-                                    }}
-                                >
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                                        <span ref={el => { projectNameRefs.current[1] = el }} style={{ fontSize: '17px', fontWeight: 'bold' }}>
-                                            {projects[1].name}
-                                        </span>
-                                        <span style={{
-                                            fontSize: '9px',
-                                            padding: '3px 7px',
-                                            border: `1px solid ${getStatusColor(projects[1].status)}`,
-                                            color: getStatusColor(projects[1].status),
-                                        }}>
-                                            {projects[1].status}
-                                        </span>
-                                    </div>
-                                    <p style={{ fontSize: '13px', lineHeight: '1.6', color: 'rgba(0, 255, 65, 0.8)', margin: '0 0 14px 0', flexGrow: 1 }}>
-                                        {projects[1].description}
-                                    </p>
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
-                                        {projects[1].technologies.map((tech) => (
-                                            <span key={tech} style={{ fontSize: '11px', padding: '3px 8px', border: '1px solid rgba(0, 255, 65, 0.4)', color: 'rgba(0, 255, 65, 0.7)' }}>
-                                                {tech}
-                                            </span>
-                                        ))}
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '10px', paddingTop: '10px', borderTop: '1px solid rgba(0, 255, 65, 0.2)' }}>
-                                        <a href={projects[1].githubUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: '#00ff41', textDecoration: 'none' }}>
-                                            → GitHub
-                                        </a>
-                                        {projects[1].liveUrl && (
-                                            <a href={projects[1].liveUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: '#00ff41', textDecoration: 'none' }}>
-                                                → Demo
-                                            </a>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Row 2: 3 equal cards */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
-                                {projects.slice(2, 5).map((project, idx) => (
-                                    <div
-                                        key={project.id}
-                                        style={{
-                                            border: '1px solid rgba(0, 255, 65, 0.4)',
-                                            padding: '16px',
-                                            background: 'rgba(0, 20, 0, 0.2)',
-                                            transition: 'all 0.2s ease',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            minHeight: '200px',
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.style.borderColor = '#00ff41'
-                                            e.currentTarget.style.background = 'rgba(0, 30, 0, 0.3)'
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.borderColor = 'rgba(0, 255, 65, 0.4)'
-                                            e.currentTarget.style.background = 'rgba(0, 20, 0, 0.2)'
-                                        }}
-                                    >
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                                            <span ref={el => { projectNameRefs.current[idx + 2] = el }} style={{ fontSize: '16px', fontWeight: 'bold' }}>
-                                                {project.name}
-                                            </span>
-                                            {project.status && (
-                                                <span style={{
-                                                    fontSize: '9px',
-                                                    padding: '3px 7px',
-                                                    border: `1px solid ${getStatusColor(project.status)}`,
-                                                    color: getStatusColor(project.status),
-                                                }}>
-                                                    {project.status}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <p style={{ fontSize: '12px', lineHeight: '1.6', color: 'rgba(0, 255, 65, 0.8)', margin: '0 0 12px 0', flexGrow: 1 }}>
-                                            {project.description}
-                                        </p>
-                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '10px' }}>
-                                            {project.technologies.map((tech) => (
-                                                <span key={tech} style={{ fontSize: '10px', padding: '3px 7px', border: '1px solid rgba(0, 255, 65, 0.4)', color: 'rgba(0, 255, 65, 0.7)' }}>
-                                                    {tech}
-                                                </span>
-                                            ))}
-                                        </div>
-                                        <div style={{ display: 'flex', gap: '10px', paddingTop: '8px', borderTop: '1px solid rgba(0, 255, 65, 0.2)' }}>
-                                            <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: '#00ff41', textDecoration: 'none' }}>
-                                                → GitHub
-                                            </a>
-                                            {project.liveUrl && (
-                                                <a href={project.liveUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: '#00ff41', textDecoration: 'none' }}>
-                                                    → Demo
-                                                </a>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Footer - View More */}
-                    {showFooterCommand && (
-                        <div style={{ marginTop: '20px' }}>
-                            <div style={{ fontSize: '16px', marginBottom: '10px' }}>
-                                <span style={{ color: 'rgba(0, 255, 65, 0.7)' }}>$ </span>
-                                <span>{footerCommandTyping.text}</span>
-                                {footerCommandTyping.text.length < footerCommand.length && (
-                                    <span style={{ marginLeft: '2px', animation: 'blink 0.7s infinite' }}>|</span>
+            <div className="projects-section-container">
+                <div className="projects-section-featured-row">
+                    {projects.slice(0, 2).map((project, idx) => (
+                        <div key={project.id} className="projects-section-card projects-section-card-featured">
+                            <div className="projects-section-header">
+                                <span ref={el => { projectNameRefs.current[idx] = el }} className="projects-section-name">
+                                    {project.name}
+                                </span>
+                                {project.status && (
+                                    <span className="projects-section-status-badge" style={{ borderColor: getStatusColor(project.status), color: getStatusColor(project.status) }}>
+                                        {project.status}
+                                    </span>
                                 )}
                             </div>
-
-                            {showFooterContent && (
-                                <div style={{
-                                    fontSize: '13px',
-                                    color: 'rgba(0, 255, 65, 0.75)',
-                                    animation: 'fadeIn 0.5s ease forwards',
-                                    paddingLeft: '4px'
-                                }}>
-                                    → View all projects on{' '}
-                                    <a
-                                        href="https://github.com/yourusername"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        style={{ color: '#00ff41', textDecoration: 'none', borderBottom: '1px solid rgba(0, 255, 65, 0.4)' }}
-                                    >
-                                        GitHub
+                            <p className="projects-section-description">{project.description}</p>
+                            <div className="projects-section-tech-tags">
+                                {project.technologies.map((tech) => (
+                                    <span key={tech} className="projects-section-tech-tag">{tech}</span>
+                                ))}
+                            </div>
+                            <div className="projects-section-links">
+                                <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" className="projects-section-link">
+                                    → GitHub
+                                </a>
+                                {project.liveUrl && (
+                                    <a href={project.liveUrl} target="_blank" rel="noopener noreferrer" className="projects-section-link">
+                                        → Demo
                                     </a>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="projects-section-other-row">
+                    {projects.slice(2, 5).map((project, idx) => (
+                        <div key={project.id} className="projects-section-card">
+                            <div className="projects-section-header">
+                                <span ref={el => { projectNameRefs.current[idx + 2] = el }} className="projects-section-name projects-section-name-small">
+                                    {project.name}
+                                </span>
+                                {project.status && (
+                                    <span className="projects-section-status-badge" style={{ borderColor: getStatusColor(project.status), color: getStatusColor(project.status) }}>
+                                        {project.status}
+                                    </span>
+                                )}
+                            </div>
+                            <p className="projects-section-description projects-section-description-small">{project.description}</p>
+                            <div className="projects-section-tech-tags">
+                                {project.technologies.map((tech) => (
+                                    <span key={tech} className="projects-section-tech-tag projects-section-tech-tag-small">{tech}</span>
+                                ))}
+                            </div>
+                            <div className="projects-section-links">
+                                <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" className="projects-section-link projects-section-link-small">
+                                    → GitHub
+                                </a>
+                                {project.liveUrl && (
+                                    <a href={project.liveUrl} target="_blank" rel="noopener noreferrer" className="projects-section-link projects-section-link-small">
+                                        → Demo
+                                    </a>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div className="projects-section-footer">
+                <div className="projects-section-command-line">
+                    <span className="projects-section-prompt">$ </span>
+                    <span>{footerCommand}</span>
+                    <span className="projects-section-cursor-blink">|</span>
+                </div>
+
+                <div className="projects-section-footer-content">
+                    → View all projects on{' '}
+                    <a href="https://github.com/yourusername" target="_blank" rel="noopener noreferrer" className="projects-section-footer-link">
+                        GitHub
+                    </a>
+                </div>
+            </div>
+        </div>
+    )
+
+    const renderAnimatingContent = () => (
+        <div className="projects-section-content">
+            {showCommand && (
+                <div className="projects-section-command-line">
+                    <span className="projects-section-prompt">$ </span>
+                    <span>{commandTyping.text}</span>
+                    {commandTyping.text.length < command.length && (
+                        <span className="projects-section-cursor-blink">|</span>
+                    )}
+                </div>
+            )}
+
+            {showProjects && (
+                <div className="projects-section-container">
+                    <div className="projects-section-featured-row">
+                        {projects.slice(0, 2).map((project, idx) => (
+                            <div key={project.id} className="projects-section-card projects-section-card-featured">
+                                <div className="projects-section-header">
+                                    <span ref={el => { projectNameRefs.current[idx] = el }} className="projects-section-name">
+                                        {project.name}
+                                    </span>
+                                    {project.status && (
+                                        <span className="projects-section-status-badge" style={{ borderColor: getStatusColor(project.status), color: getStatusColor(project.status) }}>
+                                            {project.status}
+                                        </span>
+                                    )}
                                 </div>
-                            )}
+                                <p className="projects-section-description">{project.description}</p>
+                                <div className="projects-section-tech-tags">
+                                    {project.technologies.map((tech) => (
+                                        <span key={tech} className="projects-section-tech-tag">{tech}</span>
+                                    ))}
+                                </div>
+                                <div className="projects-section-links">
+                                    <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" className="projects-section-link">
+                                        → GitHub
+                                    </a>
+                                    {project.liveUrl && (
+                                        <a href={project.liveUrl} target="_blank" rel="noopener noreferrer" className="projects-section-link">
+                                            → Demo
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="projects-section-other-row">
+                        {projects.slice(2, 5).map((project, idx) => (
+                            <div key={project.id} className="projects-section-card">
+                                <div className="projects-section-header">
+                                    <span ref={el => { projectNameRefs.current[idx + 2] = el }} className="projects-section-name projects-section-name-small">
+                                        {project.name}
+                                    </span>
+                                    {project.status && (
+                                        <span className="projects-section-status-badge" style={{ borderColor: getStatusColor(project.status), color: getStatusColor(project.status) }}>
+                                            {project.status}
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="projects-section-description projects-section-description-small">{project.description}</p>
+                                <div className="projects-section-tech-tags">
+                                    {project.technologies.map((tech) => (
+                                        <span key={tech} className="projects-section-tech-tag projects-section-tech-tag-small">{tech}</span>
+                                    ))}
+                                </div>
+                                <div className="projects-section-links">
+                                    <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" className="projects-section-link projects-section-link-small">
+                                        → GitHub
+                                    </a>
+                                    {project.liveUrl && (
+                                        <a href={project.liveUrl} target="_blank" rel="noopener noreferrer" className="projects-section-link projects-section-link-small">
+                                            → Demo
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {showFooterCommand && (
+                <div className="projects-section-footer">
+                    <div className="projects-section-command-line">
+                        <span className="projects-section-prompt">$ </span>
+                        <span>{footerCommandTyping.text}</span>
+                        {footerCommandTyping.text.length < footerCommand.length && (
+                            <span className="projects-section-cursor-blink">|</span>
+                        )}
+                    </div>
+
+                    {showFooterContent && (
+                        <div className="projects-section-footer-content">
+                            → View all projects on{' '}
+                            <a href="https://github.com/yourusername" target="_blank" rel="noopener noreferrer" className="projects-section-footer-link">
+                                GitHub
+                            </a>
                         </div>
                     )}
                 </div>
-
-                <style jsx>{`
-                    @keyframes blink {
-                        0%, 50% { opacity: 1; }
-                        51%, 100% { opacity: 0; }
-                    }
-
-                    @keyframes fadeIn {
-                        from { opacity: 0; }
-                        to { opacity: 1; }
-                    }
-
-                    @media (max-width: 900px) {
-                        div[style*="gridTemplateColumns: '1.5fr 1fr'"] {
-                            grid-template-columns: 1fr !important;
-                        }
-                        div[style*="gridTemplateColumns: 'repeat(3, 1fr)'"] {
-                            grid-template-columns: 1fr !important;
-                        }
-                    }
-                `}</style>
-            </TerminalContainer>
+            )}
         </div>
+    )
+
+    return (
+        <>
+            <div ref={ref} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                <TerminalContainer title="developer@portfolio:~/projects$">
+                    {animation.isCompleted ? renderStaticContent() : renderAnimatingContent()}
+                </TerminalContainer>
+            </div>
+
+            <style>{`
+                .projects-section-content {
+                    color: var(--color-primary);
+                    font-family: var(--font-mono);
+                }
+
+                .projects-section-command-line {
+                    font-size: var(--font-size-md);
+                    margin-bottom: var(--spacing-lg);
+                    line-height: var(--line-height-normal);
+                }
+
+                .projects-section-prompt {
+                    color: var(--color-primary-dim);
+                }
+
+                .projects-section-cursor-blink {
+                    display: inline-block;
+                    margin-left: 2px;
+                    animation: projects-section-blink 0.7s infinite;
+                }
+
+                @keyframes projects-section-blink {
+                    0%, 50% { opacity: 1; }
+                    51%, 100% { opacity: 0; }
+                }
+
+                .projects-section-container {
+                    display: flex;
+                    flex-direction: column;
+                    gap: var(--spacing-md);
+                }
+
+                .projects-section-featured-row {
+                    display: grid;
+                    grid-template-columns: 1fr;
+                    gap: var(--spacing-md);
+                }
+
+                .projects-section-other-row {
+                    display: grid;
+                    grid-template-columns: 1fr;
+                    gap: var(--spacing-md);
+                }
+
+                .projects-section-card {
+                    border: 1px solid var(--color-primary-dimmer);
+                    padding: var(--spacing-md);
+                    background: rgba(0, 20, 0, 0.2);
+                    transition: all var(--transition-fast);
+                    display: flex;
+                    flex-direction: column;
+                    min-height: 180px;
+                }
+
+                .projects-section-card-featured {
+                    min-height: 200px;
+                }
+
+                .projects-section-card:hover {
+                    border-color: var(--color-primary);
+                    background: rgba(0, 30, 0, 0.3);
+                }
+
+                .projects-section-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                    margin-bottom: var(--spacing-sm);
+                    gap: var(--spacing-xs);
+                }
+
+                .projects-section-name {
+                    font-size: var(--font-size-md);
+                    font-weight: bold;
+                    color: var(--color-primary);
+                    line-height: var(--line-height-tight);
+                }
+
+                .projects-section-name-small {
+                    font-size: var(--font-size-sm);
+                }
+
+                .projects-section-status-badge {
+                    font-size: 9px;
+                    padding: 3px 7px;
+                    border: 1px solid;
+                    flex-shrink: 0;
+                    line-height: 1;
+                }
+
+                .projects-section-description {
+                    font-size: var(--font-size-sm);
+                    line-height: var(--line-height-relaxed);
+                    color: var(--color-primary-dim);
+                    margin: 0 0 var(--spacing-sm) 0;
+                    flex-grow: 1;
+                }
+
+                .projects-section-description-small {
+                    font-size: var(--font-size-xs);
+                }
+
+                .projects-section-tech-tags {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 6px;
+                    margin-bottom: var(--spacing-sm);
+                }
+
+                .projects-section-tech-tag {
+                    font-size: 10px;
+                    padding: 3px 8px;
+                    border: 1px solid var(--color-primary-dimmer);
+                    color: var(--color-primary-dim);
+                    line-height: 1;
+                }
+
+                .projects-section-tech-tag-small {
+                    font-size: 9px;
+                    padding: 2px 6px;
+                }
+
+                .projects-section-links {
+                    display: flex;
+                    gap: var(--spacing-sm);
+                    padding-top: var(--spacing-xs);
+                    border-top: 1px solid var(--color-primary-dimmest);
+                }
+
+                .projects-section-link {
+                    font-size: var(--font-size-xs);
+                    color: var(--color-primary);
+                    text-decoration: none;
+                    transition: color var(--transition-fast);
+                }
+
+                .projects-section-link:hover {
+                    color: var(--color-primary-dim);
+                }
+
+                .projects-section-link-small {
+                    font-size: 10px;
+                }
+
+                .projects-section-footer {
+                    margin-top: var(--spacing-lg);
+                }
+
+                .projects-section-footer-content {
+                    font-size: var(--font-size-sm);
+                    color: var(--color-primary-dim);
+                    animation: projects-section-fadeIn 0.5s ease forwards;
+                    padding-left: 4px;
+                }
+
+                @keyframes projects-section-fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+
+                .projects-section-footer-link {
+                    color: var(--color-primary);
+                    text-decoration: none;
+                    border-bottom: 1px solid var(--color-primary-dimmer);
+                }
+
+                .projects-section-footer-link:hover {
+                    border-bottom-color: var(--color-primary);
+                }
+
+                @media (min-width: 768px) {
+                    .projects-section-featured-row {
+                        grid-template-columns: 1.5fr 1fr;
+                    }
+
+                    .projects-section-other-row {
+                        grid-template-columns: repeat(2, 1fr);
+                    }
+
+                    .projects-section-card {
+                        min-height: 200px;
+                    }
+
+                    .projects-section-card-featured {
+                        min-height: 220px;
+                    }
+
+                    .projects-section-name {
+                        font-size: var(--font-size-lg);
+                    }
+
+                    .projects-section-name-small {
+                        font-size: var(--font-size-md);
+                    }
+
+                    .projects-section-description {
+                        font-size: var(--font-size-md);
+                    }
+
+                    .projects-section-description-small {
+                        font-size: var(--font-size-sm);
+                    }
+
+                    .projects-section-tech-tag {
+                        font-size: 11px;
+                    }
+
+                    .projects-section-tech-tag-small {
+                        font-size: 10px;
+                    }
+
+                    .projects-section-link {
+                        font-size: var(--font-size-sm);
+                    }
+
+                    .projects-section-link-small {
+                        font-size: var(--font-size-xs);
+                    }
+                }
+
+                @media (min-width: 1024px) {
+                    .projects-section-other-row {
+                        grid-template-columns: repeat(3, 1fr);
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .projects-section-command-line {
+                        font-size: var(--font-size-sm);
+                    }
+
+                    .projects-section-card {
+                        padding: var(--spacing-sm);
+                        min-height: 160px;
+                    }
+
+                    .projects-section-card-featured {
+                        min-height: 180px;
+                    }
+
+                    .projects-section-name {
+                        font-size: var(--font-size-sm);
+                    }
+
+                    .projects-section-name-small {
+                        font-size: var(--font-size-xs);
+                    }
+
+                    .projects-section-status-badge {
+                        font-size: 8px;
+                        padding: 2px 5px;
+                    }
+
+                    .projects-section-description {
+                        font-size: var(--font-size-xs);
+                    }
+
+                    .projects-section-description-small {
+                        font-size: 10px;
+                    }
+
+                    .projects-section-tech-tag {
+                        font-size: 9px;
+                        padding: 2px 6px;
+                    }
+
+                    .projects-section-tech-tag-small {
+                        font-size: 8px;
+                        padding: 2px 5px;
+                    }
+
+                    .projects-section-footer-content {
+                        font-size: var(--font-size-xs);
+                    }
+                }
+            `}</style>
+        </>
     )
 }
