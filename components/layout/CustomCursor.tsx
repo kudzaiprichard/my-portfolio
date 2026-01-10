@@ -8,11 +8,49 @@ export default function CustomCursor() {
     const ringRef = useRef<HTMLDivElement>(null)
     const [isClicked, setIsClicked] = useState(false)
     const [isHovering, setIsHovering] = useState(false)
+    const [isTouchDevice, setIsTouchDevice] = useState(false)
+
+    // Detect if device is touch-enabled
+    useEffect(() => {
+        const checkTouchDevice = () => {
+            // Check multiple indicators for touch support
+            const hasTouch = (
+                ('ontouchstart' in window) ||
+                (navigator.maxTouchPoints > 0) ||
+                // @ts-ignore - for older browsers
+                (navigator.msMaxTouchPoints > 0)
+            )
+
+            // Additional check: if primary input is coarse (finger), it's a touch device
+            const hasCoarsePointer = window.matchMedia('(pointer: coarse)').matches
+
+            setIsTouchDevice(hasTouch || hasCoarsePointer)
+        }
+
+        checkTouchDevice()
+
+        // Re-check on resize (device orientation change, etc.)
+        window.addEventListener('resize', checkTouchDevice)
+
+        return () => {
+            window.removeEventListener('resize', checkTouchDevice)
+        }
+    }, [])
 
     useEffect(() => {
+        // Don't initialize custom cursor on touch devices
+        if (isTouchDevice) {
+            // Re-enable default cursor on touch devices
+            document.body.style.cursor = 'auto'
+            return
+        }
+
         const dot = dotRef.current
         const ring = ringRef.current
         if (!dot || !ring) return
+
+        // Ensure custom cursor is hidden on desktop
+        document.body.style.cursor = 'none'
 
         let mouseX = 0
         let mouseY = 0
@@ -75,9 +113,13 @@ export default function CustomCursor() {
             if (
                 target.tagName === 'BUTTON' ||
                 target.tagName === 'A' ||
+                target.tagName === 'INPUT' ||
+                target.tagName === 'TEXTAREA' ||
                 target.classList.contains('cta-btn') ||
                 target.closest('button') ||
-                target.closest('a')
+                target.closest('a') ||
+                target.closest('input') ||
+                target.closest('textarea')
             ) {
                 setIsHovering(true)
             } else {
@@ -102,8 +144,15 @@ export default function CustomCursor() {
             document.body.removeEventListener('mouseleave', handleMouseLeave)
             document.body.removeEventListener('mouseenter', handleMouseEnter)
             cancelAnimationFrame(animationFrame)
+            // Restore default cursor
+            document.body.style.cursor = 'auto'
         }
-    }, [])
+    }, [isTouchDevice])
+
+    // Don't render custom cursor on touch devices
+    if (isTouchDevice) {
+        return null
+    }
 
     return (
         <>

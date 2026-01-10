@@ -44,10 +44,18 @@ interface ClusterZone {
    ============================================ */
 
 export const defaultParticleConfig: ParticleSystemConfig = {
-    numberOfParticles: 200, // Increased from 140 to 200
+    numberOfParticles: 200,
     connectionDistance: 180,
     hubConnectionDistance: 210,
     mouseConnectionDistance: 240,
+}
+
+// Mobile-optimized configuration (Option B: Balanced)
+export const mobileParticleConfig: ParticleSystemConfig = {
+    numberOfParticles: 70,
+    connectionDistance: 120,
+    hubConnectionDistance: 150,
+    mouseConnectionDistance: 150,
 }
 
 /* ============================================
@@ -80,37 +88,60 @@ function createZones(canvasWidth: number, canvasHeight: number): ParticleZone[] 
    CLUSTER ZONES - High-density areas
    ============================================ */
 
-function createClusterZones(canvasWidth: number, canvasHeight: number): ClusterZone[] {
+function createClusterZones(canvasWidth: number, canvasHeight: number, isMobile: boolean = false): ClusterZone[] {
+    // OPTION B: Mobile uses fewer, smaller clusters for balanced distribution
+    if (isMobile) {
+        return [
+            // Center cluster - main focal point
+            {
+                x: canvasWidth * 0.5,
+                y: canvasHeight * 0.4,
+                radius: 200,
+                particleCount: 10, // Reduced from 12
+            },
+            // Top-right cluster - secondary
+            {
+                x: canvasWidth * 0.8,
+                y: canvasHeight * 0.2,
+                radius: 120,
+                particleCount: 5, // Reduced from 8
+            },
+            // Bottom-left cluster - secondary
+            {
+                x: canvasWidth * 0.2,
+                y: canvasHeight * 0.8,
+                radius: 120,
+                particleCount: 5, // Reduced from 8
+            },
+        ]
+    }
+
+    // Desktop clusters (unchanged)
     return [
-        // Center cluster (around terminal area) - fewer particles, more spread out
         {
             x: canvasWidth * 0.5,
             y: canvasHeight * 0.4,
             radius: 250,
             particleCount: 18,
         },
-        // Top-right cluster
         {
             x: canvasWidth * 0.8,
             y: canvasHeight * 0.2,
             radius: 150,
             particleCount: 15,
         },
-        // Bottom-left cluster
         {
             x: canvasWidth * 0.2,
             y: canvasHeight * 0.8,
             radius: 150,
             particleCount: 15,
         },
-        // Bottom-right cluster
         {
             x: canvasWidth * 0.85,
             y: canvasHeight * 0.85,
             radius: 140,
             particleCount: 14,
         },
-        // Top-left corner cluster
         {
             x: canvasWidth * 0.15,
             y: canvasHeight * 0.15,
@@ -190,13 +221,14 @@ export function createParticle(x: number, y: number, zone?: ParticleZone, isFast
 export function initializeParticles(
     canvasWidth: number,
     canvasHeight: number,
-    config: ParticleSystemConfig = defaultParticleConfig
+    config: ParticleSystemConfig = defaultParticleConfig,
+    isMobile: boolean = false
 ): Particle[] {
     const particles: Particle[] = []
     const numParticles = config.numberOfParticles
 
-    // Create cluster zones for high-density areas
-    const clusterZones = createClusterZones(canvasWidth, canvasHeight)
+    // Create cluster zones for high-density areas (mobile-aware)
+    const clusterZones = createClusterZones(canvasWidth, canvasHeight, isMobile)
 
     // Calculate particles for clusters
     let clusterParticleCount = 0
@@ -225,10 +257,10 @@ export function initializeParticles(
     // Calculate remaining particles to distribute
     const remainingParticles = numParticles - clusterParticleCount
 
-    // 60 additional filler particles distributed evenly across the entire canvas
-    const fillerParticleCount = 60
+    // OPTION B: Increased filler particles for better background coverage
+    const fillerParticleCount = isMobile ? 30 : 60 // Changed from 20 to 30
     const zones = createZones(canvasWidth, canvasHeight)
-    const fillersPerZone = Math.ceil(fillerParticleCount / zones.length) // ~7 per zone
+    const fillersPerZone = Math.ceil(fillerParticleCount / zones.length) // ~3-4 per zone on mobile
 
     // Add filler particles to each zone for balanced coverage
     zones.forEach((zone) => {
@@ -355,14 +387,6 @@ export function updateParticle(
                 particle.speedY += (targetSpeedY - particle.speedY) * blendFactor
             }
         }
-
-        // ORIGINAL ATTRACTION CODE (COMMENTED OUT)
-        // if (dist < 300 && dist > 150) {
-        //     const angle = Math.atan2(-dy, -dx)
-        //     const attractionForce = particle.baseSize > 2 ? 0.008 : 0.003
-        //     particle.speedX += Math.cos(angle) * attractionForce
-        //     particle.speedY += Math.sin(angle) * attractionForce
-        // }
 
         // Different max speeds for different particle types
         const maxSpeed = particle.isFastParticle

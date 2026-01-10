@@ -1,12 +1,14 @@
 // components/layout/Background.tsx
 "use client"
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
     initializeParticles,
     animateParticles,
     getCanvasContext,
     resizeCanvas,
+    defaultParticleConfig,
+    mobileParticleConfig,
     type Particle,
 } from '@/lib/particles'
 
@@ -16,6 +18,24 @@ export default function Background() {
     const mouseRef = useRef<{ x: number | null; y: number | null }>({ x: null, y: null })
     const animationFrameRef = useRef<number | undefined>(undefined)
     const mouseClickEffectRef = useRef<boolean>(false)
+    const [isMobile, setIsMobile] = useState(false)
+
+    useEffect(() => {
+        // Detect mobile/tablet devices
+        const checkMobile = () => {
+            const mobile = window.innerWidth < 768 ||
+                ('ontouchstart' in window) ||
+                (navigator.maxTouchPoints > 0)
+            setIsMobile(mobile)
+        }
+
+        checkMobile()
+        window.addEventListener('resize', checkMobile)
+
+        return () => {
+            window.removeEventListener('resize', checkMobile)
+        }
+    }, [])
 
     useEffect(() => {
         const canvas = canvasRef.current
@@ -24,32 +44,48 @@ export default function Background() {
         const ctx = getCanvasContext(canvas)
         if (!ctx) return
 
-        // Initialize canvas size
+        // Initialize canvas size and particles
         const handleResize = () => {
             resizeCanvas(canvas, window.innerWidth, window.innerHeight)
-            particlesRef.current = initializeParticles(canvas.width, canvas.height)
+
+            // Use device-specific configuration
+            const config = isMobile ? mobileParticleConfig : defaultParticleConfig
+
+            // Initialize particles with device-specific settings
+            particlesRef.current = initializeParticles(
+                canvas.width,
+                canvas.height,
+                config,
+                isMobile
+            )
         }
 
         handleResize()
         window.addEventListener('resize', handleResize)
 
-        // Mouse move handler
+        // Mouse move handler (only on desktop)
         const handleMouseMove = (e: MouseEvent) => {
-            mouseRef.current = { x: e.clientX, y: e.clientY }
+            if (!isMobile) {
+                mouseRef.current = { x: e.clientX, y: e.clientY }
+            }
         }
 
-        // Mouse leave handler - cursor disappears when leaving page
+        // Mouse leave handler
         const handleMouseLeave = () => {
             mouseRef.current = { x: null, y: null }
         }
 
-        // Mouse enter handler - cursor reappears when entering page
+        // Mouse enter handler
         const handleMouseEnter = (e: MouseEvent) => {
-            mouseRef.current = { x: e.clientX, y: e.clientY }
+            if (!isMobile) {
+                mouseRef.current = { x: e.clientX, y: e.clientY }
+            }
         }
 
-        // Mouse click handler - creates ripple effect
+        // Mouse click handler - creates ripple effect (only on desktop)
         const handleMouseClick = (e: MouseEvent) => {
+            if (isMobile) return // Skip ripple on mobile for performance
+
             mouseClickEffectRef.current = true
 
             // Create visual ripple element
@@ -71,40 +107,61 @@ export default function Background() {
             }, 100)
         }
 
-        // Use document to properly detect when mouse leaves the entire page
-        document.addEventListener('mousemove', handleMouseMove)
-        document.addEventListener('mouseleave', handleMouseLeave)
-        document.addEventListener('mouseenter', handleMouseEnter)
-        document.addEventListener('click', handleMouseClick)
+        // Only add mouse listeners on desktop
+        if (!isMobile) {
+            document.addEventListener('mousemove', handleMouseMove)
+            document.addEventListener('mouseleave', handleMouseLeave)
+            document.addEventListener('mouseenter', handleMouseEnter)
+            document.addEventListener('click', handleMouseClick)
+        }
 
-        // Animation loop
-        const animate = () => {
-            animateParticles(
-                ctx,
-                particlesRef.current,
-                canvas.width,
-                canvas.height,
-                mouseRef.current.x,
-                mouseRef.current.y,
-                mouseClickEffectRef.current
-            )
+        // Animation loop with device-specific FPS
+        let lastFrameTime = performance.now()
+        const targetFPS = isMobile ? 30 : 60
+        const frameDelay = 1000 / targetFPS
+
+        // Get device-specific config for animation
+        const config = isMobile ? mobileParticleConfig : defaultParticleConfig
+
+        const animate = (currentTime: number) => {
+            const elapsed = currentTime - lastFrameTime
+
+            // Throttle frame rate based on device
+            if (elapsed >= frameDelay) {
+                animateParticles(
+                    ctx,
+                    particlesRef.current,
+                    canvas.width,
+                    canvas.height,
+                    mouseRef.current.x,
+                    mouseRef.current.y,
+                    mouseClickEffectRef.current,
+                    config
+                )
+                lastFrameTime = currentTime
+            }
 
             animationFrameRef.current = requestAnimationFrame(animate)
         }
 
-        animate()
+        animate(performance.now())
 
+        // Cleanup
         return () => {
             window.removeEventListener('resize', handleResize)
-            document.removeEventListener('mousemove', handleMouseMove)
-            document.removeEventListener('mouseleave', handleMouseLeave)
-            document.removeEventListener('mouseenter', handleMouseEnter)
-            document.removeEventListener('click', handleMouseClick)
+
+            if (!isMobile) {
+                document.removeEventListener('mousemove', handleMouseMove)
+                document.removeEventListener('mouseleave', handleMouseLeave)
+                document.removeEventListener('mouseenter', handleMouseEnter)
+                document.removeEventListener('click', handleMouseClick)
+            }
+
             if (animationFrameRef.current !== undefined) {
                 cancelAnimationFrame(animationFrameRef.current)
             }
         }
-    }, [])
+    }, [isMobile])
 
     return (
         <>
