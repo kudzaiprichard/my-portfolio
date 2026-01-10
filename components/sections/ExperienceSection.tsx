@@ -118,7 +118,6 @@ export default function ExperienceSection() {
         steps.push(...commandTyping.generateSteps(command, { onKeystroke: onTypingKeystroke }))
         steps.push(AnimationController.createDelayStep(350))
 
-        // Show experiences one by one
         experiences.forEach((_, index) => {
             steps.push(
                 AnimationController.createActionStep(() => {
@@ -172,183 +171,374 @@ export default function ExperienceSection() {
         }
     }, [])
 
-    return (
-        <div ref={ref} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-            <TerminalContainer title="developer@portfolio:~/experience$">
-                <div style={{ color: '#00ff41', fontFamily: 'Courier New, monospace' }}>
-                    {/* Command Line */}
-                    {showCommand && (
-                        <div style={{ fontSize: '16px', marginBottom: '25px' }}>
-                            <span style={{ color: 'rgba(0, 255, 65, 0.7)' }}>$ </span>
-                            <span>{commandTyping.text}</span>
-                            {commandTyping.text.length < command.length && (
-                                <span style={{ marginLeft: '2px', animation: 'blink 0.7s infinite' }}>|</span>
-                            )}
+    const renderStaticContent = () => (
+        <div className="experience-section-content">
+            <div className="experience-section-command-line">
+                <span className="experience-section-prompt">$ </span>
+                <span>{command}</span>
+                <span className="experience-section-cursor-blink">|</span>
+            </div>
+
+            <div className="experience-section-timeline-container">
+                <div className="experience-section-timeline-line" />
+
+                {experiences.map((exp, index) => (
+                    <div key={exp.id} className="experience-section-item">
+                        <div className="experience-section-timeline-dot" />
+
+                        <div className="experience-section-period-badge">
+                            {exp.period}
                         </div>
-                    )}
 
-                    {/* Timeline */}
-                    {showExperiences.length > 0 && (
-                        <div style={{ position: 'relative', paddingLeft: '30px' }}>
-                            {/* Vertical Line */}
-                            <div style={{
-                                position: 'absolute',
-                                left: '0',
-                                top: '10px',
-                                bottom: '10px',
-                                width: '2px',
-                                background: 'rgba(0, 255, 65, 0.3)',
-                            }} />
+                        <div className="experience-section-role-header">
+                            <h3
+                                ref={el => { roleRefs.current[index] = el }}
+                                className="experience-section-role-title"
+                            >
+                                {exp.role}
+                            </h3>
+                            <div className="experience-section-company-name">
+                                {exp.company}
+                            </div>
+                        </div>
 
-                            {/* Experience Items */}
-                            {experiences.map((exp, index) => (
-                                showExperiences[index] && (
-                                    <div
-                                        key={exp.id}
-                                        className="experience-item"
-                                        style={{
-                                            position: 'relative',
-                                            marginBottom: index < experiences.length - 1 ? '35px' : '0',
-                                            animation: 'fadeInUp 0.6s ease forwards',
-                                        }}
-                                    >
-                                        {/* Timeline Dot */}
-                                        <div
-                                            className="timeline-dot"
-                                            style={{
-                                                position: 'absolute',
-                                                left: '-35px',
-                                                top: '8px',
-                                                width: '12px',
-                                                height: '12px',
-                                                borderRadius: '50%',
-                                                border: '2px solid #00ff41',
-                                                background: 'rgba(0, 20, 0, 0.8)',
-                                                boxShadow: '0 0 10px rgba(0, 255, 65, 0.3)',
-                                                transition: 'all 0.3s ease',
-                                            }}
-                                        />
+                        <p className="experience-section-description">
+                            {exp.description}
+                        </p>
 
-                                        {/* Period Badge */}
-                                        <div style={{
-                                            display: 'inline-block',
-                                            padding: '3px 10px',
-                                            border: '1px solid rgba(0, 255, 65, 0.4)',
-                                            fontSize: '11px',
-                                            marginBottom: '8px',
-                                            color: 'rgba(0, 255, 65, 0.7)',
-                                        }}>
-                                            {exp.period}
-                                        </div>
-
-                                        {/* Role & Company */}
-                                        <div style={{ marginBottom: '10px' }}>
-                                            <h3
-                                                ref={el => { roleRefs.current[index] = el }}
-                                                style={{
-                                                    fontSize: '18px',
-                                                    fontWeight: 'bold',
-                                                    margin: '0 0 4px 0',
-                                                    color: '#00ff41',
-                                                }}
-                                            >
-                                                {exp.role}
-                                            </h3>
-                                            <div style={{
-                                                fontSize: '14px',
-                                                color: 'rgba(0, 255, 65, 0.6)',
-                                            }}>
-                                                {exp.company}
-                                            </div>
-                                        </div>
-
-                                        {/* Description */}
-                                        <p style={{
-                                            fontSize: '13px',
-                                            lineHeight: '1.6',
-                                            color: 'rgba(0, 255, 65, 0.75)',
-                                            margin: '0 0 12px 0',
-                                        }}>
-                                            {exp.description}
-                                        </p>
-
-                                        {/* Achievements */}
-                                        <div style={{ marginBottom: '12px' }}>
-                                            {exp.achievements.map((achievement, idx) => (
-                                                <div
-                                                    key={idx}
-                                                    style={{
-                                                        fontSize: '12px',
-                                                        color: 'rgba(0, 255, 65, 0.7)',
-                                                        marginBottom: '4px',
-                                                        paddingLeft: '12px',
-                                                        position: 'relative',
-                                                    }}
-                                                >
-                                                    <span style={{
-                                                        position: 'absolute',
-                                                        left: '0',
-                                                        color: 'rgba(0, 255, 65, 0.5)',
-                                                    }}>
-                                                        &gt;
-                                                    </span>
-                                                    {achievement}
-                                                </div>
-                                            ))}
-                                        </div>
-
-                                        {/* Technologies */}
-                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                            {exp.technologies.map((tech) => (
-                                                <span
-                                                    key={tech}
-                                                    style={{
-                                                        fontSize: '11px',
-                                                        padding: '3px 8px',
-                                                        border: '1px solid rgba(0, 255, 65, 0.4)',
-                                                        color: 'rgba(0, 255, 65, 0.7)',
-                                                    }}
-                                                >
-                                                    {tech}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )
+                        <div className="experience-section-achievements">
+                            {exp.achievements.map((achievement, idx) => (
+                                <div key={idx} className="experience-section-achievement-item">
+                                    <span className="experience-section-achievement-bullet">&gt;</span>
+                                    {achievement}
+                                </div>
                             ))}
                         </div>
+
+                        <div className="experience-section-tech-list">
+                            {exp.technologies.map((tech) => (
+                                <span key={tech} className="experience-section-tech-tag">
+                                    {tech}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+
+    const renderAnimatingContent = () => (
+        <div className="experience-section-content">
+            {showCommand && (
+                <div className="experience-section-command-line">
+                    <span className="experience-section-prompt">$ </span>
+                    <span>{commandTyping.text}</span>
+                    {commandTyping.text.length < command.length && (
+                        <span className="experience-section-cursor-blink">|</span>
                     )}
                 </div>
+            )}
 
-                <style jsx>{`
-                    @keyframes blink {
-                        0%, 50% { opacity: 1; }
-                        51%, 100% { opacity: 0; }
-                    }
+            {showExperiences.length > 0 && (
+                <div className="experience-section-timeline-container">
+                    <div className="experience-section-timeline-line" />
 
-                    @keyframes fadeInUp {
-                        from {
-                            opacity: 0;
-                            transform: translateY(15px);
-                        }
-                        to {
-                            opacity: 1;
-                            transform: translateY(0);
-                        }
-                    }
+                    {experiences.map((exp, index) => (
+                        showExperiences[index] && (
+                            <div key={exp.id} className="experience-section-item">
+                                <div className="experience-section-timeline-dot" />
 
-                    .experience-item:hover .timeline-dot {
-                        background: #00ff41 !important;
-                        box-shadow: 0 0 20px rgba(0, 255, 65, 0.8), 0 0 30px rgba(0, 255, 65, 0.4) !important;
-                    }
+                                <div className="experience-section-period-badge">
+                                    {exp.period}
+                                </div>
 
-                    @media (max-width: 768px) {
-                        div[style*="paddingLeft: '30px'"] {
-                            padding-left: 25px !important;
-                        }
-                    }
-                `}</style>
-            </TerminalContainer>
+                                <div className="experience-section-role-header">
+                                    <h3
+                                        ref={el => { roleRefs.current[index] = el }}
+                                        className="experience-section-role-title"
+                                    >
+                                        {exp.role}
+                                    </h3>
+                                    <div className="experience-section-company-name">
+                                        {exp.company}
+                                    </div>
+                                </div>
+
+                                <p className="experience-section-description">
+                                    {exp.description}
+                                </p>
+
+                                <div className="experience-section-achievements">
+                                    {exp.achievements.map((achievement, idx) => (
+                                        <div key={idx} className="experience-section-achievement-item">
+                                            <span className="experience-section-achievement-bullet">&gt;</span>
+                                            {achievement}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="experience-section-tech-list">
+                                    {exp.technologies.map((tech) => (
+                                        <span key={tech} className="experience-section-tech-tag">
+                                            {tech}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )
+                    ))}
+                </div>
+            )}
         </div>
+    )
+
+    return (
+        <>
+            <div ref={ref} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                <TerminalContainer title="developer@portfolio:~/experience$">
+                    {animation.isCompleted ? renderStaticContent() : renderAnimatingContent()}
+                </TerminalContainer>
+            </div>
+
+            <style>{`
+                .experience-section-content {
+                    color: var(--color-primary);
+                    font-family: var(--font-mono);
+                }
+
+                .experience-section-command-line {
+                    font-size: var(--font-size-md);
+                    margin-bottom: var(--spacing-lg);
+                    line-height: var(--line-height-normal);
+                }
+
+                .experience-section-prompt {
+                    color: var(--color-primary-dim);
+                }
+
+                .experience-section-cursor-blink {
+                    display: inline-block;
+                    margin-left: 2px;
+                    animation: experience-section-blink 0.7s infinite;
+                }
+
+                @keyframes experience-section-blink {
+                    0%, 50% { opacity: 1; }
+                    51%, 100% { opacity: 0; }
+                }
+
+                .experience-section-timeline-container {
+                    position: relative;
+                    padding-left: 20px;
+                }
+
+                .experience-section-timeline-line {
+                    position: absolute;
+                    left: 0;
+                    top: 10px;
+                    bottom: 10px;
+                    width: 2px;
+                    background: var(--color-primary-dimmer);
+                }
+
+                .experience-section-item {
+                    position: relative;
+                    margin-bottom: var(--spacing-2xl);
+                    animation: experience-section-fadeInUp 0.6s ease forwards;
+                }
+
+                .experience-section-item:last-child {
+                    margin-bottom: 0;
+                }
+
+                @keyframes experience-section-fadeInUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(15px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+
+                .experience-section-timeline-dot {
+                    position: absolute;
+                    left: -25px;
+                    top: 8px;
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 50%;
+                    border: 2px solid var(--color-primary);
+                    background: var(--color-bg-dark);
+                    box-shadow: 0 0 10px var(--color-primary-dimmest);
+                    transition: all var(--transition-fast);
+                }
+
+                .experience-section-item:hover .experience-section-timeline-dot {
+                    background: var(--color-primary);
+                    box-shadow: 0 0 20px var(--color-primary-dim), 0 0 30px var(--color-primary-dimmer);
+                }
+
+                .experience-section-period-badge {
+                    display: inline-block;
+                    padding: 4px var(--spacing-sm);
+                    border: 1px solid var(--color-primary-dimmer);
+                    font-size: 10px;
+                    margin-bottom: var(--spacing-xs);
+                    color: var(--color-primary-dim);
+                    line-height: var(--line-height-tight);
+                }
+
+                .experience-section-role-header {
+                    margin-bottom: var(--spacing-sm);
+                }
+
+                .experience-section-role-title {
+                    font-size: var(--font-size-lg);
+                    font-weight: bold;
+                    margin: 0 0 4px 0;
+                    color: var(--color-primary);
+                    line-height: var(--line-height-tight);
+                }
+
+                .experience-section-company-name {
+                    font-size: var(--font-size-sm);
+                    color: var(--color-primary-dim);
+                    line-height: var(--line-height-normal);
+                }
+
+                .experience-section-description {
+                    font-size: var(--font-size-sm);
+                    line-height: var(--line-height-relaxed);
+                    color: var(--color-primary-dim);
+                    margin: 0 0 var(--spacing-sm) 0;
+                }
+
+                .experience-section-achievements {
+                    margin-bottom: var(--spacing-sm);
+                }
+
+                .experience-section-achievement-item {
+                    font-size: var(--font-size-xs);
+                    color: var(--color-primary-dim);
+                    margin-bottom: 4px;
+                    padding-left: var(--spacing-sm);
+                    position: relative;
+                    line-height: var(--line-height-normal);
+                }
+
+                .experience-section-achievement-bullet {
+                    position: absolute;
+                    left: 0;
+                    color: var(--color-primary-dimmer);
+                }
+
+                .experience-section-tech-list {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 6px;
+                }
+
+                .experience-section-tech-tag {
+                    font-size: 10px;
+                    padding: 3px 8px;
+                    border: 1px solid var(--color-primary-dimmer);
+                    color: var(--color-primary-dim);
+                    line-height: var(--line-height-tight);
+                    transition: all var(--transition-fast);
+                }
+
+                .experience-section-tech-tag:hover {
+                    border-color: var(--color-primary);
+                    background: rgba(0, 255, 65, 0.05);
+                }
+
+                @media (min-width: 768px) {
+                    .experience-section-timeline-container {
+                        padding-left: 30px;
+                    }
+
+                    .experience-section-timeline-dot {
+                        left: -35px;
+                        width: 12px;
+                        height: 12px;
+                    }
+
+                    .experience-section-period-badge {
+                        font-size: 11px;
+                        padding: 3px 10px;
+                    }
+
+                    .experience-section-role-title {
+                        font-size: var(--font-size-xl);
+                    }
+
+                    .experience-section-company-name {
+                        font-size: var(--font-size-md);
+                    }
+
+                    .experience-section-description {
+                        font-size: var(--font-size-md);
+                    }
+
+                    .experience-section-achievement-item {
+                        font-size: var(--font-size-sm);
+                    }
+
+                    .experience-section-tech-tag {
+                        font-size: 11px;
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .experience-section-command-line {
+                        font-size: var(--font-size-sm);
+                    }
+
+                    .experience-section-timeline-container {
+                        padding-left: 18px;
+                    }
+
+                    .experience-section-timeline-dot {
+                        left: -23px;
+                        width: 8px;
+                        height: 8px;
+                    }
+
+                    .experience-section-period-badge {
+                        font-size: 9px;
+                        padding: 3px 8px;
+                    }
+
+                    .experience-section-role-title {
+                        font-size: var(--font-size-md);
+                    }
+
+                    .experience-section-company-name {
+                        font-size: var(--font-size-xs);
+                    }
+
+                    .experience-section-description {
+                        font-size: var(--font-size-xs);
+                    }
+
+                    .experience-section-achievement-item {
+                        font-size: 10px;
+                        padding-left: 10px;
+                    }
+
+                    .experience-section-tech-tag {
+                        font-size: 9px;
+                        padding: 2px 6px;
+                    }
+
+                    .experience-section-item {
+                        margin-bottom: var(--spacing-xl);
+                    }
+                }
+            `}</style>
+        </>
     )
 }

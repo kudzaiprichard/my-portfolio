@@ -1,15 +1,6 @@
 // components/sections/AboutSection.tsx
 "use client"
 
-/**
- * About Section - Refactored with new animation system
- *
- * Uses the same stable architecture as HeroSection:
- * - AnimationController for state management
- * - useTypingAnimation for typing effects
- * - Proper cancellation and reset logic
- */
-
 import { useCallback, useEffect, useRef, useState } from 'react'
 import TerminalContainer from '@/components/shared/TerminalContainer'
 import { useInView } from '@/hooks/useInView'
@@ -58,12 +49,10 @@ const specializations = [
 ]
 
 export default function AboutSection() {
-    // State for tracking visibility
     const [showOutput1, setShowOutput1] = useState(false)
     const [showOutput2, setShowOutput2] = useState(false)
     const [showOutput3, setShowOutput3] = useState(false)
 
-    // Audio setup
     const audio = useKeystrokeAudio({
         sectionId: 'about',
         enabled: true,
@@ -72,32 +61,24 @@ export default function AboutSection() {
     })
 
     const { onTypingKeystroke } = useTypingAudioCallback(audio)
-
-    // Animation controller
     const animation = useAnimationController({
-        onComplete: () => {
-            console.log('[AboutSection] Animation completed')
-        },
+        onComplete: () => console.log('[AboutSection] Animation completed'),
         debug: false,
     })
 
-    // Typing animations for each command
     const command1Typing = useTypingAnimation({ baseSpeed: 80 })
     const command2Typing = useTypingAnimation({ baseSpeed: 50 })
     const command3Typing = useTypingAnimation({ baseSpeed: 60 })
 
-    // Refs for glitch effects on specific words
     const word1Ref = useRef<HTMLSpanElement>(null)
     const word2Ref = useRef<HTMLSpanElement>(null)
     const word3Ref = useRef<HTMLSpanElement>(null)
     const word4Ref = useRef<HTMLSpanElement>(null)
 
-    // Command strings
     const command1 = 'cat about.txt'
     const command2 = 'ls -la ./tech_stack/'
     const command3 = './list_specializations.sh'
 
-    // Reset animation state
     const resetAnimationState = useCallback(() => {
         command1Typing.reset()
         command2Typing.reset()
@@ -108,7 +89,6 @@ export default function AboutSection() {
         animation.reset()
     }, [animation, command1Typing, command2Typing, command3Typing])
 
-    // Stable callback for inView changes using useRef
     const onInViewChangeRef = useRef<((inView: boolean) => void) | undefined>(undefined)
 
     useEffect(() => {
@@ -117,8 +97,6 @@ export default function AboutSection() {
                 audio.requestAudioControl()
             } else {
                 audio.releaseAudioControl()
-
-                // Only reset if animation was interrupted
                 if (animation.isRunning) {
                     resetAnimationState()
                 }
@@ -126,7 +104,6 @@ export default function AboutSection() {
         }
     }, [audio, animation.isRunning, resetAnimationState])
 
-    // View detection with stable callback
     const { ref, isInView } = useInView({
         threshold: 0.3,
         triggerOnce: false,
@@ -135,117 +112,39 @@ export default function AboutSection() {
         }
     })
 
-    // Build complete animation sequence
     const buildAnimationSequence = useCallback(() => {
         const steps = []
-
-        // Initial delay
         steps.push(AnimationController.createDelayStep(500))
-
-        // Reset volume ramp
-        steps.push(
-            AnimationController.createActionStep(() => {
-                audio.resetVolumeRamp()
-            })
-        )
-
-        // Command 1: cat about.txt
-        steps.push(...command1Typing.generateSteps(command1, {
-            onKeystroke: onTypingKeystroke
-        }))
-
-        // Show bio output
+        steps.push(AnimationController.createActionStep(() => audio.resetVolumeRamp()))
+        steps.push(...command1Typing.generateSteps(command1, { onKeystroke: onTypingKeystroke }))
         steps.push(
             AnimationController.createDelayStep(350),
-            AnimationController.createActionStep(() => {
-                setShowOutput1(true)
-            })
+            AnimationController.createActionStep(() => setShowOutput1(true))
         )
-
-        // Delay before command 2
         steps.push(AnimationController.createDelayStep(900))
-
-        // Reset volume ramp
-        steps.push(
-            AnimationController.createActionStep(() => {
-                audio.resetVolumeRamp()
-            })
-        )
-
-        // Command 2: ls -la ./tech_stack/
-        steps.push(...command2Typing.generateSteps(command2, {
-            onKeystroke: onTypingKeystroke
-        }))
-
-        // Show skills output
+        steps.push(AnimationController.createActionStep(() => audio.resetVolumeRamp()))
+        steps.push(...command2Typing.generateSteps(command2, { onKeystroke: onTypingKeystroke }))
         steps.push(
             AnimationController.createDelayStep(350),
-            AnimationController.createActionStep(() => {
-                setShowOutput2(true)
-            })
+            AnimationController.createActionStep(() => setShowOutput2(true))
         )
-
-        // Delay before command 3
         steps.push(AnimationController.createDelayStep(900))
-
-        // Reset volume ramp
-        steps.push(
-            AnimationController.createActionStep(() => {
-                audio.resetVolumeRamp()
-            })
-        )
-
-        // Command 3: ./list_specializations.sh
-        steps.push(...command3Typing.generateSteps(command3, {
-            onKeystroke: onTypingKeystroke
-        }))
-
-        // Show specializations output
+        steps.push(AnimationController.createActionStep(() => audio.resetVolumeRamp()))
+        steps.push(...command3Typing.generateSteps(command3, { onKeystroke: onTypingKeystroke }))
         steps.push(
             AnimationController.createDelayStep(350),
-            AnimationController.createActionStep(() => {
-                setShowOutput3(true)
-            })
+            AnimationController.createActionStep(() => setShowOutput3(true))
         )
-
         return steps
-    }, [
-        command1, command2, command3,
-        command1Typing, command2Typing, command3Typing,
-        onTypingKeystroke,
-        audio
-    ])
+    }, [command1, command2, command3, command1Typing, command2Typing, command3Typing, onTypingKeystroke, audio])
 
-    // Start animation when conditions are met
     useEffect(() => {
-        if (!isInView || !audio.isAudioReady || !audio.hasAudioControl) {
-            return
-        }
-
-        // Don't restart if already completed
-        if (animation.isCompleted) {
-            return
-        }
-
-        // Don't start if already running
-        if (animation.isRunning) {
-            return
-        }
-
-        // Build and start animation
+        if (!isInView || !audio.isAudioReady || !audio.hasAudioControl) return
+        if (animation.isCompleted || animation.isRunning) return
         const steps = buildAnimationSequence()
         animation.start(steps)
-    }, [
-        isInView,
-        audio.isAudioReady,
-        audio.hasAudioControl,
-        animation.isCompleted,
-        animation.isRunning,
-        buildAnimationSequence,
-        animation
-    ])
+    }, [isInView, audio.isAudioReady, audio.hasAudioControl, animation.isCompleted, animation.isRunning, buildAnimationSequence, animation])
 
-    // Apply glitch effects to special words
     useEffect(() => {
         if (!showOutput1 || !isInView) return
 
@@ -300,7 +199,6 @@ export default function AboutSection() {
         }
     }, [isInView, showOutput1])
 
-    // Cleanup on unmount
     useEffect(() => {
         return () => {
             audio.releaseAudioControl()
@@ -310,18 +208,15 @@ export default function AboutSection() {
         }
     }, [])
 
-    // Render static completed state
     const renderStaticContent = () => (
-        <div className="skills-content">
-            {/* Command 1 */}
-            <div className="command-line" style={{ marginBottom: '8px' }}>
-                <span style={{ color: 'rgba(0, 255, 65, 0.7)' }}>$ </span>
+        <div className="about-section-content">
+            <div className="about-section-command-line">
+                <span className="about-section-prompt">$ </span>
                 <span>{command1}</span>
             </div>
 
-            {/* Output 1 - Bio */}
-            <div style={{ marginBottom: '20px' }}>
-                <p className="bio-text">
+            <div className="about-section-output-block">
+                <p className="about-section-bio-text">
                     Passionate developer with expertise in <span ref={word1Ref}>artificial intelligence</span> and full-stack
                     development. I combine <span ref={word2Ref}>cutting-edge</span> AI technologies with robust backend systems to
                     create <span ref={word3Ref}>innovative</span> solutions. Committed to writing clean, efficient code and staying
@@ -329,24 +224,22 @@ export default function AboutSection() {
                 </p>
             </div>
 
-            {/* Command 2 */}
-            <div className="command-line" style={{ marginBottom: '8px' }}>
-                <span style={{ color: 'rgba(0, 255, 65, 0.7)' }}>$ </span>
+            <div className="about-section-command-line">
+                <span className="about-section-prompt">$ </span>
                 <span>{command2}</span>
             </div>
 
-            {/* Output 2 - Skills Grid */}
-            <div style={{ marginBottom: '20px' }}>
-                <div className="skills-grid">
+            <div className="about-section-output-block">
+                <div className="about-section-skills-grid">
                     {skillCategories.map((category) => (
-                        <div key={category.title} className="skill-category">
-                            <div className="category-title">
-                                <span className="category-icon">{category.icon}</span>
+                        <div key={category.title} className="about-section-skill-category">
+                            <div className="about-section-category-title">
+                                <span className="about-section-category-icon">{category.icon}</span>
                                 <span>{category.title}</span>
                             </div>
-                            <div className="tech-stack">
+                            <div className="about-section-tech-stack">
                                 {category.technologies.map((tech) => (
-                                    <span key={tech} className="tech-badge">
+                                    <span key={tech} className="about-section-tech-badge">
                                         {tech}
                                     </span>
                                 ))}
@@ -356,56 +249,39 @@ export default function AboutSection() {
                 </div>
             </div>
 
-            {/* Command 3 */}
-            <div className="command-line" style={{ marginBottom: '8px' }}>
-                <span style={{ color: 'rgba(0, 255, 65, 0.7)' }}>$ </span>
+            <div className="about-section-command-line">
+                <span className="about-section-prompt">$ </span>
                 <span>{command3}</span>
-                <span style={{
-                    display: 'inline-block',
-                    marginLeft: '4px',
-                    animation: 'blink 0.7s infinite'
-                }}>|</span>
+                <span className="about-section-cursor-blink">|</span>
             </div>
 
-            {/* Output 3 - Specializations */}
-            <div>
-                <div className="spec-list">
+            <div className="about-section-output-block about-section-output-block-compact">
+                <div className="about-section-spec-grid">
                     {specializations.map((spec) => (
-                        <div key={spec} className="spec-item">
+                        <span key={spec} className="about-section-spec-item">
                             {spec}
-                        </div>
+                        </span>
                     ))}
                 </div>
             </div>
         </div>
     )
 
-    // Render animating state
     const renderAnimatingContent = () => (
-        <div className="skills-content">
-            {/* Command 1 - Typing */}
+        <div className="about-section-content">
             {command1Typing.text && (
-                <div className="command-line fade-in" style={{ marginBottom: '8px' }}>
-                    <span style={{ color: 'rgba(0, 255, 65, 0.7)' }}>$ </span>
+                <div className="about-section-command-line about-section-fade-in">
+                    <span className="about-section-prompt">$ </span>
                     <span>{command1Typing.text}</span>
                     {command1Typing.text.length < command1.length && (
-                        <span style={{
-                            display: 'inline-block',
-                            marginLeft: '2px',
-                            animation: 'blink 0.7s infinite'
-                        }}>|</span>
+                        <span className="about-section-cursor-blink">|</span>
                     )}
                 </div>
             )}
 
-            {/* Output 1 - Bio with Animation */}
             {showOutput1 && (
-                <div style={{
-                    marginBottom: '20px',
-                    animation: 'fadeInSuperSmooth 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards',
-                    opacity: 0
-                }}>
-                    <p className="bio-text">
+                <div className="about-section-output-block about-section-fade-in-smooth">
+                    <p className="about-section-bio-text">
                         Passionate developer with expertise in <span ref={word1Ref}>artificial intelligence</span> and full-stack
                         development. I combine <span ref={word2Ref}>cutting-edge</span> AI technologies with robust backend systems to
                         create <span ref={word3Ref}>innovative</span> solutions. Committed to writing clean, efficient code and staying
@@ -414,38 +290,28 @@ export default function AboutSection() {
                 </div>
             )}
 
-            {/* Command 2 - Typing */}
             {command2Typing.text && (
-                <div className="command-line fade-in" style={{ marginBottom: '8px' }}>
-                    <span style={{ color: 'rgba(0, 255, 65, 0.7)' }}>$ </span>
+                <div className="about-section-command-line about-section-fade-in">
+                    <span className="about-section-prompt">$ </span>
                     <span>{command2Typing.text}</span>
                     {command2Typing.text.length < command2.length && (
-                        <span style={{
-                            display: 'inline-block',
-                            marginLeft: '2px',
-                            animation: 'blink 0.7s infinite'
-                        }}>|</span>
+                        <span className="about-section-cursor-blink">|</span>
                     )}
                 </div>
             )}
 
-            {/* Output 2 - Skills Grid with Animation */}
             {showOutput2 && (
-                <div style={{
-                    marginBottom: '20px',
-                    animation: 'fadeInSuperSmooth 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards',
-                    opacity: 0
-                }}>
-                    <div className="skills-grid">
+                <div className="about-section-output-block about-section-fade-in-smooth">
+                    <div className="about-section-skills-grid">
                         {skillCategories.map((category) => (
-                            <div key={category.title} className="skill-category">
-                                <div className="category-title">
-                                    <span className="category-icon">{category.icon}</span>
+                            <div key={category.title} className="about-section-skill-category">
+                                <div className="about-section-category-title">
+                                    <span className="about-section-category-icon">{category.icon}</span>
                                     <span>{category.title}</span>
                                 </div>
-                                <div className="tech-stack">
+                                <div className="about-section-tech-stack">
                                     {category.technologies.map((tech) => (
-                                        <span key={tech} className="tech-badge">
+                                        <span key={tech} className="about-section-tech-badge">
                                             {tech}
                                         </span>
                                     ))}
@@ -456,31 +322,21 @@ export default function AboutSection() {
                 </div>
             )}
 
-            {/* Command 3 - Typing */}
             {command3Typing.text && (
-                <div className="command-line fade-in" style={{ marginBottom: '8px' }}>
-                    <span style={{ color: 'rgba(0, 255, 65, 0.7)' }}>$ </span>
+                <div className="about-section-command-line about-section-fade-in">
+                    <span className="about-section-prompt">$ </span>
                     <span>{command3Typing.text}</span>
-                    <span style={{
-                        display: 'inline-block',
-                        marginLeft: command3Typing.text.length === command3.length ? '4px' : '2px',
-                        animation: 'blink 0.7s infinite'
-                    }}>|</span>
+                    <span className="about-section-cursor-blink">|</span>
                 </div>
             )}
 
-            {/* Output 3 - Specializations with Animation */}
             {showOutput3 && (
-                <div style={{
-                    marginBottom: '20px',
-                    animation: 'fadeInSuperSmooth 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards',
-                    opacity: 0
-                }}>
-                    <div className="spec-list">
+                <div className="about-section-output-block about-section-output-block-compact about-section-fade-in-smooth">
+                    <div className="about-section-spec-grid">
                         {specializations.map((spec) => (
-                            <div key={spec} className="spec-item">
+                            <span key={spec} className="about-section-spec-item">
                                 {spec}
-                            </div>
+                            </span>
                         ))}
                     </div>
                 </div>
@@ -489,141 +345,257 @@ export default function AboutSection() {
     )
 
     return (
-        <div ref={ref} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-            <TerminalContainer title="developer@portfolio:~/skills$">
-                {animation.isCompleted ? renderStaticContent() : renderAnimatingContent()}
+        <>
+            <div ref={ref} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                <TerminalContainer title="developer@portfolio:~/skills$">
+                    {animation.isCompleted ? renderStaticContent() : renderAnimatingContent()}
+                </TerminalContainer>
+            </div>
 
-                <style jsx>{`
-                    .skills-content {
-                        color: #00ff41;
+            <style>{`
+                .about-section-content {
+                    color: var(--color-primary);
+                }
+
+                .about-section-command-line {
+                    color: var(--color-primary);
+                    font-size: var(--font-size-md);
+                    font-family: var(--font-mono);
+                    margin-bottom: var(--spacing-xs);
+                    line-height: var(--line-height-normal);
+                }
+
+                .about-section-prompt {
+                    color: var(--color-primary-dim);
+                }
+
+                .about-section-cursor-blink {
+                    display: inline-block;
+                    margin-left: 4px;
+                    animation: about-section-blink 0.7s infinite;
+                }
+
+                .about-section-output-block {
+                    margin-bottom: var(--spacing-lg);
+                }
+
+                .about-section-output-block-compact {
+                    margin-bottom: var(--spacing-md);
+                }
+
+                .about-section-bio-text {
+                    font-size: var(--font-size-md);
+                    color: var(--color-primary);
+                    line-height: var(--line-height-relaxed);
+                    margin: 0;
+                }
+
+                .about-section-fade-in {
+                    animation: about-section-fadeIn 0.6s ease forwards;
+                }
+
+                .about-section-fade-in-smooth {
+                    opacity: 0;
+                    animation: about-section-fadeInSuperSmooth 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+                }
+
+                @keyframes about-section-fadeIn {
+                    from {
+                        opacity: 0;
+                        transform: translateY(10px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+
+                @keyframes about-section-fadeInSuperSmooth {
+                    0% {
+                        opacity: 0;
+                        transform: translateY(8px);
+                    }
+                    50% {
+                        opacity: 0.5;
+                        transform: translateY(4px);
+                    }
+                    100% {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+
+                @keyframes about-section-blink {
+                    0%, 50% {
+                        opacity: 1;
+                    }
+                    51%, 100% {
+                        opacity: 0;
+                    }
+                }
+
+                .about-section-skills-grid {
+                    display: grid;
+                    grid-template-columns: 1fr;
+                    gap: var(--spacing-md);
+                }
+
+                .about-section-skill-category {
+                    background: rgba(0, 255, 65, 0.05);
+                    border: 1px solid rgba(0, 255, 65, 0.2);
+                    padding: var(--spacing-md);
+                    border-radius: 4px;
+                    transition: all var(--transition-fast);
+                }
+
+                .about-section-skill-category:hover {
+                    background: rgba(0, 255, 65, 0.08);
+                    border-color: rgba(0, 255, 65, 0.4);
+                    transform: translateY(-2px);
+                }
+
+                .about-section-category-title {
+                    font-size: var(--font-size-md);
+                    font-weight: bold;
+                    margin-bottom: var(--spacing-sm);
+                    display: flex;
+                    align-items: center;
+                    gap: var(--spacing-xs);
+                    line-height: var(--line-height-tight);
+                }
+
+                .about-section-category-icon {
+                    font-size: var(--font-size-lg);
+                }
+
+                .about-section-tech-stack {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: var(--spacing-xs);
+                }
+
+                .about-section-tech-badge {
+                    background: rgba(0, 255, 65, 0.1);
+                    border: 1px solid rgba(0, 255, 65, 0.3);
+                    padding: 4px 10px;
+                    border-radius: 3px;
+                    font-size: var(--font-size-xs);
+                    line-height: var(--line-height-tight);
+                    transition: all var(--transition-fast);
+                }
+
+                .about-section-tech-badge:hover {
+                    background: rgba(0, 255, 65, 0.15);
+                    transform: translateY(-1px);
+                }
+
+                /* Compact Specializations Grid */
+                .about-section-spec-grid {
+                    display: grid;
+                    grid-template-columns: 1fr;
+                    gap: 6px;
+                }
+
+                .about-section-spec-item {
+                    padding: 6px 10px;
+                    background: rgba(0, 255, 65, 0.05);
+                    border-left: 2px solid var(--color-primary-dimmer);
+                    font-size: var(--font-size-xs);
+                    line-height: var(--line-height-tight);
+                    transition: all var(--transition-fast);
+                }
+
+                .about-section-spec-item:hover {
+                    background: rgba(0, 255, 65, 0.08);
+                    border-left-color: var(--color-primary);
+                }
+
+                @media (min-width: 480px) {
+                    .about-section-spec-grid {
+                        grid-template-columns: repeat(2, 1fr);
                     }
 
-                    .command-line {
-                        color: #00ff41;
-                        font-size: 16px;
-                        font-family: 'Courier New', monospace;
+                    .about-section-spec-item {
+                        font-size: 11px;
+                        padding: 7px 10px;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                }
+
+                @media (min-width: 600px) {
+                    .about-section-spec-grid {
+                        grid-template-columns: repeat(3, 1fr);
+                    }
+                }
+
+                @media (min-width: 768px) {
+                    .about-section-skills-grid {
+                        grid-template-columns: repeat(2, 1fr);
                     }
 
-                    .bio-text {
-                        font-size: 16px;
-                        color: #00ff41;
-                        line-height: 1.6;
-                        margin: 0;
-                    }
-
-                    .fade-in {
-                        animation: fadeIn 0.6s ease forwards;
-                    }
-
-                    @keyframes fadeIn {
-                        from {
-                            opacity: 0;
-                            transform: translateY(10px);
-                        }
-                        to {
-                            opacity: 1;
-                            transform: translateY(0);
-                        }
-                    }
-
-                    @keyframes fadeInSuperSmooth {
-                        0% {
-                            opacity: 0;
-                            transform: translateY(8px);
-                        }
-                        50% {
-                            opacity: 0.5;
-                            transform: translateY(4px);
-                        }
-                        100% {
-                            opacity: 1;
-                            transform: translateY(0);
-                        }
-                    }
-
-                    @keyframes blink {
-                        0%, 50% {
-                            opacity: 1;
-                        }
-                        51%, 100% {
-                            opacity: 0;
-                        }
-                    }
-
-                    .skills-grid {
-                        display: grid;
-                        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-                        gap: 20px;
-                    }
-
-                    .skill-category {
-                        background: rgba(0, 255, 65, 0.05);
-                        border: 1px solid rgba(0, 255, 65, 0.2);
+                    .about-section-skill-category {
                         padding: 16px;
-                        border-radius: 4px;
                     }
 
-                    .category-title {
-                        font-size: 16px;
-                        font-weight: bold;
-                        margin-bottom: 12px;
-                        display: flex;
-                        align-items: center;
+                    .about-section-tech-badge {
+                        padding: 5px 10px;
+                    }
+
+                    .about-section-spec-grid {
+                        grid-template-columns: repeat(3, 1fr);
                         gap: 8px;
                     }
 
-                    .category-icon {
-                        font-size: 20px;
-                    }
-
-                    .tech-stack {
-                        display: flex;
-                        flex-wrap: wrap;
-                        gap: 8px;
-                    }
-
-                    .tech-badge {
-                        background: rgba(0, 255, 65, 0.1);
-                        border: 1px solid rgba(0, 255, 65, 0.3);
-                        padding: 4px 10px;
-                        border-radius: 3px;
-                        font-size: 13px;
-                    }
-
-                    .spec-list {
-                        display: flex !important;
-                        flex-direction: column !important;
-                        flex-wrap: nowrap !important;
-                        gap: 8px !important;
-                    }
-
-                    .spec-item {
+                    .about-section-spec-item {
+                        font-size: var(--font-size-sm);
                         padding: 8px 12px;
-                        background: rgba(0, 255, 65, 0.05);
-                        border-left: 2px solid #00ff41;
-                        font-size: 14px;
                     }
-                    
-                    .spec-item::before {
-                        content: '' !important;
-                        margin-right: 0 !important;
+                }
+
+                @media (min-width: 1024px) {
+                    .about-section-skills-grid {
+                        grid-template-columns: repeat(2, 1fr);
                     }
 
-                    @media (max-width: 768px) {
-                        .command-line {
-                            font-size: 14px;
-                        }
-
-                        .bio-text {
-                            font-size: 14px;
-                        }
-
-                        .skills-grid {
-                            grid-template-columns: 1fr;
-                        }
+                    .about-section-skill-category {
+                        padding: 18px;
                     }
-                `}</style>
-            </TerminalContainer>
-        </div>
+                }
+
+                @media (max-width: 480px) {
+                    .about-section-command-line {
+                        font-size: var(--font-size-sm);
+                    }
+
+                    .about-section-bio-text {
+                        font-size: var(--font-size-sm);
+                    }
+
+                    .about-section-category-title {
+                        font-size: var(--font-size-sm);
+                    }
+
+                    .about-section-category-icon {
+                        font-size: var(--font-size-md);
+                    }
+
+                    .about-section-skill-category {
+                        padding: 12px;
+                    }
+
+                    .about-section-tech-badge {
+                        padding: 3px 8px;
+                        font-size: 10px;
+                    }
+
+                    .about-section-spec-item {
+                        padding: 5px 8px;
+                        font-size: 10px;
+                    }
+                }
+            `}</style>
+        </>
     )
 }
