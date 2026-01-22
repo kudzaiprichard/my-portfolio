@@ -13,8 +13,8 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { audioController } from '@/lib/audioController'
-import { KeyType, KeystrokeAudioConfig } from '@/lib/animationTypes'
+import { audioController } from '@/src/lib/audioController'
+import { KeyType, KeystrokeAudioConfig } from '@/src/lib/animationTypes'
 
 type UseKeystrokeAudioOptions = Partial<KeystrokeAudioConfig> & {
     sectionId: string

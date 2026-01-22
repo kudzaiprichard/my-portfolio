@@ -2,12 +2,12 @@
 "use client"
 
 import { useEffect } from 'react'
-import ScrollSection from '@/components/shared/ScrollSection'
-import HeroSection from '@/components/sections/HeroSection'
-import AboutSection from '@/components/sections/AboutSection'
-import ProjectsSection from '@/components/sections/ProjectsSection'
-import ExperienceSection from '@/components/sections/ExperienceSection'
-import ContactSection from '@/components/sections/ContactSection'
+import ScrollSection from '@/src/components/shared/ScrollSection'
+import HeroSection from '@/src/components/sections/HeroSection'
+import AboutSection from '@/src/components/sections/AboutSection'
+import ProjectsSection from '@/src/components/sections/ProjectsSection'
+import ExperienceSection from '@/src/components/sections/ExperienceSection'
+import ContactSection from '@/src/components/sections/ContactSection'
 
 export default function Home() {
     // Handle initial page load - set hash to #home if no hash exists

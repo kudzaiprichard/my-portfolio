@@ -2,7 +2,7 @@
 "use client"
 
 import { useEffect, useRef } from 'react'
-import type { ScrollSectionProps } from '@/types'
+import type { ScrollSectionProps } from '@/src/types'
 
 export default function ScrollSection({
                                           id,

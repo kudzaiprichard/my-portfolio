@@ -13,13 +13,13 @@
  */
 
 import { useRef, useEffect, useCallback, useState } from 'react'
-import { AnimationController } from '@/lib/animationController'
+import { AnimationController } from '@/src/lib/animationController'
 import {
     AnimationState,
     AnimationStep,
     AnimationControllerConfig,
     AnimationStatus,
-} from '@/lib/animationTypes'
+} from '@/src/lib/animationTypes'
 
 interface UseAnimationControllerOptions extends AnimationControllerConfig {
     /**

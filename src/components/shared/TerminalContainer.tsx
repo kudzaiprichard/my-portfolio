@@ -2,7 +2,7 @@
 "use client"
 
 import { useRef, useEffect } from 'react'
-import type { TerminalContainerProps } from '@/types'
+import type { TerminalContainerProps } from '@/src/types'
 
 export default function TerminalContainer({
                                               title = 'developer@portfolio:~$',

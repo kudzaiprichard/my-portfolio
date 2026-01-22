@@ -2,13 +2,13 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import TerminalContainer from '@/components/shared/TerminalContainer'
-import { useInView } from '@/hooks/useInView'
-import { startCharacterGlitch } from '@/lib/glitch'
-import { useKeystrokeAudio, useTypingAudioCallback } from '@/hooks/useKeystrokeAudio'
-import { useAnimationController } from '@/hooks/useAnimationController'
-import { useTypingAnimation } from '@/hooks/useTypingAnimation'
-import { AnimationController } from '@/lib/animationController'
+import TerminalContainer from '@/src/components/shared/TerminalContainer'
+import { useInView } from '@/src/hooks/useInView'
+import { startCharacterGlitch } from '@/src/lib/glitch'
+import { useKeystrokeAudio, useTypingAudioCallback } from '@/src/hooks/useKeystrokeAudio'
+import { useAnimationController } from '@/src/hooks/useAnimationController'
+import { useTypingAnimation } from '@/src/hooks/useTypingAnimation'
+import { AnimationController } from '@/src/lib/animationController'
 
 interface Project {
     id: string

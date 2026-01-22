@@ -10,7 +10,7 @@ import {
     defaultParticleConfig,
     mobileParticleConfig,
     type Particle,
-} from '@/lib/particles'
+} from '@/src/lib/particles'
 
 export default function Background() {
     const canvasRef = useRef<HTMLCanvasElement>(null)

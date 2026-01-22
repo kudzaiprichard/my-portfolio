@@ -13,7 +13,7 @@
  */
 
 import {useEffect, useState, useRef, RefObject, useCallback} from 'react'
-import { InViewConfig } from '@/lib/animationTypes'
+import { InViewConfig } from '@/src/lib/animationTypes'
 
 interface UseInViewOptions extends InViewConfig {
     /**

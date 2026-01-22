@@ -19,7 +19,7 @@ import {
     HumanTypingPattern,
     DEFAULT_HUMAN_TYPING_PATTERN,
     KeyType,
-} from '@/lib/animationTypes'
+} from '@/src/lib/animationTypes'
 
 interface UseTypingAnimationOptions {
     /**
