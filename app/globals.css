@@ -78,7 +78,7 @@
   --z-code-snippets: 5;
   --z-content: 10;
   --z-indicators: 100;
-  --z-cursor: 10000;
+  --z-cursor: 100000;
 
   /* Touch target minimum (accessibility) */
   --min-touch-target: 44px;
