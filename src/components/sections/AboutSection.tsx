@@ -9,6 +9,7 @@ import { useKeystrokeAudio, useTypingAudioCallback } from '@/src/hooks/useKeystr
 import { useAnimationController } from '@/src/hooks/useAnimationController'
 import { useTypingAnimation } from '@/src/hooks/useTypingAnimation'
 import { AnimationController } from '@/src/lib/animationController'
+import {useBootContext} from "@/src/components/layout/context/BootContext";
 
 interface SkillCategory {
     title: string
@@ -49,6 +50,7 @@ const specializations = [
 ]
 
 export default function AboutSection() {
+    const { isBooted } = useBootContext()
     const [showOutput1, setShowOutput1] = useState(false)
     const [showOutput2, setShowOutput2] = useState(false)
     const [showOutput3, setShowOutput3] = useState(false)
@@ -139,11 +141,12 @@ export default function AboutSection() {
     }, [command1, command2, command3, command1Typing, command2Typing, command3Typing, onTypingKeystroke, audio])
 
     useEffect(() => {
+        if (!isBooted) return
         if (!isInView || !audio.isAudioReady || !audio.hasAudioControl) return
         if (animation.isCompleted || animation.isRunning) return
         const steps = buildAnimationSequence()
         animation.start(steps)
-    }, [isInView, audio.isAudioReady, audio.hasAudioControl, animation.isCompleted, animation.isRunning, buildAnimationSequence, animation])
+    }, [isBooted, isInView, audio.isAudioReady, audio.hasAudioControl, animation.isCompleted, animation.isRunning, buildAnimationSequence, animation])
 
     useEffect(() => {
         if (!showOutput1 || !isInView) return
@@ -489,7 +492,6 @@ export default function AboutSection() {
                     transform: translateY(-1px);
                 }
 
-                /* Compact Specializations Grid */
                 .about-section-spec-grid {
                     display: grid;
                     grid-template-columns: 1fr;

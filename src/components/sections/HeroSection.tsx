@@ -9,8 +9,10 @@ import { useKeystrokeAudio, useTypingAudioCallback } from '@/src/hooks/useKeystr
 import { useAnimationController } from '@/src/hooks/useAnimationController'
 import { useTypingAnimation } from '@/src/hooks/useTypingAnimation'
 import { AnimationController } from '@/src/lib/animationController'
+import {useBootContext} from "@/src/components/layout/context/BootContext";
 
 export default function HeroSection() {
+    const { isBooted } = useBootContext()
     const [showNameOutput, setShowNameOutput] = useState(false)
     const [showRoleOutput, setShowRoleOutput] = useState(false)
     const [showDescriptionOutput, setShowDescriptionOutput] = useState(false)
@@ -139,6 +141,7 @@ export default function HeroSection() {
     ])
 
     useEffect(() => {
+        if (!isBooted) return
         if (!isInView || !audio.isAudioReady || !audio.hasAudioControl) {
             return
         }
@@ -151,6 +154,7 @@ export default function HeroSection() {
         const steps = buildAnimationSequence()
         animation.start(steps)
     }, [
+        isBooted,
         isInView,
         audio.isAudioReady,
         audio.hasAudioControl,
@@ -466,7 +470,6 @@ export default function HeroSection() {
                     51%, 100% { opacity: 0; }
                 }
 
-                /* Tablet & Desktop adjustments */
                 @media (min-width: 768px) {
                     .hero-section-name {
                         font-size: var(--font-size-3xl);
@@ -485,7 +488,6 @@ export default function HeroSection() {
                     }
                 }
 
-                /* Small mobile adjustments */
                 @media (max-width: 480px) {
                     .hero-section-command-line {
                         font-size: var(--font-size-sm);

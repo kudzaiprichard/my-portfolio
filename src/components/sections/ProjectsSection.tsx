@@ -9,6 +9,7 @@ import { useKeystrokeAudio, useTypingAudioCallback } from '@/src/hooks/useKeystr
 import { useAnimationController } from '@/src/hooks/useAnimationController'
 import { useTypingAnimation } from '@/src/hooks/useTypingAnimation'
 import { AnimationController } from '@/src/lib/animationController'
+import {useBootContext} from "@/src/components/layout/context/BootContext";
 
 interface Project {
     id: string
@@ -67,6 +68,7 @@ const projects: Project[] = [
 ]
 
 export default function ProjectsSection() {
+    const { isBooted } = useBootContext()
     const [showCommand, setShowCommand] = useState(false)
     const [showProjects, setShowProjects] = useState(false)
     const [showFooterCommand, setShowFooterCommand] = useState(false)
@@ -143,12 +145,13 @@ export default function ProjectsSection() {
     }, [command, footerCommand, commandTyping, footerCommandTyping, onTypingKeystroke, audio])
 
     useEffect(() => {
+        if (!isBooted) return
         if (!isInView || !audio.isAudioReady || !audio.hasAudioControl) return
         if (animation.isCompleted || animation.isRunning) return
 
         const steps = buildAnimationSequence()
         animation.start(steps)
-    }, [isInView, audio.isAudioReady, audio.hasAudioControl, animation.isCompleted, animation.isRunning, buildAnimationSequence, animation])
+    }, [isBooted, isInView, audio.isAudioReady, audio.hasAudioControl, animation.isCompleted, animation.isRunning, buildAnimationSequence, animation])
 
     useEffect(() => {
         if (!isInView || !showProjects) return

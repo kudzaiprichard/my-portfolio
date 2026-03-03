@@ -8,8 +8,11 @@ import AboutSection from '@/src/components/sections/AboutSection'
 import ProjectsSection from '@/src/components/sections/ProjectsSection'
 import ExperienceSection from '@/src/components/sections/ExperienceSection'
 import ContactSection from '@/src/components/sections/ContactSection'
+import {useBootContext} from "@/src/components/layout/context/BootContext";
 
 export default function Home() {
+    const { isBooted } = useBootContext()
+
     // Handle initial page load - set hash to #home if no hash exists
     useEffect(() => {
         if (!window.location.hash) {
@@ -17,12 +20,13 @@ export default function Home() {
         }
     }, [])
 
-    // Keyboard navigation with arrow keys
+    // Keyboard navigation with arrow keys - only when booted
     useEffect(() => {
+        if (!isBooted) return
+
         const sections = ['home', 'about', 'projects', 'experience', 'contact']
 
         const handleKeyDown = (e: KeyboardEvent) => {
-            // Get current section from hash
             const currentHash = window.location.hash.replace('#', '') || 'home'
             const currentIndex = sections.indexOf(currentHash)
 
@@ -30,18 +34,14 @@ export default function Home() {
 
             let targetIndex = currentIndex
 
-            // Arrow Down or Arrow Right - next section
             if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
                 e.preventDefault()
                 targetIndex = Math.min(currentIndex + 1, sections.length - 1)
-            }
-            // Arrow Up or Arrow Left - previous section
-            else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+            } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
                 e.preventDefault()
                 targetIndex = Math.max(currentIndex - 1, 0)
             }
 
-            // Scroll to target section if changed
             if (targetIndex !== currentIndex) {
                 const targetSection = document.getElementById(sections[targetIndex])
                 if (targetSection) {
@@ -55,7 +55,7 @@ export default function Home() {
         return () => {
             window.removeEventListener('keydown', handleKeyDown)
         }
-    }, [])
+    }, [isBooted])
 
     return (
         <main>

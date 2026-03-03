@@ -9,6 +9,7 @@ import { useKeystrokeAudio, useTypingAudioCallback } from '@/src/hooks/useKeystr
 import { useAnimationController } from '@/src/hooks/useAnimationController'
 import { useTypingAnimation } from '@/src/hooks/useTypingAnimation'
 import { AnimationController } from '@/src/lib/animationController'
+import {useBootContext} from "@/src/components/layout/context/BootContext";
 
 interface Experience {
     id: string
@@ -63,6 +64,7 @@ const experiences: Experience[] = [
 ]
 
 export default function ExperienceSection() {
+    const { isBooted } = useBootContext()
     const [showCommand, setShowCommand] = useState(false)
     const [showExperiences, setShowExperiences] = useState<boolean[]>([])
 
@@ -135,12 +137,13 @@ export default function ExperienceSection() {
     }, [command, commandTyping, onTypingKeystroke, audio])
 
     useEffect(() => {
+        if (!isBooted) return
         if (!isInView || !audio.isAudioReady || !audio.hasAudioControl) return
         if (animation.isCompleted || animation.isRunning) return
 
         const steps = buildAnimationSequence()
         animation.start(steps)
-    }, [isInView, audio.isAudioReady, audio.hasAudioControl, animation.isCompleted, animation.isRunning, buildAnimationSequence, animation])
+    }, [isBooted, isInView, audio.isAudioReady, audio.hasAudioControl, animation.isCompleted, animation.isRunning, buildAnimationSequence, animation])
 
     useEffect(() => {
         if (!isInView || showExperiences.length === 0) return
