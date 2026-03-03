@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"><defs>
+    <filter id="glm"><feGaussianBlur stdDeviation="2" result="b"></feGaussianBlur><feMerge><feMergeNode in="b"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge></filter>
+    <linearGradient id="fade1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" style="stop-color:#00ff41;stop-opacity:0.05"></stop>
+      <stop offset="40%" style="stop-color:#00ff41;stop-opacity:0.3"></stop>
+      <stop offset="100%" style="stop-color:#00ff41;stop-opacity:1"></stop>
+    </linearGradient>
+    <linearGradient id="fade2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" style="stop-color:#00ff41;stop-opacity:0.08"></stop>
+      <stop offset="50%" style="stop-color:#00ff41;stop-opacity:0.35"></stop>
+      <stop offset="100%" style="stop-color:#00ff41;stop-opacity:0.9"></stop>
+    </linearGradient>
+    <linearGradient id="fade3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" style="stop-color:#00ff41;stop-opacity:0.03"></stop>
+      <stop offset="30%" style="stop-color:#00ff41;stop-opacity:0.15"></stop>
+      <stop offset="100%" style="stop-color:#00ff41;stop-opacity:0.7"></stop>
+    </linearGradient>
+  </defs><rect width="512" height="512" fill="none"></rect><circle cx="256" cy="256" r="248" fill="#050505"></circle><circle cx="256" cy="256" r="244" fill="none" stroke="#00ff41" stroke-width="3" stroke-opacity="0.2"></circle><clipPath id="circClip">
+    <circle cx="256" cy="256" r="240"></circle>
+  </clipPath><g clip-path="url(#circClip)">
+
+    <!-- Column 1 x=80 -->
+    <g font-family="monospace" font-size="30" fill="url(#fade3)">
+      <text x="80" y="60">0</text>
+      <text x="80" y="100">1</text>
+      <text x="80" y="140">ア</text>
+      <text x="80" y="180">0</text>
+      <text x="80" y="220">カ</text>
+      <text x="80" y="260">1</text>
+      <text x="80" y="300">0</text>
+      <text x="80" y="340">ネ</text>
+      <text x="80" y="380" fill="#00ff41" fill-opacity="0.6">1</text>
+      <text x="80" y="420" fill="#00ff41" fill-opacity="0.85">サ</text>
+      <text x="80" y="460" fill="#00ff41">0</text>
+    </g>
+
+    <!-- Column 2 x=130 -->
+    <g font-family="monospace" font-size="30" fill="url(#fade2)">
+      <text x="130" y="40">ク</text>
+      <text x="130" y="80">1</text>
+      <text x="130" y="120">0</text>
+      <text x="130" y="160">1</text>
+      <text x="130" y="200">テ</text>
+      <text x="130" y="240">0</text>
+      <text x="130" y="280">マ</text>
+      <text x="130" y="320" fill="#00ff41" fill-opacity="0.5">1</text>
+      <text x="130" y="360" fill="#00ff41" fill-opacity="0.75">0</text>
+      <text x="130" y="400" fill="#00ff41" fill-opacity="0.9">ヨ</text>
+      <text x="130" y="440" fill="#00ff41">1</text>
+    </g>
+
+    <!-- Column 3 x=180 -->
+    <g font-family="monospace" font-size="30" fill="url(#fade1)">
+      <text x="180" y="80">1</text>
+      <text x="180" y="120">タ</text>
+      <text x="180" y="160">0</text>
+      <text x="180" y="200">1</text>
+      <text x="180" y="240">0</text>
+      <text x="180" y="280">ウ</text>
+      <text x="180" y="320">1</text>
+      <text x="180" y="360" fill="#00ff41" fill-opacity="0.65">ラ</text>
+      <text x="180" y="400" fill="#00ff41" fill-opacity="0.9">0</text>
+      <text x="180" y="440" fill="#32cd32">1</text>
+    </g>
+
+    <!-- Column 4 x=230 (center-left, brighter) -->
+    <g font-family="monospace" font-size="32" fill="url(#fade1)" filter="url(#glm)">
+      <text x="230" y="50">ソ</text>
+      <text x="230" y="92">0</text>
+      <text x="230" y="134">1</text>
+      <text x="230" y="176">ヒ</text>
+      <text x="230" y="218">0</text>
+      <text x="230" y="260">1</text>
+      <text x="230" y="302">ム</text>
+      <text x="230" y="344">0</text>
+      <text x="230" y="386" fill="#00ff41" fill-opacity="0.8">ニ</text>
+      <text x="230" y="428" fill="#00ff41">1</text>
+      <text x="230" y="470" fill="#ffffff" fill-opacity="0.9">0</text>
+    </g>
+
+    <!-- Column 5 x=280 (center-right, brightest) -->
+    <g font-family="monospace" font-size="32" fill="url(#fade1)" filter="url(#glm)">
+      <text x="280" y="30">1</text>
+      <text x="280" y="72">ケ</text>
+      <text x="280" y="114">0</text>
+      <text x="280" y="156">1</text>
+      <text x="280" y="198">ナ</text>
+      <text x="280" y="240">0</text>
+      <text x="280" y="282">1</text>
+      <text x="280" y="324">リ</text>
+      <text x="280" y="366" fill="#00ff41" fill-opacity="0.7">0</text>
+      <text x="280" y="408" fill="#00ff41" fill-opacity="0.95">セ</text>
+      <text x="280" y="450" fill="#ffffff" fill-opacity="0.85">1</text>
+    </g>
+
+    <!-- Column 6 x=330 -->
+    <g font-family="monospace" font-size="30" fill="url(#fade2)">
+      <text x="330" y="70">0</text>
+      <text x="330" y="110">ミ</text>
+      <text x="330" y="150">1</text>
+      <text x="330" y="190">0</text>
+      <text x="330" y="230">ハ</text>
+      <text x="330" y="270">1</text>
+      <text x="330" y="310">0</text>
+      <text x="330" y="350">エ</text>
+      <text x="330" y="390" fill="#00ff41" fill-opacity="0.7">1</text>
+      <text x="330" y="430" fill="#00ff41" fill-opacity="0.9">0</text>
+      <text x="330" y="470" fill="#00ff41">ト</text>
+    </g>
+
+    <!-- Column 7 x=380 -->
+    <g font-family="monospace" font-size="30" fill="url(#fade3)">
+      <text x="380" y="50">ヌ</text>
+      <text x="380" y="90">1</text>
+      <text x="380" y="130">0</text>
+      <text x="380" y="170">ワ</text>
+      <text x="380" y="210">1</text>
+      <text x="380" y="250">0</text>
+      <text x="380" y="290">1</text>
+      <text x="380" y="330">ホ</text>
+      <text x="380" y="370" fill="#00ff41" fill-opacity="0.5">0</text>
+      <text x="380" y="410" fill="#00ff41" fill-opacity="0.8">1</text>
+      <text x="380" y="450" fill="#00ff41">フ</text>
+    </g>
+
+    <!-- Column 8 x=420 (faintest) -->
+    <g font-family="monospace" font-size="28" fill="url(#fade3)">
+      <text x="420" y="100">0</text>
+      <text x="420" y="140">1</text>
+      <text x="420" y="180">チ</text>
+      <text x="420" y="220">0</text>
+      <text x="420" y="260">1</text>
+      <text x="420" y="300">ル</text>
+      <text x="420" y="340">0</text>
+      <text x="420" y="380" fill="#00ff41" fill-opacity="0.45">ヘ</text>
+      <text x="420" y="420" fill="#00ff41" fill-opacity="0.7">1</text>
+    </g>
+
+  </g><circle cx="256" cy="350" r="90" fill="#00ff41" fill-opacity="0.04" filter="url(#glm)"></circle></svg>
