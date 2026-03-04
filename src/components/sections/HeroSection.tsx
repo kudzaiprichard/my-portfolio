@@ -16,7 +16,6 @@ export default function HeroSection() {
     const [showNameOutput, setShowNameOutput] = useState(false)
     const [showRoleOutput, setShowRoleOutput] = useState(false)
     const [showDescriptionOutput, setShowDescriptionOutput] = useState(false)
-    const [showButtons, setShowButtons] = useState(false)
 
     const audio = useKeystrokeAudio({
         sectionId: 'hero',
@@ -51,7 +50,6 @@ export default function HeroSection() {
         setShowNameOutput(false)
         setShowRoleOutput(false)
         setShowDescriptionOutput(false)
-        setShowButtons(false)
         animation.reset()
     }, [animation, command1Typing, command2Typing, command3Typing])
 
@@ -126,12 +124,6 @@ export default function HeroSection() {
                 setShowDescriptionOutput(true)
             })
         )
-        steps.push(
-            AnimationController.createDelayStep(400),
-            AnimationController.createActionStep(() => {
-                setShowButtons(true)
-            })
-        )
         return steps
     }, [
         command1, command2, command3,
@@ -183,13 +175,6 @@ export default function HeroSection() {
         }
     }, [])
 
-    const scrollToSection = (id: string) => {
-        const element = document.getElementById(id)
-        if (element) {
-            element.scrollIntoView({ behavior: 'smooth' })
-        }
-    }
-
     const renderStaticContent = () => (
         <div className="hero-section-content">
             <div className="hero-section-command-line">
@@ -226,21 +211,6 @@ export default function HeroSection() {
                     Specializing in AI/ML, backend architecture, and modern web technologies.<br />
                     Transforming complex problems into elegant solutions.
                 </p>
-
-                <div className="hero-section-buttons">
-                    <button
-                        onClick={() => scrollToSection('projects')}
-                        className="hero-section-button hero-section-button-primary"
-                    >
-                        ./view_projects.sh
-                    </button>
-                    <button
-                        onClick={() => scrollToSection('contact')}
-                        className="hero-section-button"
-                    >
-                        ./contact_me.sh
-                    </button>
-                </div>
             </div>
         </div>
     )
@@ -298,21 +268,6 @@ export default function HeroSection() {
                         Specializing in AI/ML, backend architecture, and modern web technologies.<br />
                         Transforming complex problems into elegant solutions.
                     </p>
-
-                    <div className="hero-section-buttons" style={{ opacity: showButtons ? 1 : 0 }}>
-                        <button
-                            onClick={() => scrollToSection('projects')}
-                            className="hero-section-button hero-section-button-primary"
-                        >
-                            ./view_projects.sh
-                        </button>
-                        <button
-                            onClick={() => scrollToSection('contact')}
-                            className="hero-section-button"
-                        >
-                            ./contact_me.sh
-                        </button>
-                    </div>
                 </div>
             )}
         </div>
@@ -380,49 +335,7 @@ export default function HeroSection() {
                     font-size: var(--font-size-md);
                     color: var(--color-primary);
                     line-height: var(--line-height-relaxed);
-                    margin-bottom: var(--spacing-lg);
-                }
-
-                .hero-section-buttons {
-                    display: flex;
-                    gap: var(--spacing-md);
-                    margin-top: var(--spacing-md);
-                    flex-wrap: wrap;
-                    transition: opacity 1s ease;
-                    transition-delay: 0.3s;
-                }
-
-                .hero-section-button {
-                    padding: var(--spacing-sm) var(--spacing-lg);
-                    background: transparent;
-                    border: 1px solid var(--color-primary);
-                    color: var(--color-primary);
-                    font-size: var(--font-size-sm);
-                    font-weight: normal;
-                    letter-spacing: 1px;
-                    cursor: pointer;
-                    transition: all var(--transition-fast);
-                    font-family: var(--font-mono);
-                    min-height: var(--min-touch-target);
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    white-space: nowrap;
-                }
-
-                .hero-section-button-primary {
-                    background: rgba(0, 255, 65, 0.05);
-                }
-
-                .hero-section-button:hover,
-                .hero-section-button:focus {
-                    background: rgba(0, 255, 65, 0.1);
-                    box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
-                    transform: translateY(-2px);
-                }
-
-                .hero-section-button:active {
-                    transform: translateY(0);
+                    margin: 0;
                 }
 
                 .hero-section-fade-in {
@@ -482,10 +395,6 @@ export default function HeroSection() {
                     .hero-section-description-text {
                         font-size: var(--font-size-lg);
                     }
-
-                    .hero-section-button {
-                        font-size: var(--font-size-base);
-                    }
                 }
 
                 @media (max-width: 480px) {
@@ -504,16 +413,6 @@ export default function HeroSection() {
                     .hero-section-description-text {
                         font-size: var(--font-size-sm);
                         line-height: var(--line-height-normal);
-                    }
-
-                    .hero-section-buttons {
-                        flex-direction: column;
-                        gap: var(--spacing-sm);
-                    }
-
-                    .hero-section-button {
-                        width: 100%;
-                        font-size: var(--font-size-xs);
                     }
                 }
             `}</style>

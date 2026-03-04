@@ -24,19 +24,19 @@ export const heroContent = {
         showDescription: 'cat description.txt',
     },
 
-    // Call-to-Action Buttons
-    cta: {
-        primary: {
-            label: './view_projects.sh',
-            action: 'scroll-to-projects', // or use a URL
-            ariaLabel: 'View my projects',
-        },
-        secondary: {
-            label: './contact_me.sh',
-            action: 'scroll-to-contact', // or use a URL
-            ariaLabel: 'Contact me',
-        },
-    },
+    // Call-to-Action Buttons (currently disabled)
+    // cta: {
+    //     primary: {
+    //         label: './view_projects.sh',
+    //         action: 'scroll-to-projects',
+    //         ariaLabel: 'View my projects',
+    //     },
+    //     secondary: {
+    //         label: './contact_me.sh',
+    //         action: 'scroll-to-contact',
+    //         ariaLabel: 'Contact me',
+    //     },
+    // },
 
     // Terminal Title
     terminalTitle: 'developer@portfolio:~$',
@@ -59,9 +59,9 @@ export const heroAnimationTiming = {
     nameCursorBlinkSpeed: 1000,
 
     // Stage 3: role command
-    roleCommandDelay: 0, // Starts after name display
-    roleTypingSpeed: 80, // ms per character
-    roleTypingDelay: 200, // Delay before role starts typing
+    roleCommandDelay: 0,
+    roleTypingSpeed: 80,
+    roleTypingDelay: 200,
 
     // Stage 4: description command
     descriptionCommandDelay: 300,
@@ -79,7 +79,6 @@ export const heroAnimationTiming = {
  * Styling Configuration
  */
 export const heroStyles = {
-    // Font sizes (in pixels)
     nameFontSize: {
         desktop: 48,
         tablet: 32,
@@ -98,7 +97,6 @@ export const heroStyles = {
         mobile: 14,
     },
 
-    // Cursor dimensions
     nameCursorHeight: {
         desktop: 48,
         tablet: 32,
@@ -107,13 +105,13 @@ export const heroStyles = {
 }
 
 /**
- * Social Links (optional, can be used in buttons or elsewhere)
+ * Social Links — sourced from env variables
  */
 export const socialLinks = {
-    github: 'https://github.com/kudzaiprichard', // Update with your actual username
-    linkedin: 'https://linkedin.com/in/kudzaiprichard', // Update with your actual profile
-    twitter: 'https://twitter.com/kudzaiprichard', // Update with your actual handle
-    email: 'mailto:kudzai@example.com', // Update with your actual email
+    github: process.env.NEXT_PUBLIC_GITHUB_URL || 'https://github.com/kudzaiprichard',
+    linkedin: process.env.NEXT_PUBLIC_LINKEDIN_URL || 'https://linkedin.com/in/kudzaiprichard',
+    twitter: process.env.NEXT_PUBLIC_TWITTER_URL || 'https://twitter.com/kudzaiprichard',
+    email: `mailto:${process.env.NEXT_PUBLIC_EMAIL || 'kudzai@example.com'}`,
 }
 
 /**
@@ -125,7 +123,6 @@ export const getDescriptionText = (): string => {
 
 /**
  * Helper function to get description lines array
- * Use this in your React component to map over lines
  */
 export const getDescriptionLines = (): string[] => {
     return heroContent.description
@@ -163,7 +160,6 @@ export const getTotalAnimationDuration = (): number => {
 
 /**
  * Animation stage timings (cumulative)
- * Use these to trigger animations at the right time
  */
 export const animationStages = {
     showWhoamiCommand: heroAnimationTiming.initialDelay,
