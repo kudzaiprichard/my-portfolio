@@ -2,14 +2,17 @@
 
 export default function StructuredData() {
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    const email = process.env.NEXT_PUBLIC_EMAIL || 'kudzai@example.com'
+    const githubUrl = process.env.NEXT_PUBLIC_GITHUB_URL || 'https://github.com/kudzaiprichard'
+    const linkedinUrl = process.env.NEXT_PUBLIC_LINKEDIN_URL || 'https://linkedin.com/in/kudzaiprichard'
+    const twitterUrl = process.env.NEXT_PUBLIC_TWITTER_URL || 'https://twitter.com/kudzaiprichard'
 
     const personSchema = {
         '@context': 'https://schema.org',
         '@type': 'Person',
         name: 'Kudzai Prichard',
         url: baseUrl,
-        // TODO: Replace with your real email
-        email: 'kudzai@example.com',
+        email: email,
         jobTitle: 'AI & Full Stack Developer',
         description:
             'Building intelligent systems and scalable applications. Specializing in AI/ML, backend architecture, and modern web technologies.',
@@ -24,12 +27,7 @@ export default function StructuredData() {
             'Node.js',
             'Cloud Computing',
         ],
-        sameAs: [
-            // TODO: Replace with your real profile URLs
-            'https://github.com/kudzaiprichard',
-            'https://linkedin.com/in/kudzaiprichard',
-            'https://twitter.com/kudzaiprichard',
-        ],
+        sameAs: [githubUrl, linkedinUrl, twitterUrl],
     }
 
     const websiteSchema = {

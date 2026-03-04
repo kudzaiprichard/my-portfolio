@@ -11,6 +11,8 @@ import { useTypingAnimation } from '@/src/hooks/useTypingAnimation'
 import { AnimationController } from '@/src/lib/animationController'
 import {useBootContext} from "@/src/components/layout/context/BootContext";
 
+const githubUrl = process.env.NEXT_PUBLIC_GITHUB_URL || 'https://github.com/kudzaiprichard'
+
 interface Project {
     id: string
     name: string
@@ -191,6 +193,76 @@ export default function ProjectsSection() {
         }
     }
 
+    const renderProjectCards = () => (
+        <div className="projects-section-container">
+            <div className="projects-section-featured-row">
+                {projects.slice(0, 2).map((project, idx) => (
+                    <div key={project.id} className="projects-section-card projects-section-card-featured">
+                        <div className="projects-section-header">
+                            <span ref={el => { projectNameRefs.current[idx] = el }} className="projects-section-name">
+                                {project.name}
+                            </span>
+                            {project.status && (
+                                <span className="projects-section-status-badge" style={{ borderColor: getStatusColor(project.status), color: getStatusColor(project.status) }}>
+                                    {project.status}
+                                </span>
+                            )}
+                        </div>
+                        <p className="projects-section-description">{project.description}</p>
+                        <div className="projects-section-tech-tags">
+                            {project.technologies.map((tech) => (
+                                <span key={tech} className="projects-section-tech-tag">{tech}</span>
+                            ))}
+                        </div>
+                        <div className="projects-section-links">
+                            <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" className="projects-section-link">
+                                → GitHub
+                            </a>
+                            {project.liveUrl && (
+                                <a href={project.liveUrl} target="_blank" rel="noopener noreferrer" className="projects-section-link">
+                                    → Demo
+                                </a>
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <div className="projects-section-other-row">
+                {projects.slice(2, 5).map((project, idx) => (
+                    <div key={project.id} className="projects-section-card">
+                        <div className="projects-section-header">
+                            <span ref={el => { projectNameRefs.current[idx + 2] = el }} className="projects-section-name projects-section-name-small">
+                                {project.name}
+                            </span>
+                            {project.status && (
+                                <span className="projects-section-status-badge" style={{ borderColor: getStatusColor(project.status), color: getStatusColor(project.status) }}>
+                                    {project.status}
+                                </span>
+                            )}
+                        </div>
+                        <p className="projects-section-description projects-section-description-small">{project.description}</p>
+                        <div className="projects-section-tech-tags">
+                            {project.technologies.map((tech) => (
+                                <span key={tech} className="projects-section-tech-tag projects-section-tech-tag-small">{tech}</span>
+                            ))}
+                        </div>
+                        <div className="projects-section-links">
+                            <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" className="projects-section-link projects-section-link-small">
+                                → GitHub
+                            </a>
+                            {project.liveUrl && (
+                                <a href={project.liveUrl} target="_blank" rel="noopener noreferrer" className="projects-section-link projects-section-link-small">
+                                    → Demo
+                                </a>
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+
     const renderStaticContent = () => (
         <div className="projects-section-content">
             <div className="projects-section-command-line">
@@ -198,73 +270,7 @@ export default function ProjectsSection() {
                 <span>{command}</span>
             </div>
 
-            <div className="projects-section-container">
-                <div className="projects-section-featured-row">
-                    {projects.slice(0, 2).map((project, idx) => (
-                        <div key={project.id} className="projects-section-card projects-section-card-featured">
-                            <div className="projects-section-header">
-                                <span ref={el => { projectNameRefs.current[idx] = el }} className="projects-section-name">
-                                    {project.name}
-                                </span>
-                                {project.status && (
-                                    <span className="projects-section-status-badge" style={{ borderColor: getStatusColor(project.status), color: getStatusColor(project.status) }}>
-                                        {project.status}
-                                    </span>
-                                )}
-                            </div>
-                            <p className="projects-section-description">{project.description}</p>
-                            <div className="projects-section-tech-tags">
-                                {project.technologies.map((tech) => (
-                                    <span key={tech} className="projects-section-tech-tag">{tech}</span>
-                                ))}
-                            </div>
-                            <div className="projects-section-links">
-                                <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" className="projects-section-link">
-                                    → GitHub
-                                </a>
-                                {project.liveUrl && (
-                                    <a href={project.liveUrl} target="_blank" rel="noopener noreferrer" className="projects-section-link">
-                                        → Demo
-                                    </a>
-                                )}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                <div className="projects-section-other-row">
-                    {projects.slice(2, 5).map((project, idx) => (
-                        <div key={project.id} className="projects-section-card">
-                            <div className="projects-section-header">
-                                <span ref={el => { projectNameRefs.current[idx + 2] = el }} className="projects-section-name projects-section-name-small">
-                                    {project.name}
-                                </span>
-                                {project.status && (
-                                    <span className="projects-section-status-badge" style={{ borderColor: getStatusColor(project.status), color: getStatusColor(project.status) }}>
-                                        {project.status}
-                                    </span>
-                                )}
-                            </div>
-                            <p className="projects-section-description projects-section-description-small">{project.description}</p>
-                            <div className="projects-section-tech-tags">
-                                {project.technologies.map((tech) => (
-                                    <span key={tech} className="projects-section-tech-tag projects-section-tech-tag-small">{tech}</span>
-                                ))}
-                            </div>
-                            <div className="projects-section-links">
-                                <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" className="projects-section-link projects-section-link-small">
-                                    → GitHub
-                                </a>
-                                {project.liveUrl && (
-                                    <a href={project.liveUrl} target="_blank" rel="noopener noreferrer" className="projects-section-link projects-section-link-small">
-                                        → Demo
-                                    </a>
-                                )}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
+            {renderProjectCards()}
 
             <div className="projects-section-footer">
                 <div className="projects-section-command-line">
@@ -275,7 +281,7 @@ export default function ProjectsSection() {
 
                 <div className="projects-section-footer-content">
                     → View all projects on{' '}
-                    <a href="https://github.com/yourusername" target="_blank" rel="noopener noreferrer" className="projects-section-footer-link">
+                    <a href={githubUrl} target="_blank" rel="noopener noreferrer" className="projects-section-footer-link">
                         GitHub
                     </a>
                 </div>
@@ -295,75 +301,7 @@ export default function ProjectsSection() {
                 </div>
             )}
 
-            {showProjects && (
-                <div className="projects-section-container">
-                    <div className="projects-section-featured-row">
-                        {projects.slice(0, 2).map((project, idx) => (
-                            <div key={project.id} className="projects-section-card projects-section-card-featured">
-                                <div className="projects-section-header">
-                                    <span ref={el => { projectNameRefs.current[idx] = el }} className="projects-section-name">
-                                        {project.name}
-                                    </span>
-                                    {project.status && (
-                                        <span className="projects-section-status-badge" style={{ borderColor: getStatusColor(project.status), color: getStatusColor(project.status) }}>
-                                            {project.status}
-                                        </span>
-                                    )}
-                                </div>
-                                <p className="projects-section-description">{project.description}</p>
-                                <div className="projects-section-tech-tags">
-                                    {project.technologies.map((tech) => (
-                                        <span key={tech} className="projects-section-tech-tag">{tech}</span>
-                                    ))}
-                                </div>
-                                <div className="projects-section-links">
-                                    <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" className="projects-section-link">
-                                        → GitHub
-                                    </a>
-                                    {project.liveUrl && (
-                                        <a href={project.liveUrl} target="_blank" rel="noopener noreferrer" className="projects-section-link">
-                                            → Demo
-                                        </a>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="projects-section-other-row">
-                        {projects.slice(2, 5).map((project, idx) => (
-                            <div key={project.id} className="projects-section-card">
-                                <div className="projects-section-header">
-                                    <span ref={el => { projectNameRefs.current[idx + 2] = el }} className="projects-section-name projects-section-name-small">
-                                        {project.name}
-                                    </span>
-                                    {project.status && (
-                                        <span className="projects-section-status-badge" style={{ borderColor: getStatusColor(project.status), color: getStatusColor(project.status) }}>
-                                            {project.status}
-                                        </span>
-                                    )}
-                                </div>
-                                <p className="projects-section-description projects-section-description-small">{project.description}</p>
-                                <div className="projects-section-tech-tags">
-                                    {project.technologies.map((tech) => (
-                                        <span key={tech} className="projects-section-tech-tag projects-section-tech-tag-small">{tech}</span>
-                                    ))}
-                                </div>
-                                <div className="projects-section-links">
-                                    <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" className="projects-section-link projects-section-link-small">
-                                        → GitHub
-                                    </a>
-                                    {project.liveUrl && (
-                                        <a href={project.liveUrl} target="_blank" rel="noopener noreferrer" className="projects-section-link projects-section-link-small">
-                                            → Demo
-                                        </a>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
+            {showProjects && renderProjectCards()}
 
             {showFooterCommand && (
                 <div className="projects-section-footer">
@@ -378,7 +316,7 @@ export default function ProjectsSection() {
                     {showFooterContent && (
                         <div className="projects-section-footer-content">
                             → View all projects on{' '}
-                            <a href="https://github.com/yourusername" target="_blank" rel="noopener noreferrer" className="projects-section-footer-link">
+                            <a href={githubUrl} target="_blank" rel="noopener noreferrer" className="projects-section-footer-link">
                                 GitHub
                             </a>
                         </div>

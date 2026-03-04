@@ -10,6 +10,7 @@ import StructuredData from "@/src/components/layout/seo/StructuredData";
 import SEOContent from "@/src/components/layout/seo/SEOContent";
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+const twitterHandle = process.env.NEXT_PUBLIC_TWITTER_HANDLE || '@kudzaiprichard'
 
 export const metadata: Metadata = {
     metadataBase: new URL(baseUrl),
@@ -50,8 +51,7 @@ export const metadata: Metadata = {
     },
     twitter: {
         card: 'summary_large_image',
-        // TODO: Replace with your real Twitter/X handle
-        creator: '@kudzaiprichard',
+        creator: twitterHandle,
         title: 'Kudzai Prichard | AI & Full Stack Developer',
         description:
             'Building intelligent systems and scalable applications.',

@@ -1,12 +1,11 @@
 // src/components/layout/SEOContent.tsx
-//
-// Hidden semantic HTML layer for search engine crawlers.
-// Users never see this — it sits behind the boot screen and main content.
-// Crawlers read it immediately without needing to execute JS animations.
-//
-// TODO: Replace all placeholder data with your real information.
 
 export default function SEOContent() {
+    const email = process.env.NEXT_PUBLIC_EMAIL || 'kudzai@example.com'
+    const githubUrl = process.env.NEXT_PUBLIC_GITHUB_URL || 'https://github.com/kudzaiprichard'
+    const linkedinUrl = process.env.NEXT_PUBLIC_LINKEDIN_URL || 'https://linkedin.com/in/kudzaiprichard'
+    const twitterUrl = process.env.NEXT_PUBLIC_TWITTER_URL || 'https://twitter.com/kudzaiprichard'
+
     return (
         <div
             aria-hidden="true"
@@ -125,11 +124,11 @@ export default function SEOContent() {
 
             <section>
                 <h2>Contact</h2>
-                <p>Email: kudzai@example.com</p>
+                <p>Email: {email}</p>
                 <nav>
-                    <a href="https://github.com/kudzaiprichard">GitHub</a>
-                    <a href="https://linkedin.com/in/kudzaiprichard">LinkedIn</a>
-                    <a href="https://twitter.com/kudzaiprichard">Twitter</a>
+                    <a href={githubUrl}>GitHub</a>
+                    <a href={linkedinUrl}>LinkedIn</a>
+                    <a href={twitterUrl}>Twitter</a>
                 </nav>
             </section>
         </div>
