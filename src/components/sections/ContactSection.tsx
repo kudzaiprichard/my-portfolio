@@ -18,11 +18,14 @@ const githubHandle = process.env.NEXT_PUBLIC_GITHUB_HANDLE || '@kudzaiprichard'
 const twitterHandle = process.env.NEXT_PUBLIC_TWITTER_HANDLE || '@kudzaiprichard'
 const linkedinName = process.env.NEXT_PUBLIC_LINKEDIN_NAME || 'Kudzai Prichard'
 
+type SubmitStatus = 'idle' | 'loading' | 'success' | 'error'
+
 export default function ContactSection() {
     const { isBooted } = useBootContext()
     const [showCommand, setShowCommand] = useState(false)
     const [showContent, setShowContent] = useState(false)
     const [formData, setFormData] = useState({ name: '', email: '', message: '' })
+    const [status, setStatus] = useState<SubmitStatus>('idle')
 
     const audio = useKeystrokeAudio({
         sectionId: 'contact',
@@ -97,8 +100,41 @@ export default function ContactSection() {
         }
     }, [])
 
-    const handleSubmit = () => {
-        console.log('Form submitted:', formData)
+    const handleSubmit = async () => {
+        if (status === 'loading') return
+
+        const { name, email: senderEmail, message } = formData
+
+        if (!name.trim() || !senderEmail.trim() || !message.trim()) {
+            setStatus('error')
+            return
+        }
+
+        setStatus('loading')
+
+        try {
+            const res = await fetch('/api/contact', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email: senderEmail, message }),
+            })
+
+            if (!res.ok) throw new Error('Failed to send')
+
+            setStatus('success')
+            setFormData({ name: '', email: '', message: '' })
+        } catch {
+            setStatus('error')
+        }
+    }
+
+    const getButtonLabel = () => {
+        switch (status) {
+            case 'loading': return '> sending...'
+            case 'success': return '> message sent!'
+            case 'error':   return '> failed. retry?'
+            default:        return './send_message.sh'
+        }
     }
 
     const contactLinks = (
@@ -181,6 +217,7 @@ export default function ContactSection() {
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
                     className="contact-section-form-input"
+                    disabled={status === 'loading'}
                 />
             </div>
 
@@ -194,6 +231,7 @@ export default function ContactSection() {
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
                     className="contact-section-form-input"
+                    disabled={status === 'loading'}
                 />
             </div>
 
@@ -207,11 +245,28 @@ export default function ContactSection() {
                     onChange={(e) => setFormData({...formData, message: e.target.value})}
                     rows={6}
                     className="contact-section-form-textarea"
+                    disabled={status === 'loading'}
                 />
             </div>
 
-            <button onClick={handleSubmit} className="contact-section-submit-button">
-                ./send_message.sh
+            {status === 'error' && (
+                <div className="contact-section-form-error">
+                    &gt; [ERROR] Failed to send message. Please try again.
+                </div>
+            )}
+
+            {status === 'success' && (
+                <div className="contact-section-form-success">
+                    &gt; [OK] Message sent. I&apos;ll be in touch soon.
+                </div>
+            )}
+
+            <button
+                onClick={handleSubmit}
+                disabled={status === 'loading'}
+                className={`contact-section-submit-button${status === 'success' ? ' success' : ''}${status === 'error' ? ' error' : ''}`}
+            >
+                {getButtonLabel()}
             </button>
         </div>
     )
@@ -437,6 +492,12 @@ export default function ContactSection() {
                     border-color: var(--color-primary);
                 }
 
+                .contact-section-form-input:disabled,
+                .contact-section-form-textarea:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                }
+
                 .contact-section-form-input::placeholder,
                 .contact-section-form-textarea::placeholder {
                     color: rgba(0, 255, 65, 0.3);
@@ -446,6 +507,18 @@ export default function ContactSection() {
                     resize: vertical;
                     min-height: 120px;
                     line-height: var(--line-height-normal);
+                }
+
+                .contact-section-form-error {
+                    font-size: var(--font-size-xs);
+                    color: rgba(255, 80, 80, 0.9);
+                    font-family: var(--font-mono);
+                }
+
+                .contact-section-form-success {
+                    font-size: var(--font-size-xs);
+                    color: var(--color-primary);
+                    font-family: var(--font-mono);
                 }
 
                 .contact-section-submit-button {
@@ -461,10 +534,25 @@ export default function ContactSection() {
                     align-self: flex-start;
                 }
 
-                .contact-section-submit-button:hover,
-                .contact-section-submit-button:focus {
+                .contact-section-submit-button:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                }
+
+                .contact-section-submit-button:hover:not(:disabled),
+                .contact-section-submit-button:focus:not(:disabled) {
                     background: rgba(0, 255, 65, 0.1);
                     box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+                }
+
+                .contact-section-submit-button.success {
+                    border-color: var(--color-primary);
+                    color: var(--color-primary);
+                }
+
+                .contact-section-submit-button.error {
+                    border-color: rgba(255, 80, 80, 0.9);
+                    color: rgba(255, 80, 80, 0.9);
                 }
 
                 @media (min-width: 768px) {
