@@ -42,14 +42,15 @@ export default function SEOContent() {
                 <h3>Technical Skills</h3>
                 <p>
                     AI/ML: TensorFlow, PyTorch, Scikit-learn, OpenAI, Hugging Face.
-                    Backend: Python, Node.js, Django, FastAPI, PostgreSQL. Frontend:
-                    React, Next.js, TypeScript, Tailwind, Vue.js. DevOps: Docker, AWS,
-                    Git, CI/CD, Linux.
+                    Backend: Python, Node.js, Django, FastAPI, PostgreSQL, Spring Boot, C#. Frontend:
+                    React, Next.js, TypeScript, Tailwind, Vue.js, Angular. Mobile: Flutter.
+                    DevOps: Docker, AWS, Git, CI/CD, Linux, Windows Services.
                 </p>
                 <h3>Specializations</h3>
                 <p>
-                    Machine Learning Engineering, Natural Language Processing, API
-                    Development, System Architecture, Data Engineering, Cloud Computing.
+                    Machine Learning Engineering, Natural Language Processing, Optical Character Recognition,
+                    API Development, System Architecture, Data Engineering, Cloud Computing,
+                    Full Stack Web Development, Mobile Application Development.
                 </p>
             </section>
 
@@ -91,33 +92,44 @@ export default function SEOContent() {
                         APIs saving 10+ hours per week.
                     </p>
                 </article>
+                <article>
+                    <h3>Site Management System — Replica Systems</h3>
+                    <p>
+                        Full-stack site management system built with Angular frontend,
+                        Flutter mobile app, Spring Boot backend, and PostgreSQL database.
+                        Delivered end-to-end from development through deployment.
+                    </p>
+                </article>
+                <article>
+                    <h3>OCR Engine — Sybrin</h3>
+                    <p>
+                        Optical Character Recognition system developed and deployed using C#,
+                        enabling automated document processing as part of Sybrin&apos;s imaging solutions platform.
+                    </p>
+                </article>
             </section>
 
             <section>
                 <h2>Experience</h2>
                 <article>
-                    <h3>Senior AI Engineer — TechCorp Solutions</h3>
-                    <p>2023 – Present</p>
+                    <h3>AI &amp; ML Intern — Sybrin | Imaging Solutions</h3>
+                    <p>1 Year</p>
                     <p>
-                        Leading AI/ML initiatives and developing intelligent systems for
-                        enterprise clients. Built NLP models achieving 94% accuracy.
-                        Reduced model inference time by 60%.
+                        Worked on AI and machine learning initiatives within an enterprise imaging solutions environment.
+                        Developed and deployed an Optical Character Recognition (OCR) system using C#.
+                        Built and maintained Windows Services for background processing and automation.
+                        Created analytical dashboards to surface key business and system metrics.
+                        Participated in client meetings, presented demos, and communicated technical solutions to stakeholders.
                     </p>
                 </article>
                 <article>
-                    <h3>Full Stack Developer — StartupHub Inc</h3>
-                    <p>2021 – 2023</p>
+                    <h3>Software Developer Intern — Replica Systems</h3>
+                    <p>6 Months</p>
                     <p>
-                        Developed full-stack applications serving 100K+ users. Launched 3
-                        major product features. Improved application performance by 45%.
-                    </p>
-                </article>
-                <article>
-                    <h3>Freelance Developer</h3>
-                    <p>2020 – 2021</p>
-                    <p>
-                        Delivered custom web applications and AI solutions. Completed 15+
-                        client projects with 100% satisfaction rate.
+                        Developed and deployed multiple production websites including the official company website
+                        and client-facing sites. Built a full-stack site management system using Angular for the
+                        web frontend, Flutter for the mobile application, Spring Boot for the backend API, and
+                        PostgreSQL as the database. Gained hands-on experience across the full software development lifecycle.
                     </p>
                 </article>
             </section>
