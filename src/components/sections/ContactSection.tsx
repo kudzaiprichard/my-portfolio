@@ -325,6 +325,21 @@ export default function ContactSection() {
             </div>
 
             <style>{`
+                
+                .contact-section-form-input:-webkit-autofill,
+                .contact-section-form-input:-webkit-autofill:hover,
+                .contact-section-form-input:-webkit-autofill:focus,
+                .contact-section-form-textarea:-webkit-autofill,
+                .contact-section-form-textarea:-webkit-autofill:hover,
+                .contact-section-form-textarea:-webkit-autofill:focus {
+                    -webkit-text-fill-color: var(--color-primary);
+                    -webkit-box-shadow: 0 0 0px 1000px transparent inset;
+                    box-shadow: 0 0 0px 1000px transparent inset;
+                    transition: background-color 5000s ease-in-out 0s;
+                    background-color: transparent !important;
+                    caret-color: var(--color-primary);
+                }
+
                 .contact-section-content {
                     color: var(--color-primary);
                     font-family: var(--font-mono);
