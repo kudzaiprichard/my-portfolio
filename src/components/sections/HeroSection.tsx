@@ -9,7 +9,16 @@ import { useKeystrokeAudio, useTypingAudioCallback } from '@/src/hooks/useKeystr
 import { useAnimationController } from '@/src/hooks/useAnimationController'
 import { useTypingAnimation } from '@/src/hooks/useTypingAnimation'
 import { AnimationController } from '@/src/lib/animationController'
-import {useBootContext} from "@/src/components/layout/context/BootContext";
+import { useBootContext } from "@/src/components/layout/context/BootContext"
+import {
+    getBaseSpeedForSection,
+    getPatternForSection,
+    audioConfig,
+    sequenceTimings,
+} from '@/src/constants/typingConfig'
+
+const heroPattern = getPatternForSection('hero')
+const heroSpeed = getBaseSpeedForSection('hero')
 
 export default function HeroSection() {
     const { isBooted } = useBootContext()
@@ -20,8 +29,8 @@ export default function HeroSection() {
     const audio = useKeystrokeAudio({
         sectionId: 'hero',
         enabled: true,
-        volume: 0.4,
-        volumeRampEnabled: true,
+        volume: audioConfig.baseVolume,
+        volumeRampEnabled: audioConfig.volumeRampEnabled,
     })
 
     const { onTypingKeystroke } = useTypingAudioCallback(audio)
@@ -33,9 +42,9 @@ export default function HeroSection() {
         debug: false,
     })
 
-    const command1Typing = useTypingAnimation({ baseSpeed: 80 })
-    const command2Typing = useTypingAnimation({ baseSpeed: 50 })
-    const command3Typing = useTypingAnimation({ baseSpeed: 60 })
+    const command1Typing = useTypingAnimation({ baseSpeed: heroSpeed, humanPattern: heroPattern })
+    const command2Typing = useTypingAnimation({ baseSpeed: heroSpeed, humanPattern: heroPattern })
+    const command3Typing = useTypingAnimation({ baseSpeed: heroSpeed, humanPattern: heroPattern })
 
     const nameRef = useRef<HTMLHeadingElement>(null)
 
@@ -78,7 +87,7 @@ export default function HeroSection() {
 
     const buildAnimationSequence = useCallback(() => {
         const steps = []
-        steps.push(AnimationController.createDelayStep(100))
+        steps.push(AnimationController.createDelayStep(sequenceTimings.initialDelay))
         steps.push(
             AnimationController.createActionStep(() => {
                 audio.resetVolumeRamp()
@@ -88,7 +97,7 @@ export default function HeroSection() {
             onKeystroke: onTypingKeystroke
         }))
         steps.push(
-            AnimationController.createDelayStep(350),
+            AnimationController.createDelayStep(sequenceTimings.postCommandDelay),
             AnimationController.createActionStep(() => {
                 setShowNameOutput(true)
             })
@@ -103,12 +112,12 @@ export default function HeroSection() {
             onKeystroke: onTypingKeystroke
         }))
         steps.push(
-            AnimationController.createDelayStep(350),
+            AnimationController.createDelayStep(sequenceTimings.postCommandDelay),
             AnimationController.createActionStep(() => {
                 setShowRoleOutput(true)
             })
         )
-        steps.push(AnimationController.createDelayStep(900))
+        steps.push(AnimationController.createDelayStep(sequenceTimings.betweenCommandsDelay))
         steps.push(
             AnimationController.createActionStep(() => {
                 audio.resetVolumeRamp()
@@ -119,7 +128,7 @@ export default function HeroSection() {
             onKeystroke: onTypingKeystroke
         }))
         steps.push(
-            AnimationController.createDelayStep(350),
+            AnimationController.createDelayStep(sequenceTimings.postCommandDelay),
             AnimationController.createActionStep(() => {
                 setShowDescriptionOutput(true)
             })

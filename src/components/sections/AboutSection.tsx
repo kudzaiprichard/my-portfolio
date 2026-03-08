@@ -9,7 +9,16 @@ import { useKeystrokeAudio, useTypingAudioCallback } from '@/src/hooks/useKeystr
 import { useAnimationController } from '@/src/hooks/useAnimationController'
 import { useTypingAnimation } from '@/src/hooks/useTypingAnimation'
 import { AnimationController } from '@/src/lib/animationController'
-import {useBootContext} from "@/src/components/layout/context/BootContext";
+import { useBootContext } from "@/src/components/layout/context/BootContext"
+import {
+    getBaseSpeedForSection,
+    getPatternForSection,
+    audioConfig,
+    sequenceTimings,
+} from '@/src/constants/typingConfig'
+
+const aboutPattern = getPatternForSection('about')
+const aboutSpeed = getBaseSpeedForSection('about')
 
 interface SkillCategory {
     title: string
@@ -58,8 +67,8 @@ export default function AboutSection() {
     const audio = useKeystrokeAudio({
         sectionId: 'about',
         enabled: true,
-        volume: 0.4,
-        volumeRampEnabled: true,
+        volume: audioConfig.baseVolume,
+        volumeRampEnabled: audioConfig.volumeRampEnabled,
     })
 
     const { onTypingKeystroke } = useTypingAudioCallback(audio)
@@ -68,9 +77,9 @@ export default function AboutSection() {
         debug: false,
     })
 
-    const command1Typing = useTypingAnimation({ baseSpeed: 80 })
-    const command2Typing = useTypingAnimation({ baseSpeed: 50 })
-    const command3Typing = useTypingAnimation({ baseSpeed: 60 })
+    const command1Typing = useTypingAnimation({ baseSpeed: aboutSpeed, humanPattern: aboutPattern })
+    const command2Typing = useTypingAnimation({ baseSpeed: aboutSpeed, humanPattern: aboutPattern })
+    const command3Typing = useTypingAnimation({ baseSpeed: aboutSpeed, humanPattern: aboutPattern })
 
     const word1Ref = useRef<HTMLSpanElement>(null)
     const word2Ref = useRef<HTMLSpanElement>(null)
@@ -116,25 +125,25 @@ export default function AboutSection() {
 
     const buildAnimationSequence = useCallback(() => {
         const steps = []
-        steps.push(AnimationController.createDelayStep(500))
+        steps.push(AnimationController.createDelayStep(sequenceTimings.initialDelay))
         steps.push(AnimationController.createActionStep(() => audio.resetVolumeRamp()))
         steps.push(...command1Typing.generateSteps(command1, { onKeystroke: onTypingKeystroke }))
         steps.push(
-            AnimationController.createDelayStep(350),
+            AnimationController.createDelayStep(sequenceTimings.postCommandDelay),
             AnimationController.createActionStep(() => setShowOutput1(true))
         )
-        steps.push(AnimationController.createDelayStep(900))
+        steps.push(AnimationController.createDelayStep(sequenceTimings.betweenCommandsDelay))
         steps.push(AnimationController.createActionStep(() => audio.resetVolumeRamp()))
         steps.push(...command2Typing.generateSteps(command2, { onKeystroke: onTypingKeystroke }))
         steps.push(
-            AnimationController.createDelayStep(350),
+            AnimationController.createDelayStep(sequenceTimings.postCommandDelay),
             AnimationController.createActionStep(() => setShowOutput2(true))
         )
-        steps.push(AnimationController.createDelayStep(900))
+        steps.push(AnimationController.createDelayStep(sequenceTimings.betweenCommandsDelay))
         steps.push(AnimationController.createActionStep(() => audio.resetVolumeRamp()))
         steps.push(...command3Typing.generateSteps(command3, { onKeystroke: onTypingKeystroke }))
         steps.push(
-            AnimationController.createDelayStep(350),
+            AnimationController.createDelayStep(sequenceTimings.postCommandDelay),
             AnimationController.createActionStep(() => setShowOutput3(true))
         )
         return steps

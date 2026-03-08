@@ -9,7 +9,16 @@ import { useKeystrokeAudio, useTypingAudioCallback } from '@/src/hooks/useKeystr
 import { useAnimationController } from '@/src/hooks/useAnimationController'
 import { useTypingAnimation } from '@/src/hooks/useTypingAnimation'
 import { AnimationController } from '@/src/lib/animationController'
-import {useBootContext} from "@/src/components/layout/context/BootContext";
+import { useBootContext } from "@/src/components/layout/context/BootContext"
+import {
+    getBaseSpeedForSection,
+    getPatternForSection,
+    audioConfig,
+    sequenceTimings,
+} from '@/src/constants/typingConfig'
+
+const experiencePattern = getPatternForSection('experience')
+const experienceSpeed = getBaseSpeedForSection('experience')
 
 interface Experience {
     id: string
@@ -71,13 +80,13 @@ export default function ExperienceSection() {
     const audio = useKeystrokeAudio({
         sectionId: 'experience',
         enabled: true,
-        volume: 0.4,
-        volumeRampEnabled: true,
+        volume: audioConfig.baseVolume,
+        volumeRampEnabled: audioConfig.volumeRampEnabled,
     })
 
     const { onTypingKeystroke } = useTypingAudioCallback(audio)
     const animation = useAnimationController({ debug: false })
-    const commandTyping = useTypingAnimation({ baseSpeed: 70 })
+    const commandTyping = useTypingAnimation({ baseSpeed: experienceSpeed, humanPattern: experiencePattern })
     const roleRefs = useRef<(HTMLSpanElement | null)[]>([])
     const command = 'git log --all --author="kudzai"'
 
@@ -114,11 +123,11 @@ export default function ExperienceSection() {
     const buildAnimationSequence = useCallback(() => {
         const steps = []
 
-        steps.push(AnimationController.createDelayStep(500))
+        steps.push(AnimationController.createDelayStep(sequenceTimings.initialDelay))
         steps.push(AnimationController.createActionStep(() => audio.resetVolumeRamp()))
         steps.push(AnimationController.createActionStep(() => setShowCommand(true)))
         steps.push(...commandTyping.generateSteps(command, { onKeystroke: onTypingKeystroke }))
-        steps.push(AnimationController.createDelayStep(350))
+        steps.push(AnimationController.createDelayStep(sequenceTimings.postCommandDelay))
 
         experiences.forEach((_, index) => {
             steps.push(

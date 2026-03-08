@@ -8,7 +8,16 @@ import { useKeystrokeAudio, useTypingAudioCallback } from '@/src/hooks/useKeystr
 import { useAnimationController } from '@/src/hooks/useAnimationController'
 import { useTypingAnimation } from '@/src/hooks/useTypingAnimation'
 import { AnimationController } from '@/src/lib/animationController'
-import {useBootContext} from "@/src/components/layout/context/BootContext";
+import { useBootContext } from "@/src/components/layout/context/BootContext"
+import {
+    getBaseSpeedForSection,
+    getPatternForSection,
+    audioConfig,
+    sequenceTimings,
+} from '@/src/constants/typingConfig'
+
+const contactPattern = getPatternForSection('contact')
+const contactSpeed = getBaseSpeedForSection('contact')
 
 const email = process.env.NEXT_PUBLIC_EMAIL || 'kudzai@example.com'
 const githubUrl = process.env.NEXT_PUBLIC_GITHUB_URL || 'https://github.com/kudzaiprichard'
@@ -30,13 +39,13 @@ export default function ContactSection() {
     const audio = useKeystrokeAudio({
         sectionId: 'contact',
         enabled: true,
-        volume: 0.4,
-        volumeRampEnabled: true,
+        volume: audioConfig.baseVolume,
+        volumeRampEnabled: audioConfig.volumeRampEnabled,
     })
 
     const { onTypingKeystroke } = useTypingAudioCallback(audio)
     const animation = useAnimationController({ debug: false })
-    const commandTyping = useTypingAnimation({ baseSpeed: 70 })
+    const commandTyping = useTypingAnimation({ baseSpeed: contactSpeed, humanPattern: contactPattern })
     const command = 'curl -X GET /contact/info'
 
     const resetAnimationState = useCallback(() => {
@@ -72,11 +81,11 @@ export default function ContactSection() {
     const buildAnimationSequence = useCallback(() => {
         const steps = []
 
-        steps.push(AnimationController.createDelayStep(500))
+        steps.push(AnimationController.createDelayStep(sequenceTimings.initialDelay))
         steps.push(AnimationController.createActionStep(() => audio.resetVolumeRamp()))
         steps.push(AnimationController.createActionStep(() => setShowCommand(true)))
         steps.push(...commandTyping.generateSteps(command, { onKeystroke: onTypingKeystroke }))
-        steps.push(AnimationController.createDelayStep(350))
+        steps.push(AnimationController.createDelayStep(sequenceTimings.postCommandDelay))
         steps.push(AnimationController.createActionStep(() => setShowContent(true)))
 
         return steps
@@ -325,7 +334,7 @@ export default function ContactSection() {
             </div>
 
             <style>{`
-                
+
                 .contact-section-form-input:-webkit-autofill,
                 .contact-section-form-input:-webkit-autofill:hover,
                 .contact-section-form-input:-webkit-autofill:focus,
