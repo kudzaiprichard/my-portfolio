@@ -30,7 +30,9 @@ export default function ContactConfirmation({ name, email, message }: Props) {
                             <span style={dotYellow}>●</span>&nbsp;
                             <span style={dotGreen}>●</span>
                         </Text>
-                        <Text style={topbarTitle}>prichard.co.zw</Text>
+                        <Text style={topbarTitle}>
+                            <Link href="https://prichard.co.zw" style={topbarLink}>prichard.co.zw</Link>
+                        </Text>
                     </Section>
 
                     {/* Brand */}
@@ -116,6 +118,11 @@ const topbarTitle = {
     fontSize: '11px',
     margin: '0',
     letterSpacing: '1px',
+}
+
+const topbarLink = {
+    color: 'rgba(255, 255, 255, 0.35)',
+    textDecoration: 'none',
 }
 
 const brand = {

@@ -35,14 +35,10 @@ export default function ContactNotification({ name, email, message }: Props) {
 
                     {/* Content */}
                     <Section style={content}>
-                        <table cellPadding="0" cellSpacing="0" style={{ margin: '0 0 8px' }}>
-                            <tr>
-                                <td style={statusDot} />
-                                <td style={statusText}>New message received via prichard.co.zw</td>
-                            </tr>
-                        </table>
-
-                        <Text style={badge}>CONTACT FORM</Text>
+                        <Text style={statusText}>
+                            New message received via{' '}
+                            <Link href="https://prichard.co.zw" style={statusLink}>prichard.co.zw</Link>
+                        </Text>
 
                         {/* Message box */}
                         <Section style={msgBox}>
@@ -66,7 +62,8 @@ export default function ContactNotification({ name, email, message }: Props) {
                     {/* Footer */}
                     <Section style={footer}>
                         <Text style={footerText}>
-                            Message received via prichard.co.zw/contact
+                            Message received via{' '}
+                            <Link href="https://prichard.co.zw/contact" style={footerLink}>prichard.co.zw/contact</Link>
                         </Text>
                     </Section>
                 </Container>
@@ -118,31 +115,15 @@ const content = {
     padding: '22px 28px',
 }
 
-const statusDot = {
-    width: '8px',
-    height: '8px',
-    borderRadius: '50%',
-    backgroundColor: '#34d399',
-    paddingRight: '0',
-}
-
 const statusText = {
     fontSize: '12px',
     color: 'rgba(255, 255, 255, 0.5)',
-    paddingLeft: '10px',
+    margin: '0 0 8px',
 }
 
-const badge = {
-    display: 'inline-block' as const,
-    border: '1px solid rgba(52, 211, 153, 0.3)',
-    backgroundColor: 'rgba(52, 211, 153, 0.08)',
-    padding: '5px 12px',
-    fontSize: '10px',
-    color: '#34d399',
-    letterSpacing: '1.5px',
-    borderRadius: '4px',
-    margin: '8px 0 16px',
-    fontWeight: 'bold' as const,
+const statusLink = {
+    color: 'rgba(255, 255, 255, 0.5)',
+    textDecoration: 'none',
 }
 
 const msgBox = {
@@ -204,4 +185,9 @@ const footerText = {
     color: 'rgba(255, 255, 255, 0.2)',
     margin: '0',
     lineHeight: '1.6',
+}
+
+const footerLink = {
+    color: 'rgba(255, 255, 255, 0.2)',
+    textDecoration: 'none',
 }
