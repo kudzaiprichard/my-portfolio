@@ -22,7 +22,10 @@ export default function SEOContent() {
             }}
         >
             <header>
-                <h1>Kudzai Prichard — AI &amp; Full Stack Software Developer</h1>
+                <h1>Kudzai Prichard Matizirofa — AI &amp; Full Stack Software Developer</h1>
+                <p>
+                    Also known as Kudzai Prichard, Kudzai Matizirofa, and Prichard Matizirofa.
+                </p>
                 <p>
                     Building intelligent systems and production-grade applications.
                     Specializing in machine learning, backend architecture, and modern
@@ -33,10 +36,11 @@ export default function SEOContent() {
             <section>
                 <h2>About</h2>
                 <p>
-                    Software developer focused on building AI-powered systems and scalable
-                    full-stack applications. Experienced in designing end-to-end solutions
-                    from machine learning model development through production deployment,
-                    combining robust backend engineering with modern frontend frameworks.
+                    Kudzai Prichard Matizirofa is a software developer focused on building
+                    AI-powered systems and scalable full-stack applications. Experienced in
+                    designing end-to-end solutions from machine learning model development
+                    through production deployment, combining robust backend engineering with
+                    modern frontend frameworks.
                 </p>
                 <h3>Technical Skills</h3>
                 <p>
@@ -165,6 +169,10 @@ export default function SEOContent() {
 
             <section>
                 <h2>Contact</h2>
+                <p>
+                    Contact Kudzai Prichard Matizirofa for software development,
+                    AI/ML engineering, or full-stack project inquiries.
+                </p>
                 <p>Email: {email}</p>
                 <nav>
                     <a href={githubUrl}>GitHub</a>

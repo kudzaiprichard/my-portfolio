@@ -14,21 +14,30 @@ const twitterHandle = process.env.NEXT_PUBLIC_TWITTER_HANDLE || '@kudzaiprichard
 
 export const metadata: Metadata = {
     metadataBase: new URL(baseUrl),
-    title: 'Kudzai Prichard | AI & Full Stack Developer',
+    title: 'Kudzai Prichard Matizirofa | AI & Full Stack Software Developer',
     description:
-        'Building intelligent systems and scalable applications. Specializing in AI/ML, backend architecture, and modern web technologies.',
+        'Kudzai Prichard Matizirofa — Building intelligent systems and scalable applications. Specializing in AI/ML, backend architecture, and full-stack development with Python, Java, and TypeScript.',
     keywords: [
+        'Kudzai Prichard Matizirofa',
         'Kudzai Prichard',
+        'Kudzai Matizirofa',
+        'Prichard Matizirofa',
+        'Kudzai',
+        'Matizirofa',
         'AI Developer',
         'Full Stack Developer',
         'Machine Learning Engineer',
         'Python Developer',
-        'React Developer',
+        'Java Developer',
+        'TypeScript Developer',
+        'FastAPI Developer',
+        'Spring Boot Developer',
+        'Next.js Developer',
+        'PyTorch Developer',
         'Portfolio',
-        'Zimbabwe Developer',
     ],
-    authors: [{ name: 'Kudzai Prichard', url: baseUrl }],
-    creator: 'Kudzai Prichard',
+    authors: [{ name: 'Kudzai Prichard Matizirofa', url: baseUrl }],
+    creator: 'Kudzai Prichard Matizirofa',
     alternates: {
         canonical: baseUrl,
     },
@@ -36,25 +45,25 @@ export const metadata: Metadata = {
         type: 'website',
         locale: 'en_US',
         url: baseUrl,
-        title: 'Kudzai Prichard | AI & Full Stack Developer',
+        title: 'Kudzai Prichard Matizirofa | AI & Full Stack Software Developer',
         description:
-            'Building intelligent systems and scalable applications. Specializing in AI/ML, backend architecture, and modern web technologies.',
-        siteName: 'Kudzai Prichard Portfolio',
+            'Kudzai Prichard Matizirofa — Building intelligent systems and scalable applications. Specializing in AI/ML, backend architecture, and full-stack development with Python, Java, and TypeScript.',
+        siteName: 'Kudzai Prichard Matizirofa Portfolio',
         images: [
             {
                 url: '/og-image.png',
                 width: 1200,
                 height: 630,
-                alt: 'Kudzai Prichard — AI & Full Stack Developer',
+                alt: 'Kudzai Prichard Matizirofa — AI & Full Stack Software Developer',
             },
         ],
     },
     twitter: {
         card: 'summary_large_image',
         creator: twitterHandle,
-        title: 'Kudzai Prichard | AI & Full Stack Developer',
+        title: 'Kudzai Prichard Matizirofa | AI & Full Stack Software Developer',
         description:
-            'Building intelligent systems and scalable applications.',
+            'Building intelligent systems and scalable applications with Python, Java, and TypeScript.',
         images: ['/og-image.png'],
     },
     robots: {

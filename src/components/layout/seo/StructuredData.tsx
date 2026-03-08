@@ -10,7 +10,11 @@ export default function StructuredData() {
     const personSchema = {
         '@context': 'https://schema.org',
         '@type': 'Person',
-        name: 'Kudzai Prichard',
+        name: 'Kudzai Prichard Matizirofa',
+        givenName: 'Kudzai',
+        additionalName: 'Prichard',
+        familyName: 'Matizirofa',
+        alternateName: ['Kudzai Prichard', 'Kudzai Matizirofa', 'Prichard Matizirofa', 'Kudzai', 'Prichard', 'Matizirofa'],
         url: baseUrl,
         email: email,
         jobTitle: 'AI & Full Stack Software Developer',
@@ -40,13 +44,13 @@ export default function StructuredData() {
     const websiteSchema = {
         '@context': 'https://schema.org',
         '@type': 'WebSite',
-        name: 'Kudzai Prichard | AI & Full Stack Software Developer',
+        name: 'Kudzai Prichard Matizirofa | AI & Full Stack Software Developer',
         url: baseUrl,
         description:
-            'Portfolio of Kudzai Prichard — AI & Full Stack Software Developer building intelligent systems and scalable applications with Python, Java, and TypeScript.',
+            'Portfolio of Kudzai Prichard Matizirofa — AI & Full Stack Software Developer building intelligent systems and scalable applications with Python, Java, and TypeScript.',
         author: {
             '@type': 'Person',
-            name: 'Kudzai Prichard',
+            name: 'Kudzai Prichard Matizirofa',
         },
     }
 
