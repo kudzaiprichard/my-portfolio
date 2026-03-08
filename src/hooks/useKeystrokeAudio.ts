@@ -1,57 +1,50 @@
 // hooks/useKeystrokeAudio.ts
 "use client"
 
-/**
- * Hook for managing keystroke audio with global audio control
- * Updated to work seamlessly with new animation system
- *
- * Key improvements:
- * - Better readiness checks (isReady, canPlay)
- * - Simplified audio control logic
- * - Better error handling
- * - Integration with KeystrokeAudioConfig type
- */
-
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { audioController } from '@/src/lib/audioController'
 import { KeyType, KeystrokeAudioConfig } from '@/src/lib/animationTypes'
+import { audioConfig as globalAudioConfig } from '@/src/constants/typingConfig'
 
 type UseKeystrokeAudioOptions = Partial<KeystrokeAudioConfig> & {
     sectionId: string
 }
 
 interface UseKeystrokeAudioReturn {
-    // Playback
     playKeystroke: (keyType?: KeyType) => void
-
-    // Mute control
     toggleMute: () => void
     setMuted: (muted: boolean) => void
     isMuted: boolean
-
-    // State
     isLoaded: boolean
     isAudioReady: boolean
     hasAudioControl: boolean
-
-    // Volume ramp
     resetVolumeRamp: () => void
-
-    // Audio control
     requestAudioControl: () => void
     releaseAudioControl: () => void
-
-    // New: Readiness checks
     isReady: () => boolean
     canPlay: () => boolean
+}
+
+// ============================================
+// Character-to-keyboard-region mapping
+// ============================================
+const LEFT_HAND_CHARS = new Set('qwertasdfgzxcvb12345`~!@#$%')
+const RIGHT_HAND_CHARS = new Set('yuiophjklnm67890-=[]\\;\',./^&*()_+{}|:"<>?')
+
+function getKeyboardRegion(char: string): 'left' | 'right' | 'thumb' {
+    const lower = char.toLowerCase()
+    if (lower === ' ') return 'thumb'
+    if (LEFT_HAND_CHARS.has(lower)) return 'left'
+    if (RIGHT_HAND_CHARS.has(lower)) return 'right'
+    return Math.random() < 0.5 ? 'left' : 'right'
 }
 
 export function useKeystrokeAudio(options: UseKeystrokeAudioOptions): UseKeystrokeAudioReturn {
     const {
         sectionId,
         enabled = true,
-        volume = 0.4,
-        volumeRampEnabled = true,
+        volume = globalAudioConfig.baseVolume,
+        volumeRampEnabled = globalAudioConfig.volumeRampEnabled,
         soundFiles = {
             regular: [
                 '/sounds/keystroke_1.mp3',
@@ -64,7 +57,6 @@ export function useKeystrokeAudio(options: UseKeystrokeAudioOptions): UseKeystro
         },
     } = options
 
-    // Validate required sectionId
     if (!sectionId) {
         throw new Error('[useKeystrokeAudio] sectionId is required')
     }
@@ -75,10 +67,8 @@ export function useKeystrokeAudio(options: UseKeystrokeAudioOptions): UseKeystro
 
     const [isMuted, setIsMuted] = useState(() => {
         if (typeof window !== 'undefined') {
-            const savedMuteState = localStorage.getItem('keystroke-audio-muted')
-            if (savedMuteState !== null) {
-                return savedMuteState === 'true'
-            }
+            const saved = localStorage.getItem('keystroke-audio-muted')
+            if (saved !== null) return saved === 'true'
         }
         return !enabled
     })
@@ -87,7 +77,6 @@ export function useKeystrokeAudio(options: UseKeystrokeAudioOptions): UseKeystro
     const [isAudioReady, setIsAudioReady] = useState(false)
     const [hasAudioControl, setHasAudioControl] = useState(false)
 
-    // Refs for stable access
     const mountedRef = useRef(false)
     const soundFilesRef = useRef(soundFiles)
     const sectionIdRef = useRef(sectionId)
@@ -97,18 +86,16 @@ export function useKeystrokeAudio(options: UseKeystrokeAudioOptions): UseKeystro
     const keystrokeCountRef = useRef(0)
     const volumeRampTimerRef = useRef<NodeJS.Timeout | null>(null)
 
-    // Update refs when props change
-    useEffect(() => {
-        sectionIdRef.current = sectionId
-    }, [sectionId])
+    // Track last sound index per region
+    const lastSoundIndexRef = useRef<Record<string, number>>({
+        left: -1,
+        right: -1,
+        thumb: -1,
+    })
 
-    useEffect(() => {
-        soundFilesRef.current = soundFiles
-    }, [soundFiles])
-
-    useEffect(() => {
-        enabledRef.current = enabled
-    }, [enabled])
+    useEffect(() => { sectionIdRef.current = sectionId }, [sectionId])
+    useEffect(() => { soundFilesRef.current = soundFiles }, [soundFiles])
+    useEffect(() => { enabledRef.current = enabled }, [enabled])
 
     // ============================================
     // Audio Control Setup
@@ -117,64 +104,45 @@ export function useKeystrokeAudio(options: UseKeystrokeAudioOptions): UseKeystro
     useEffect(() => {
         mountedRef.current = true
 
-        // Subscribe to audio control changes
         const handleAudioControlChange = () => {
             if (mountedRef.current) {
-                const hasControl = audioController.hasControl(sectionId)
-                setHasAudioControl(hasControl)
+                setHasAudioControl(audioController.hasControl(sectionId))
             }
         }
 
         audioController.subscribe(sectionId, handleAudioControlChange)
 
-        // Check initial state
         const initialControl = audioController.hasControl(sectionId)
         if (initialControl !== hasAudioControl) {
             setHasAudioControl(initialControl)
         }
 
-        // Mark audio system as ready after short delay
         const readyTimer = setTimeout(() => {
-            if (mountedRef.current) {
-                setIsAudioReady(true)
-            }
+            if (mountedRef.current) setIsAudioReady(true)
         }, 100)
 
         return () => {
             mountedRef.current = false
             clearTimeout(readyTimer)
             audioController.unsubscribe(sectionId, handleAudioControlChange)
-            if (volumeRampTimerRef.current) {
-                clearTimeout(volumeRampTimerRef.current)
-            }
+            if (volumeRampTimerRef.current) clearTimeout(volumeRampTimerRef.current)
         }
-    }, [sectionId]) // Only depend on sectionId, not hasAudioControl
+    }, [sectionId])
 
     // ============================================
     // Audio Control Methods
     // ============================================
 
-    /**
-     * Request audio control for this section
-     */
     const requestAudioControl = useCallback(() => {
         audioController.setActiveSection(sectionId)
     }, [sectionId])
 
-    /**
-     * Release audio control from this section
-     */
     const releaseAudioControl = useCallback(() => {
         audioController.clearActiveSection(sectionId)
     }, [sectionId])
 
-    /**
-     * Reset volume ramp counter
-     */
     const resetVolumeRamp = useCallback(() => {
         keystrokeCountRef.current = 0
-
-        // Clear any pending reset timer
         if (volumeRampTimerRef.current) {
             clearTimeout(volumeRampTimerRef.current)
             volumeRampTimerRef.current = null
@@ -182,96 +150,139 @@ export function useKeystrokeAudio(options: UseKeystrokeAudioOptions): UseKeystro
     }, [])
 
     // ============================================
-    // Playback Methods
+    // Sound Selection — region-aware
     // ============================================
 
-    /**
-     * Play keystroke sound
-     */
-    const playKeystroke = useCallback((keyType: KeyType = 'regular') => {
-        // Check if we can play
-        if (isMuted || !enabledRef.current) {
-            return
+    const selectSoundFile = useCallback((
+        char: string,
+        keyType: KeyType
+    ): string => {
+        const files = soundFilesRef.current
+
+        if (keyType === 'space') {
+            return files.space || files.regular[0]
+        }
+        if (keyType === 'enter') {
+            return files.enter || files.regular[1]
         }
 
-        if (!audioController.hasControl(sectionId)) {
-            return
+        const regular = files.regular
+        if (regular.length <= 1) return regular[0]
+
+        const region = getKeyboardRegion(char)
+        const lastIdx = lastSoundIndexRef.current[region]
+        let idx: number
+
+        if (region === 'left') {
+            const half = Math.ceil(regular.length / 2)
+            idx = Math.floor(Math.random() * half)
+        } else if (region === 'right') {
+            const half = Math.floor(regular.length / 2)
+            idx = half + Math.floor(Math.random() * (regular.length - half))
+        } else {
+            idx = Math.floor(Math.random() * regular.length)
         }
+
+        if (idx === lastIdx && regular.length > 1) {
+            idx = (idx + 1) % regular.length
+        }
+
+        lastSoundIndexRef.current[region] = idx
+        return regular[idx]
+    }, [])
+
+    // ============================================
+    // Volume Calculation — uses typingConfig values
+    // ============================================
+
+    const calculateVolume = useCallback((
+        char: string,
+        keyType: KeyType,
+        baseVol: number
+    ): number => {
+        let vol = baseVol
+
+        // Character-aware velocity
+        if (keyType === 'space') {
+            vol *= 0.75 + Math.random() * 0.15
+        } else if (keyType === 'enter') {
+            vol *= 1.1 + Math.random() * 0.15
+        } else {
+            const upper = char === char.toUpperCase() && char !== char.toLowerCase()
+            const punct = /[^a-zA-Z0-9\s]/.test(char)
+
+            if (upper || punct) {
+                vol *= 1.05 + Math.random() * 0.1
+            } else {
+                vol *= 0.92 + Math.random() * 0.16
+            }
+        }
+
+        // Volume ramping — values from typingConfig
+        if (volumeRampEnabled) {
+            keystrokeCountRef.current++
+
+            const rampProgress = Math.min(
+                keystrokeCountRef.current / globalAudioConfig.volumeRampKeystrokes,
+                1
+            )
+            const minFraction = globalAudioConfig.volumeRampMinFraction
+            vol *= minFraction + (1 - minFraction) * rampProgress
+
+            // Gradual decay after inactivity
+            if (volumeRampTimerRef.current) {
+                clearTimeout(volumeRampTimerRef.current)
+            }
+            volumeRampTimerRef.current = setTimeout(() => {
+                keystrokeCountRef.current = Math.max(
+                    Math.floor(keystrokeCountRef.current * globalAudioConfig.volumeDecayFactor),
+                    0
+                )
+            }, globalAudioConfig.volumeDecayDelayMs)
+        }
+
+        return Math.max(0, Math.min(1, vol))
+    }, [volumeRampEnabled])
+
+    // ============================================
+    // Playback
+    // ============================================
+
+    const playKeystroke = useCallback((keyType: KeyType = 'regular') => {
+        if (isMuted || !enabledRef.current) return
+        if (!audioController.hasControl(sectionId)) return
 
         try {
-            let soundFile: string
-            let baseVolume = volume
+            const char = keyType === 'space' ? ' ' : keyType === 'enter' ? '\n' : 'e'
 
-            // Select sound based on key type
-            if (keyType === 'space') {
-                soundFile = soundFilesRef.current.space || soundFilesRef.current.regular[0]
-                baseVolume = volume * 0.8
-            } else if (keyType === 'enter') {
-                soundFile = soundFilesRef.current.enter || soundFilesRef.current.regular[1]
-                baseVolume = volume * 1.2
-            } else {
-                const regularSounds = soundFilesRef.current.regular
-                soundFile = regularSounds[Math.floor(Math.random() * regularSounds.length)]
-                baseVolume = volume
-            }
-
-            // Create and configure audio
+            const soundFile = selectSoundFile(char, keyType)
             const audio = new Audio(soundFile)
+            audio.volume = calculateVolume(char, keyType, volume)
 
-            // Apply volume ramping if enabled
-            if (volumeRampEnabled) {
-                keystrokeCountRef.current++
-
-                // Ramp from 50% to 100% over 10 keystrokes
-                const rampProgress = Math.min(keystrokeCountRef.current / 10, 1)
-                audio.volume = baseVolume * (0.5 + (0.5 * rampProgress))
-
-                // Reset counter after 2 seconds of inactivity
-                if (volumeRampTimerRef.current) {
-                    clearTimeout(volumeRampTimerRef.current)
+            audio.play().catch((err) => {
+                if (err.name !== 'NotAllowedError') {
+                    console.warn('[useKeystrokeAudio] Playback failed:', err)
                 }
-                volumeRampTimerRef.current = setTimeout(() => {
-                    keystrokeCountRef.current = 0
-                }, 2000)
-            } else {
-                audio.volume = baseVolume
-            }
-
-            // Play with error handling
-            audio.play().catch((error) => {
-                // Silently handle autoplay restrictions
-                if (error.name === 'NotAllowedError') {
-                    // User hasn't interacted with page yet
-                    return
-                }
-                console.warn('[useKeystrokeAudio] Playback failed:', error)
             })
-
-        } catch (error) {
-            console.warn('[useKeystrokeAudio] Error playing sound:', error)
+        } catch (err) {
+            console.warn('[useKeystrokeAudio] Error playing sound:', err)
         }
-    }, [isMuted, volume, volumeRampEnabled, sectionId])
+    }, [isMuted, volume, sectionId, selectSoundFile, calculateVolume])
 
     // ============================================
     // Mute Control
     // ============================================
 
-    /**
-     * Toggle mute state
-     */
     const toggleMute = useCallback(() => {
         setIsMuted(prev => {
-            const newMutedState = !prev
+            const next = !prev
             if (typeof window !== 'undefined') {
-                localStorage.setItem('keystroke-audio-muted', String(newMutedState))
+                localStorage.setItem('keystroke-audio-muted', String(next))
             }
-            return newMutedState
+            return next
         })
     }, [])
 
-    /**
-     * Set mute state directly
-     */
     const setMutedState = useCallback((muted: boolean) => {
         setIsMuted(muted)
         if (typeof window !== 'undefined') {
@@ -280,21 +291,13 @@ export function useKeystrokeAudio(options: UseKeystrokeAudioOptions): UseKeystro
     }, [])
 
     // ============================================
-    // NEW: Readiness Checks
+    // Readiness Checks
     // ============================================
 
-    /**
-     * Check if audio system is ready
-     * Useful for waiting before starting animations
-     */
     const isReady = useCallback((): boolean => {
         return isAudioReady && mountedRef.current
     }, [isAudioReady])
 
-    /**
-     * Check if audio can currently play
-     * Combines all necessary conditions
-     */
     const canPlay = useCallback((): boolean => {
         return (
             isAudioReady &&
@@ -305,32 +308,17 @@ export function useKeystrokeAudio(options: UseKeystrokeAudioOptions): UseKeystro
         )
     }, [isAudioReady, isMuted, hasAudioControl])
 
-    // ============================================
-    // Return Interface
-    // ============================================
-
     return {
-        // Playback
         playKeystroke,
-
-        // Mute control
         toggleMute,
         setMuted: setMutedState,
         isMuted,
-
-        // State
         isLoaded,
         isAudioReady,
         hasAudioControl,
-
-        // Volume ramp
         resetVolumeRamp,
-
-        // Audio control
         requestAudioControl,
         releaseAudioControl,
-
-        // NEW: Readiness checks
         isReady,
         canPlay,
     }
@@ -338,16 +326,6 @@ export function useKeystrokeAudio(options: UseKeystrokeAudioOptions): UseKeystro
 
 /**
  * Hook for creating audio callback for typing animations
- * Simplifies integration with useTypingAnimation
- *
- * @example
- * const audio = useKeystrokeAudio({ sectionId: 'hero' })
- * const typing = useTypingAnimation()
- * const { onTypingKeystroke } = useTypingAudioCallback(audio)
- *
- * const steps = typing.generateSteps('Hello World', {
- *   onKeystroke: onTypingKeystroke
- * })
  */
 export function useTypingAudioCallback(audio: UseKeystrokeAudioReturn) {
     const onTypingKeystroke = useCallback((

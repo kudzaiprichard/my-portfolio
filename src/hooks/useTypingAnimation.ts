@@ -5,11 +5,8 @@
  * Hook for creating typing animations with human-like patterns
  * Integrates with AnimationController for proper cancellation
  *
- * Key Features:
- * - Human-like typing patterns
- * - Proper cancellation support
- * - Audio integration ready
- * - Generates AnimationSteps for controller
+ * Now imports all defaults from typingConfig.ts — no hardcoded speeds or patterns.
+ * Character-class multipliers (digits, uppercase, symbols) are applied here.
  */
 
 import { useState, useCallback, useRef } from 'react'
@@ -17,19 +14,24 @@ import {
     AnimationStep,
     TypingAnimationConfig,
     HumanTypingPattern,
-    DEFAULT_HUMAN_TYPING_PATTERN,
     KeyType,
 } from '@/src/lib/animationTypes'
+import {
+    globalTypingPattern,
+    getCharClassMultiplier,
+} from '@/src/constants/typingConfig'
 
 interface UseTypingAnimationOptions {
     /**
-     * Base typing speed in milliseconds
-     * @default 80
+     * Base typing speed in milliseconds.
+     * If not provided, the calling code should pass one
+     * (typically from getBaseSpeedForSection).
      */
     baseSpeed?: number
 
     /**
-     * Human typing pattern configuration
+     * Human typing pattern overrides.
+     * Merged on top of globalTypingPattern from typingConfig.
      */
     humanPattern?: Partial<HumanTypingPattern>
 
@@ -41,32 +43,10 @@ interface UseTypingAnimationOptions {
 }
 
 interface UseTypingAnimationReturn {
-    /**
-     * Current displayed text
-     */
     text: string
-
-    /**
-     * Set text directly (bypasses animation)
-     */
     setText: (text: string) => void
-
-    /**
-     * Generate typing animation steps for a given text
-     */
-    generateSteps: (
-        fullText: string,
-        config?: TypingAnimationConfig
-    ) => AnimationStep[]
-
-    /**
-     * Reset text to empty
-     */
+    generateSteps: (fullText: string, config?: TypingAnimationConfig) => AnimationStep[]
     reset: () => void
-
-    /**
-     * Current text length
-     */
     length: number
 }
 
@@ -74,42 +54,39 @@ interface UseTypingAnimationReturn {
  * Hook for creating typing animations
  *
  * @example
- * const typing = useTypingAnimation({ baseSpeed: 80 })
- * const { playKeystroke } = useKeystrokeAudio({ sectionId: 'hero' })
+ * import { getBaseSpeedForSection, getPatternForSection } from '@/src/constants/typingConfig'
  *
- * const steps = typing.generateSteps('Hello World', {
- *   onKeystroke: (char, index, isLast) => {
- *     playKeystroke(isLast ? 'enter' : char === ' ' ? 'space' : 'regular')
- *   }
+ * const typing = useTypingAnimation({
+ *   baseSpeed: getBaseSpeedForSection('hero'),
+ *   humanPattern: getPatternForSection('hero'),
  * })
- *
- * animation.start(steps)
  */
 export function useTypingAnimation(
     options: UseTypingAnimationOptions = {}
 ): UseTypingAnimationReturn {
     const {
-        baseSpeed = 80,
+        baseSpeed,
         humanPattern = {},
         autoReset = true,
     } = options
 
     const [text, setText] = useState('')
 
-    // Merge user pattern with defaults
+    // Merge: globalTypingPattern < humanPattern overrides
     const patternRef = useRef<Required<HumanTypingPattern>>({
-        ...DEFAULT_HUMAN_TYPING_PATTERN,
+        ...globalTypingPattern,
         ...humanPattern,
     })
 
-    // Update pattern if options change
     patternRef.current = {
-        ...DEFAULT_HUMAN_TYPING_PATTERN,
+        ...globalTypingPattern,
         ...humanPattern,
     }
 
     /**
-     * Calculate human-like delay for a character
+     * Calculate human-like delay for a character.
+     * Applies positional multipliers, slow-char rules,
+     * character-class multipliers, and random hesitation.
      */
     const calculateDelay = useCallback((
         char: string,
@@ -120,7 +97,10 @@ export function useTypingAnimation(
         const pattern = patternRef.current
         let delay = speed
 
-        // Check for file extensions (.txt, .sh, etc.)
+        // ---- Character-class multiplier (digits, uppercase, symbols, space) ----
+        delay *= getCharClassMultiplier(char)
+
+        // ---- File extension slowdown (.txt, .sh, etc.) ----
         const hasExtension = /\.[a-z]{2,4}$/i.test(fullText)
         if (hasExtension) {
             const extensionStart = fullText.lastIndexOf('.')
@@ -131,47 +111,47 @@ export function useTypingAnimation(
             }
         }
 
-        // Start of text - slower (thinking/starting)
+        // ---- Positional multipliers ----
+        const isInExtension = hasExtension && index >= fullText.lastIndexOf('.')
+
+        // Start of text — slower (thinking/starting)
         if (index < 3) {
             delay *= pattern.startSpeedMultiplier
         }
 
-        // Middle of text - faster (in the flow)
+        // Middle of text — faster (in the flow)
         const middleStart = Math.floor(fullText.length * 0.3)
         const middleEnd = Math.floor(fullText.length * 0.7)
-        const isInMiddle = index >= middleStart && index <= middleEnd
-        const isInExtension = hasExtension && index >= fullText.lastIndexOf('.')
-
-        if (isInMiddle && !isInExtension) {
+        if (index >= middleStart && index <= middleEnd && !isInExtension) {
             delay *= pattern.middleSpeedMultiplier
         }
 
-        // End of text - slightly slower (finishing)
+        // End of text — slightly slower (finishing)
         if (index > fullText.length - 4 && !isInExtension) {
             delay *= pattern.endSpeedMultiplier
         }
 
-        // Slow characters (/, ., -, _)
-        const prevChar = fullText[index - 1]
-        if (prevChar && pattern.slowCharacters.includes(prevChar)) {
+        // ---- Slow characters (path separators, punctuation) ----
+        if (pattern.slowCharacters.includes(char)) {
             delay *= pattern.slowCharMultiplier
         }
 
-        // Repeated characters
+        // ---- Repeated characters (muscle memory = faster) ----
+        const prevChar = fullText[index - 1]
         if (index > 0 && char === prevChar) {
             delay *= pattern.repeatedCharMultiplier
         }
 
-        // Random pauses (mimics thinking/hesitation)
+        // ---- Random micro-pauses (hesitation) ----
         if (Math.random() < pattern.randomPauseProbability && !isInExtension) {
             delay *= pattern.randomPauseMultiplier
         }
 
-        // Add natural variation (±30%)
+        // ---- Natural variation (±30%) ----
         const variation = delay * 0.3
         delay += (Math.random() * variation * 2 - variation)
 
-        return Math.max(10, delay) // Minimum 10ms
+        return Math.max(10, delay)
     }, [])
 
     /**
@@ -191,14 +171,16 @@ export function useTypingAnimation(
         config: TypingAnimationConfig = {}
     ): AnimationStep[] => {
         const {
-            baseSpeed: configSpeed = baseSpeed,
+            baseSpeed: configSpeed,
             onKeystroke,
             getDelay,
         } = config
 
+        // Resolve speed: config override > hook option > fallback 80
+        const resolvedSpeed = configSpeed ?? baseSpeed ?? 80
+
         const steps: AnimationStep[] = []
 
-        // Optional: Reset text before starting
         if (autoReset) {
             steps.push({
                 id: 'reset-text',
@@ -207,7 +189,6 @@ export function useTypingAnimation(
             })
         }
 
-        // Generate step for each character
         for (let i = 0; i <= fullText.length; i++) {
             const currentText = fullText.slice(0, i)
             const char = fullText[i - 1]
@@ -216,19 +197,16 @@ export function useTypingAnimation(
             steps.push({
                 id: `type-${i}`,
                 action: () => {
-                    // Update displayed text
                     setText(currentText)
 
-                    // Fire keystroke callback (skip first iteration)
                     if (i > 0 && onKeystroke) {
-                        const keyType = getKeyType(char, isLast)
                         onKeystroke(char, i - 1, isLast)
                     }
                 },
                 duration: i < fullText.length
                     ? (getDelay?.(fullText[i], i, fullText) ??
-                        calculateDelay(fullText[i], i, fullText, configSpeed))
-                    : 0, // No delay after last character
+                        calculateDelay(fullText[i], i, fullText, resolvedSpeed))
+                    : 0,
                 metadata: {
                     char,
                     index: i,
@@ -240,9 +218,6 @@ export function useTypingAnimation(
         return steps
     }, [baseSpeed, autoReset, calculateDelay, getKeyType])
 
-    /**
-     * Reset text to empty
-     */
     const reset = useCallback(() => {
         setText('')
     }, [])
@@ -258,18 +233,6 @@ export function useTypingAnimation(
 
 /**
  * Hook for typing multiple texts sequentially
- * Useful for command sequences
- *
- * @example
- * const multiTyping = useMultiTyping()
- *
- * const steps = multiTyping.generateSequence([
- *   { text: 'whoami', onComplete: () => setShowOutput1(true) },
- *   { text: 'cat role.txt', onComplete: () => setShowOutput2(true) },
- *   { text: 'ls -la', onComplete: () => setShowOutput3(true) }
- * ])
- *
- * animation.start(steps)
  */
 interface TypingSequenceItem {
     text: string
@@ -294,15 +257,11 @@ export function useMultiTyping(options: UseMultiTypingOptions = {}) {
         autoReset: false,
     })
 
-    /**
-     * Generate steps for multiple text sequences
-     */
     const generateSequence = useCallback((
         items: TypingSequenceItem[]
     ): AnimationStep[] => {
         const allSteps: AnimationStep[] = []
 
-        // Reset texts array
         allSteps.push({
             id: 'reset-sequence',
             action: () => {
@@ -321,7 +280,6 @@ export function useMultiTyping(options: UseMultiTypingOptions = {}) {
                 delayAfter = 350,
             } = item
 
-            // Add placeholder for this text
             allSteps.push({
                 id: `init-text-${itemIndex}`,
                 action: () => {
@@ -331,13 +289,11 @@ export function useMultiTyping(options: UseMultiTypingOptions = {}) {
                 duration: 0,
             })
 
-            // Generate typing steps
             const typingSteps = typing.generateSteps(text, {
                 baseSpeed: itemSpeed,
                 onKeystroke,
             })
 
-            // Modify each step to update the correct index in texts array
             typingSteps.forEach((step, stepIndex) => {
                 const originalAction = step.action
                 allSteps.push({
@@ -354,7 +310,6 @@ export function useMultiTyping(options: UseMultiTypingOptions = {}) {
                 })
             })
 
-            // Add delay after this item
             if (delayAfter > 0) {
                 allSteps.push({
                     id: `delay-after-${itemIndex}`,
@@ -363,7 +318,6 @@ export function useMultiTyping(options: UseMultiTypingOptions = {}) {
                 })
             }
 
-            // Fire onComplete callback
             if (onComplete) {
                 allSteps.push({
                     id: `complete-${itemIndex}`,
@@ -392,29 +346,9 @@ export function useMultiTyping(options: UseMultiTypingOptions = {}) {
 
 /**
  * Hook for typing with cursor
- * Shows blinking cursor at end of text
- *
- * @example
- * const { text, showCursor } = useTypingWithCursor()
- *
- * return (
- *   <span>
- *     {text}
- *     {showCursor && <span className="cursor">|</span>}
- *   </span>
- * )
  */
 interface UseTypingWithCursorOptions extends UseTypingAnimationOptions {
-    /**
-     * Show cursor while typing
-     * @default true
-     */
     cursorWhileTyping?: boolean
-
-    /**
-     * Show cursor after completion
-     * @default true
-     */
     cursorAfterComplete?: boolean
 }
 
@@ -435,7 +369,6 @@ export function useTypingWithCursor(
         fullText: string,
         config: TypingAnimationConfig = {}
     ): AnimationStep[] => {
-        // Mark as typing when starting
         const steps: AnimationStep[] = [{
             id: 'start-typing',
             action: () => {
@@ -445,10 +378,8 @@ export function useTypingWithCursor(
             duration: 0,
         }]
 
-        // Add typing steps
         steps.push(...typing.generateSteps(fullText, config))
 
-        // Mark as complete when done
         steps.push({
             id: 'complete-typing',
             action: () => {
