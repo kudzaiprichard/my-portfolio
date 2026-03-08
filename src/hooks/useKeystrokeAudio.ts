@@ -39,6 +39,18 @@ function getKeyboardRegion(char: string): 'left' | 'right' | 'thumb' {
     return Math.random() < 0.5 ? 'left' : 'right'
 }
 
+/**
+ * Pick a random index from an array, avoiding the last used index.
+ */
+function pickAvoidingRepeat(arr: string[], lastIdx: number): number {
+    if (arr.length <= 1) return 0
+    let idx = Math.floor(Math.random() * arr.length)
+    if (idx === lastIdx) {
+        idx = (idx + 1) % arr.length
+    }
+    return idx
+}
+
 export function useKeystrokeAudio(options: UseKeystrokeAudioOptions): UseKeystrokeAudioReturn {
     const {
         sectionId,
@@ -52,8 +64,12 @@ export function useKeystrokeAudio(options: UseKeystrokeAudioOptions): UseKeystro
                 '/sounds/keystroke_3.mp3',
                 '/sounds/keystroke_4.mp3',
             ],
-            space: '/sounds/keystroke_1.mp3',
-            enter: '/sounds/keystroke_2.mp3',
+            space: [
+                '/sounds/keystroke_1.mp3',
+            ],
+            enter: [
+                '/sounds/keystroke_2.mp3',
+            ],
         },
     } = options
 
@@ -86,11 +102,13 @@ export function useKeystrokeAudio(options: UseKeystrokeAudioOptions): UseKeystro
     const keystrokeCountRef = useRef(0)
     const volumeRampTimerRef = useRef<NodeJS.Timeout | null>(null)
 
-    // Track last sound index per region
+    // Track last sound index per key type and region
     const lastSoundIndexRef = useRef<Record<string, number>>({
         left: -1,
         right: -1,
         thumb: -1,
+        space: -1,
+        enter: -1,
     })
 
     useEffect(() => { sectionIdRef.current = sectionId }, [sectionId])
@@ -150,7 +168,8 @@ export function useKeystrokeAudio(options: UseKeystrokeAudioOptions): UseKeystro
     }, [])
 
     // ============================================
-    // Sound Selection — region-aware
+    // Sound Selection — region-aware with
+    // no-repeat for all key types
     // ============================================
 
     const selectSoundFile = useCallback((
@@ -160,10 +179,17 @@ export function useKeystrokeAudio(options: UseKeystrokeAudioOptions): UseKeystro
         const files = soundFilesRef.current
 
         if (keyType === 'space') {
-            return files.space || files.regular[0]
+            const pool = files.space && files.space.length > 0 ? files.space : [files.regular[0]]
+            const idx = pickAvoidingRepeat(pool, lastSoundIndexRef.current.space)
+            lastSoundIndexRef.current.space = idx
+            return pool[idx]
         }
+
         if (keyType === 'enter') {
-            return files.enter || files.regular[1]
+            const pool = files.enter && files.enter.length > 0 ? files.enter : [files.regular[1] || files.regular[0]]
+            const idx = pickAvoidingRepeat(pool, lastSoundIndexRef.current.enter)
+            lastSoundIndexRef.current.enter = idx
+            return pool[idx]
         }
 
         const regular = files.regular
@@ -202,7 +228,6 @@ export function useKeystrokeAudio(options: UseKeystrokeAudioOptions): UseKeystro
     ): number => {
         let vol = baseVol
 
-        // Character-aware velocity
         if (keyType === 'space') {
             vol *= 0.75 + Math.random() * 0.15
         } else if (keyType === 'enter') {
@@ -218,7 +243,6 @@ export function useKeystrokeAudio(options: UseKeystrokeAudioOptions): UseKeystro
             }
         }
 
-        // Volume ramping — values from typingConfig
         if (volumeRampEnabled) {
             keystrokeCountRef.current++
 
@@ -229,7 +253,6 @@ export function useKeystrokeAudio(options: UseKeystrokeAudioOptions): UseKeystro
             const minFraction = globalAudioConfig.volumeRampMinFraction
             vol *= minFraction + (1 - minFraction) * rampProgress
 
-            // Gradual decay after inactivity
             if (volumeRampTimerRef.current) {
                 clearTimeout(volumeRampTimerRef.current)
             }

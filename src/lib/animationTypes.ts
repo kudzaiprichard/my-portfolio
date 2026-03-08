@@ -93,8 +93,8 @@ export interface KeystrokeAudioConfig {
     /** Sound files for different key types */
     soundFiles?: {
         regular: string[]
-        space?: string
-        enter?: string
+        space?: string[]
+        enter?: string[]
     }
 }
 
