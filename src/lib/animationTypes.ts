@@ -2,6 +2,9 @@
 /**
  * Core type definitions for the animation system
  * Centralized types ensure consistency across all animation components
+ *
+ * NOTE: Default typing pattern values have moved to constants/typingConfig.ts
+ * This file only defines the interfaces/types.
  */
 
 /**
@@ -182,6 +185,7 @@ export interface SectionAnimationConfig {
 
 /**
  * Human typing pattern configuration
+ * Default values are defined in constants/typingConfig.ts
  */
 export interface HumanTypingPattern {
     /** Speed multiplier for start of text */
@@ -210,21 +214,6 @@ export interface HumanTypingPattern {
 
     /** Speed multiplier for slow characters */
     slowCharMultiplier?: number
-}
-
-/**
- * Default human typing pattern
- */
-export const DEFAULT_HUMAN_TYPING_PATTERN: Required<HumanTypingPattern> = {
-    startSpeedMultiplier: 1.8,
-    middleSpeedMultiplier: 0.7,
-    endSpeedMultiplier: 1.3,
-    extensionSpeedMultiplier: 3.5,
-    randomPauseProbability: 0.05,
-    randomPauseMultiplier: 2.5,
-    repeatedCharMultiplier: 0.8,
-    slowCharacters: ['/', '.', '-', '_'],
-    slowCharMultiplier: 1.5,
 }
 
 /**
