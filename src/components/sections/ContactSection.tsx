@@ -29,12 +29,23 @@ const linkedinName = process.env.NEXT_PUBLIC_LINKEDIN_NAME || 'Kudzai Prichard'
 
 type SubmitStatus = 'idle' | 'loading' | 'success' | 'error'
 
+interface FieldErrors {
+    name?: string
+    email?: string
+    message?: string
+}
+
+function validateEmail(emailStr: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailStr)
+}
+
 export default function ContactSection() {
     const { isBooted } = useBootContext()
     const [showCommand, setShowCommand] = useState(false)
     const [showContent, setShowContent] = useState(false)
     const [formData, setFormData] = useState({ name: '', email: '', message: '' })
     const [status, setStatus] = useState<SubmitStatus>('idle')
+    const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
     const audio = useKeystrokeAudio({
         sectionId: 'contact',
@@ -109,23 +120,63 @@ export default function ContactSection() {
         }
     }, [])
 
+    // Clear field error when user starts typing in that field
+    const handleFieldChange = (field: keyof typeof formData, value: string) => {
+        setFormData({ ...formData, [field]: value })
+        if (fieldErrors[field]) {
+            setFieldErrors(prev => {
+                const next = { ...prev }
+                delete next[field]
+                return next
+            })
+        }
+        // Reset general status when user edits after error/success
+        if (status === 'error' || status === 'success') {
+            setStatus('idle')
+        }
+    }
+
+    const validateForm = (): boolean => {
+        const errors: FieldErrors = {}
+
+        if (!formData.name.trim()) {
+            errors.name = 'missing name — please enter your name'
+        }
+
+        if (!formData.email.trim()) {
+            errors.email = 'missing email — please enter your email'
+        } else if (!validateEmail(formData.email.trim())) {
+            errors.email = 'invalid email format — please check your email'
+        }
+
+        if (!formData.message.trim()) {
+            errors.message = 'missing message — please type a message'
+        }
+
+        setFieldErrors(errors)
+        return Object.keys(errors).length === 0
+    }
+
     const handleSubmit = async () => {
         if (status === 'loading') return
 
-        const { name, email: senderEmail, message } = formData
-
-        if (!name.trim() || !senderEmail.trim() || !message.trim()) {
+        if (!validateForm()) {
             setStatus('error')
             return
         }
 
         setStatus('loading')
+        setFieldErrors({})
 
         try {
             const res = await fetch('/api/contact', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email: senderEmail, message }),
+                body: JSON.stringify({
+                    name: formData.name.trim(),
+                    email: formData.email.trim(),
+                    message: formData.message.trim(),
+                }),
             })
 
             if (!res.ok) throw new Error('Failed to send')
@@ -141,7 +192,7 @@ export default function ContactSection() {
         switch (status) {
             case 'loading': return '> sending...'
             case 'success': return '> message sent!'
-            case 'error':   return '> failed. retry?'
+            case 'error':   return Object.keys(fieldErrors).length > 0 ? '> fix errors above' : '> failed. retry?'
             default:        return './send_message.sh'
         }
     }
@@ -224,10 +275,15 @@ export default function ContactSection() {
                     type="text"
                     placeholder="Enter your name"
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="contact-section-form-input"
+                    onChange={(e) => handleFieldChange('name', e.target.value)}
+                    className={`contact-section-form-input${fieldErrors.name ? ' has-error' : ''}`}
                     disabled={status === 'loading'}
                 />
+                {fieldErrors.name && (
+                    <div className="contact-section-field-error">
+                        &gt; [ERROR] {fieldErrors.name}
+                    </div>
+                )}
             </div>
 
             <div className="contact-section-form-group">
@@ -238,10 +294,15 @@ export default function ContactSection() {
                     type="email"
                     placeholder="your.email@example.com"
                     value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    className="contact-section-form-input"
+                    onChange={(e) => handleFieldChange('email', e.target.value)}
+                    className={`contact-section-form-input${fieldErrors.email ? ' has-error' : ''}`}
                     disabled={status === 'loading'}
                 />
+                {fieldErrors.email && (
+                    <div className="contact-section-field-error">
+                        &gt; [ERROR] {fieldErrors.email}
+                    </div>
+                )}
             </div>
 
             <div className="contact-section-form-group">
@@ -251,14 +312,19 @@ export default function ContactSection() {
                 <textarea
                     placeholder="Type your message here..."
                     value={formData.message}
-                    onChange={(e) => setFormData({...formData, message: e.target.value})}
+                    onChange={(e) => handleFieldChange('message', e.target.value)}
                     rows={6}
-                    className="contact-section-form-textarea"
+                    className={`contact-section-form-textarea${fieldErrors.message ? ' has-error' : ''}`}
                     disabled={status === 'loading'}
                 />
+                {fieldErrors.message && (
+                    <div className="contact-section-field-error">
+                        &gt; [ERROR] {fieldErrors.message}
+                    </div>
+                )}
             </div>
 
-            {status === 'error' && (
+            {status === 'error' && Object.keys(fieldErrors).length === 0 && (
                 <div className="contact-section-form-error">
                     &gt; [ERROR] Failed to send message. Please try again.
                 </div>
@@ -516,6 +582,16 @@ export default function ContactSection() {
                     border-color: var(--color-primary);
                 }
 
+                .contact-section-form-input.has-error,
+                .contact-section-form-textarea.has-error {
+                    border-color: rgba(255, 80, 80, 0.9);
+                }
+
+                .contact-section-form-input.has-error:focus,
+                .contact-section-form-textarea.has-error:focus {
+                    border-color: rgba(255, 80, 80, 1);
+                }
+
                 .contact-section-form-input:disabled,
                 .contact-section-form-textarea:disabled {
                     opacity: 0.5;
@@ -531,6 +607,18 @@ export default function ContactSection() {
                     resize: vertical;
                     min-height: 120px;
                     line-height: var(--line-height-normal);
+                }
+
+                .contact-section-field-error {
+                    font-size: var(--font-size-xs);
+                    color: rgba(255, 80, 80, 0.9);
+                    font-family: var(--font-mono);
+                    animation: contact-section-errorFadeIn 0.3s ease forwards;
+                }
+
+                @keyframes contact-section-errorFadeIn {
+                    from { opacity: 0; transform: translateX(-4px); }
+                    to { opacity: 1; transform: translateX(0); }
                 }
 
                 .contact-section-form-error {
