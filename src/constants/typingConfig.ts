@@ -13,7 +13,7 @@ import { HumanTypingPattern } from '@/src/lib/animationTypes'
    SECTION IDS
    ============================================ */
 
-export type SectionId = 'hero' | 'about' | 'projects' | 'experience' | 'contact'
+export type SectionId = 'hero' | 'about' | 'projects' | 'experience' | 'contact' | 'terminal'
 
 /* ============================================
    GLOBAL HUMAN TYPING PATTERN
@@ -64,8 +64,8 @@ export const charClassMultipliers = {
     /** Regular lowercase: baseline */
     lowercase: 1.0,
 
-    /** Whitespace (space): thumb hit, slightly faster */
-    space: 0.85,
+    /** Whitespace (space): thumb hit, fastest keystroke */
+    space: 0.72,
 } as const
 
 /**
@@ -129,6 +129,15 @@ export const sectionTypingConfigs: Record<SectionId, SectionTypingConfig> = {
         baseSpeed: 70,
         patternOverrides: {},
     },
+    terminal: {
+        baseSpeed: 25,
+        patternOverrides: {
+            startSpeedMultiplier: 1.0,
+            middleSpeedMultiplier: 0.9,
+            endSpeedMultiplier: 1.0,
+            randomPauseProbability: 0.03,
+        },
+    },
 }
 
 /* ============================================
@@ -163,6 +172,13 @@ export const audioConfig = {
    within a section's animation sequence.
    ============================================ */
 
+/**
+ * Default sequence timings shared across sections.
+ * Individual sections may use inline `createDelayStep(N)` values for
+ * intentional per-section pacing (e.g. a longer reveal pause in the hero,
+ * a stagger delay between experience items). Those overrides are deliberate
+ * and documented at the call site — this object covers the common defaults.
+ */
 export const sequenceTimings = {
     /** Delay before first command starts typing (ms) */
     initialDelay: 500,
