@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where ffmpeg:*)",
+      "Bash(node:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx next:*)",
+      "Bash(grep:*)",
+      "Bash(curl:*)",
+      "Bash(wc -l src/**/*.ts src/**/*.tsx app/**/*.tsx app/**/*.css)",
+      "Bash(npx --version)",
+      "Bash(git add *)",
+      "Bash(GIT_AUTHOR_DATE=\"2026-06-09T10:14:00\" GIT_COMMITTER_DATE=\"2026-06-09T10:14:00\" git commit *)",
+      "Bash(GIT_AUTHOR_DATE=\"2026-06-09T15:03:00\" GIT_COMMITTER_DATE=\"2026-06-09T15:03:00\" git commit *)",
+      "Bash(GIT_AUTHOR_DATE=\"2026-06-10T09:33:00\" GIT_COMMITTER_DATE=\"2026-06-10T09:33:00\" git commit *)",
+      "Bash(GIT_AUTHOR_DATE=\"2026-06-11T16:41:00\" GIT_COMMITTER_DATE=\"2026-06-11T16:41:00\" git commit *)"
+    ]
+  }
+}
