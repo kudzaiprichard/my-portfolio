@@ -94,6 +94,11 @@ export function useAnimationController(
         onStepComplete,
     } = options
 
+    // Track user's onStateChange callback separately so we don't need
+    // to reach into the controller's private config via bracket notation.
+    const userOnStateChangeRef = useRef(onStateChange)
+    useEffect(() => { userOnStateChangeRef.current = onStateChange }, [onStateChange])
+
     // Create controller instance (persists across renders)
     const controllerRef = useRef<AnimationController | null>(null)
 
@@ -129,12 +134,10 @@ export function useAnimationController(
         const controller = controllerRef.current
         if (!controller) return
 
-        // Wrap user's onStateChange to also sync our state
-        const originalOnStateChange = controller['config']?.onStateChange
-
+        // Wrap user's onStateChange to also sync our React state
         controller.onStateChange((newState) => {
             syncState()
-            originalOnStateChange?.(newState)
+            userOnStateChangeRef.current?.(newState)
         })
 
         // Initial sync
@@ -262,121 +265,3 @@ export function useAnimationController(
     }
 }
 
-/**
- * Hook for managing animation with view intersection
- * Automatically starts/cancels based on scroll position
- *
- * @example
- * const { ref, start, isCompleted } = useAnimationWithInView({
- *   threshold: 0.3,
- *   onComplete: () => console.log('Animation done!')
- * })
- *
- * // Later in component
- * useEffect(() => {
- *   if (hasAudioControl) {
- *     start(animationSteps)
- *   }
- * }, [hasAudioControl])
- */
-export function useAnimationWithInView(
-    options: UseAnimationControllerOptions & {
-        threshold?: number
-        triggerOnce?: boolean
-    } = {}
-) {
-    const {
-        threshold = 0.3,
-        triggerOnce = false,
-        ...controllerOptions
-    } = options
-
-    const animation = useAnimationController(controllerOptions)
-    const hasTriggeredRef = useRef(false)
-
-    // This will be implemented when we integrate with useInView
-    // For now, return the animation controller
-    return {
-        ...animation,
-        // ref will be provided by useInView integration
-        ref: null as any,
-    }
-}
-
-/**
- * Hook for creating a simple delay
- * Useful for sequencing animations
- *
- * @example
- * const { start: startDelay, isComplete } = useAnimationDelay()
- *
- * startDelay(1000) // Wait 1 second
- * if (isComplete) {
- *   // Continue...
- * }
- */
-export function useAnimationDelay() {
-    const { start, isCompleted, reset } = useAnimationController()
-
-    const startDelay = useCallback((duration: number) => {
-        const steps = [AnimationController.createDelayStep(duration)]
-        return start(steps)
-    }, [start])
-
-    return {
-        start: startDelay,
-        isComplete: isCompleted,
-        reset,
-    }
-}
-
-/**
- * Hook for sequential animation execution
- * Chains multiple animations together
- *
- * @example
- * const { execute, isRunning, currentIndex } = useSequentialAnimation({
- *   onComplete: () => console.log('All animations done!')
- * })
- *
- * execute([
- *   { action: () => setStep(1), duration: 100 },
- *   { action: () => setStep(2), duration: 200 },
- *   { action: () => setStep(3), duration: 300 },
- * ])
- */
-export function useSequentialAnimation(
-    options: UseAnimationControllerOptions = {}
-) {
-    const animation = useAnimationController(options)
-    const [currentIndex, setCurrentIndex] = useState(0)
-
-    const execute = useCallback((steps: AnimationStep[]) => {
-        // Wrap each step to track current index
-        const wrappedSteps = steps.map((step, index) => ({
-            ...step,
-            action: () => {
-                setCurrentIndex(index)
-                step.action()
-            },
-        }))
-
-        return animation.start(wrappedSteps)
-    }, [animation])
-
-    const reset = useCallback(() => {
-        setCurrentIndex(0)
-        animation.reset()
-    }, [animation])
-
-    return {
-        execute,
-        cancel: animation.cancel,
-        reset,
-        isRunning: animation.isRunning,
-        isCompleted: animation.isCompleted,
-        currentIndex,
-        totalSteps: animation.status.totalSteps,
-        progress: animation.progress,
-    }
-}
