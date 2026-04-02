@@ -8,6 +8,7 @@ import AboutSection from '@/src/components/sections/AboutSection'
 import ProjectsSection from '@/src/components/sections/ProjectsSection'
 import ExperienceSection from '@/src/components/sections/ExperienceSection'
 import ContactSection from '@/src/components/sections/ContactSection'
+import TerminalSection from '@/src/components/sections/TerminalSection'
 import {useBootContext} from "@/src/components/layout/context/BootContext";
 
 export default function Home() {
@@ -27,6 +28,9 @@ export default function Home() {
         const sections = ['home', 'about', 'projects', 'experience', 'contact']
 
         const handleKeyDown = (e: KeyboardEvent) => {
+            // Don't interfere if another handler already consumed this event
+            if (e.defaultPrevented) return
+
             const currentHash = window.location.hash.replace('#', '') || 'home'
             const currentIndex = sections.indexOf(currentHash)
 
@@ -46,6 +50,8 @@ export default function Home() {
                 const targetSection = document.getElementById(sections[targetIndex])
                 if (targetSection) {
                     targetSection.scrollIntoView({ behavior: 'smooth' })
+                    // Move focus to the section so keyboard users can tab into it
+                    targetSection.focus({ preventScroll: true })
                 }
             }
         }
@@ -77,6 +83,10 @@ export default function Home() {
 
             <ScrollSection id="contact">
                 <ContactSection />
+            </ScrollSection>
+
+            <ScrollSection id="terminal">
+                <TerminalSection />
             </ScrollSection>
         </main>
     )
