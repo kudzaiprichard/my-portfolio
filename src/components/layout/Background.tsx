@@ -11,6 +11,7 @@ import {
     mobileParticleConfig,
     type Particle,
 } from '@/src/lib/particles'
+import { useReducedMotion } from '@/src/hooks/useReducedMotion'
 
 export default function Background() {
     const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -19,6 +20,7 @@ export default function Background() {
     const animationFrameRef = useRef<number | undefined>(undefined)
     const mouseClickEffectRef = useRef<boolean>(false)
     const [isMobile, setIsMobile] = useState(false)
+    const prefersReducedMotion = useReducedMotion()
 
     useEffect(() => {
         // Detect mobile/tablet devices
@@ -115,36 +117,51 @@ export default function Background() {
             document.addEventListener('click', handleMouseClick)
         }
 
-        // Animation loop with device-specific FPS
-        let lastFrameTime = performance.now()
-        const targetFPS = isMobile ? 30 : 60
-        const frameDelay = 1000 / targetFPS
-
         // Get device-specific config for animation
         const config = isMobile ? mobileParticleConfig : defaultParticleConfig
 
-        const animate = (currentTime: number) => {
-            const elapsed = currentTime - lastFrameTime
+        // If reduced motion is active, render a single static frame and stop
+        if (prefersReducedMotion) {
+            animateParticles(
+                ctx,
+                particlesRef.current,
+                canvas.width,
+                canvas.height,
+                null,
+                null,
+                false,
+                config
+            )
+            // No animation loop — just the one frame
+        } else {
+            // Animation loop with device-specific FPS
+            let lastFrameTime = performance.now()
+            const targetFPS = isMobile ? 30 : 60
+            const frameDelay = 1000 / targetFPS
 
-            // Throttle frame rate based on device
-            if (elapsed >= frameDelay) {
-                animateParticles(
-                    ctx,
-                    particlesRef.current,
-                    canvas.width,
-                    canvas.height,
-                    mouseRef.current.x,
-                    mouseRef.current.y,
-                    mouseClickEffectRef.current,
-                    config
-                )
-                lastFrameTime = currentTime
+            const animate = (currentTime: number) => {
+                const elapsed = currentTime - lastFrameTime
+
+                // Throttle frame rate based on device
+                if (elapsed >= frameDelay) {
+                    animateParticles(
+                        ctx,
+                        particlesRef.current,
+                        canvas.width,
+                        canvas.height,
+                        mouseRef.current.x,
+                        mouseRef.current.y,
+                        mouseClickEffectRef.current,
+                        config
+                    )
+                    lastFrameTime = currentTime
+                }
+
+                animationFrameRef.current = requestAnimationFrame(animate)
             }
 
-            animationFrameRef.current = requestAnimationFrame(animate)
+            animate(performance.now())
         }
-
-        animate(performance.now())
 
         // Cleanup
         return () => {
@@ -161,7 +178,7 @@ export default function Background() {
                 cancelAnimationFrame(animationFrameRef.current)
             }
         }
-    }, [isMobile])
+    }, [isMobile, prefersReducedMotion])
 
     return (
         <>
