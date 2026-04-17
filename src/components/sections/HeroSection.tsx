@@ -10,18 +10,23 @@ import { useAnimationController } from '@/src/hooks/useAnimationController'
 import { useTypingAnimation } from '@/src/hooks/useTypingAnimation'
 import { AnimationController } from '@/src/lib/animationController'
 import { useBootContext } from "@/src/components/layout/context/BootContext"
+import { useReducedMotion } from '@/src/hooks/useReducedMotion'
+import { useTerminalInput } from '@/src/hooks/useTerminalInput'
+import TerminalInput from '@/src/components/shared/TerminalInput'
 import {
     getBaseSpeedForSection,
     getPatternForSection,
     audioConfig,
     sequenceTimings,
 } from '@/src/constants/typingConfig'
+import { owner } from '@/src/content'
 
 const heroPattern = getPatternForSection('hero')
 const heroSpeed = getBaseSpeedForSection('hero')
 
 export default function HeroSection() {
     const { isBooted } = useBootContext()
+    const prefersReducedMotion = useReducedMotion()
     const [showNameOutput, setShowNameOutput] = useState(false)
     const [showRoleOutput, setShowRoleOutput] = useState(false)
     const [showDescriptionOutput, setShowDescriptionOutput] = useState(false)
@@ -37,6 +42,7 @@ export default function HeroSection() {
 
     const animation = useAnimationController({
         onComplete: () => {
+            hasCompletedOnceRef.current = true
             console.log('[HeroSection] Animation completed')
         },
         debug: false,
@@ -47,6 +53,7 @@ export default function HeroSection() {
     const command3Typing = useTypingAnimation({ baseSpeed: heroSpeed, humanPattern: heroPattern })
 
     const nameRef = useRef<HTMLHeadingElement>(null)
+    const hasCompletedOnceRef = useRef(false)
 
     const command1 = 'whoami'
     const command2 = 'cat role.txt'
@@ -70,7 +77,7 @@ export default function HeroSection() {
                 audio.requestAudioControl()
             } else {
                 audio.releaseAudioControl()
-                if (animation.isRunning) {
+                if (animation.isRunning && !hasCompletedOnceRef.current) {
                     resetAnimationState()
                 }
             }
@@ -83,6 +90,11 @@ export default function HeroSection() {
         onInViewChange: (inView: boolean) => {
             onInViewChangeRef.current?.(inView)
         }
+    })
+
+    const terminalInput = useTerminalInput({
+        sectionId: 'hero',
+        isActive: animation.isCompleted && isInView,
     })
 
     const buildAnimationSequence = useCallback(() => {
@@ -141,8 +153,21 @@ export default function HeroSection() {
         audio
     ])
 
+    // Skip all animations when reduced motion is preferred
+    useEffect(() => {
+        if (prefersReducedMotion && isBooted && !animation.isCompleted) {
+            setShowNameOutput(true)
+            setShowRoleOutput(true)
+            setShowDescriptionOutput(true)
+            animation.complete()
+            hasCompletedOnceRef.current = true
+        }
+    }, [prefersReducedMotion, isBooted, animation])
+
     useEffect(() => {
         if (!isBooted) return
+        if (prefersReducedMotion) return
+        if (hasCompletedOnceRef.current) return
         if (!isInView || !audio.isAudioReady || !audio.hasAudioControl) {
             return
         }
@@ -162,10 +187,12 @@ export default function HeroSection() {
         animation.isCompleted,
         animation.isRunning,
         buildAnimationSequence,
-        animation
+        animation,
+        prefersReducedMotion,
     ])
 
     useEffect(() => {
+        if (prefersReducedMotion) return
         if (!nameRef.current || !showNameOutput || !isInView) return
         return startCharacterGlitch(nameRef.current, {
             intensity: 'low',
@@ -173,14 +200,16 @@ export default function HeroSection() {
             multiCharInterval: 15000,
             glitchCharDisplayDuration: 3000,
         })
-    }, [isInView, showNameOutput])
+    }, [isInView, showNameOutput, prefersReducedMotion])
 
+    // Unmount-only cleanup. audio.releaseAudioControl() dispatches through a
+    // stable sectionId ref; animation.cancel() dispatches through controllerRef.
+    // Neither captures mutable render-scope values, so the initial closure is safe.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         return () => {
             audio.releaseAudioControl()
-            if (animation && typeof animation.cancel === 'function') {
-                animation.cancel()
-            }
+            animation.cancel()
         }
     }, [])
 
@@ -193,7 +222,7 @@ export default function HeroSection() {
 
             <div className="hero-section-output-block">
                 <h1 ref={nameRef} className="hero-section-name">
-                    kudzai prichard
+                    {owner.name}
                 </h1>
             </div>
 
@@ -204,14 +233,13 @@ export default function HeroSection() {
 
             <div className="hero-section-output-block">
                 <h2 className="hero-section-role">
-                    AI & Full Stack Developer
+                    {owner.title}
                 </h2>
             </div>
 
             <div className="hero-section-command-line">
                 <span className="hero-section-prompt">$ </span>
                 <span>{command3}</span>
-                <span className="hero-section-cursor-blink">|</span>
             </div>
 
             <div className="hero-section-description-section">
@@ -221,17 +249,33 @@ export default function HeroSection() {
                     Transforming complex problems into elegant solutions.
                 </p>
             </div>
+
+            <TerminalInput
+                history={terminalInput.history}
+                inputText={terminalInput.inputText}
+                isTypingResponse={terminalInput.isTypingResponse}
+                responseText={terminalInput.responseText}
+            />
         </div>
     )
 
+    const showWaitingCursor = isBooted && !animation.isRunning && !animation.isCompleted && !command1Typing.text
+
     const renderAnimatingContent = () => (
         <div className="hero-section-content">
+            {showWaitingCursor && (
+                <div className="hero-section-command-line">
+                    <span className="hero-section-prompt">$ </span>
+                    <span className="section-cursor-blink hero-section-cursor-blink">|</span>
+                </div>
+            )}
+
             {command1Typing.text && (
                 <div className="hero-section-command-line hero-section-fade-in">
                     <span className="hero-section-prompt">$ </span>
                     <span>{command1Typing.text}</span>
                     {command1Typing.text.length < command1.length && (
-                        <span className="hero-section-cursor-blink">|</span>
+                        <span className="section-cursor-blink hero-section-cursor-blink">|</span>
                     )}
                 </div>
             )}
@@ -239,7 +283,7 @@ export default function HeroSection() {
             {showNameOutput && (
                 <div className="hero-section-output-block hero-section-fade-in-smooth">
                     <h1 ref={nameRef} className="hero-section-name">
-                        kudzai prichard
+                        {owner.name}
                     </h1>
                 </div>
             )}
@@ -249,7 +293,7 @@ export default function HeroSection() {
                     <span className="hero-section-prompt">$ </span>
                     <span>{command2Typing.text}</span>
                     {command2Typing.text.length < command2.length && (
-                        <span className="hero-section-cursor-blink">|</span>
+                        <span className="section-cursor-blink hero-section-cursor-blink">|</span>
                     )}
                 </div>
             )}
@@ -257,7 +301,7 @@ export default function HeroSection() {
             {showRoleOutput && (
                 <div className="hero-section-output-block hero-section-fade-in-smooth">
                     <h2 className="hero-section-role">
-                        AI & Full Stack Developer
+                        {owner.title}
                     </h2>
                 </div>
             )}
@@ -266,16 +310,16 @@ export default function HeroSection() {
                 <div className="hero-section-command-line hero-section-fade-in">
                     <span className="hero-section-prompt">$ </span>
                     <span>{command3Typing.text}</span>
-                    <span className="hero-section-cursor-blink">|</span>
+                    <span className="section-cursor-blink hero-section-cursor-blink">|</span>
                 </div>
             )}
 
             {showDescriptionOutput && (
                 <div className="hero-section-description-section hero-section-fade-in-smooth-delayed">
                     <p className="hero-section-description-text">
-                        Building intelligent systems and scalable applications.<br />
-                        Specializing in AI/ML, backend architecture, and modern web technologies.<br />
-                        Transforming complex problems into elegant solutions.
+                        {owner.description[0]}<br />
+                        {owner.description[1]}<br />
+                        {owner.description[2]}
                     </p>
                 </div>
             )}
@@ -284,8 +328,17 @@ export default function HeroSection() {
 
     return (
         <>
-            <div ref={ref} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-                <TerminalContainer title="developer@portfolio:~$">
+            {/* Screen reader accessible content — always present, visually hidden */}
+            <div className="sr-only" aria-live="polite">
+                <h1>{owner.name}</h1>
+                <h2>{owner.title}</h2>
+                <p>
+                    {owner.description.join(' ')}
+                </p>
+            </div>
+
+            <div ref={ref} style={{ width: '100%', display: 'flex', justifyContent: 'center' }} aria-hidden="true">
+                <TerminalContainer title="developer@portfolio:~$" ariaLabel="Hero section terminal — introduction">
                     {animation.isCompleted ? renderStaticContent() : renderAnimatingContent()}
                 </TerminalContainer>
             </div>
@@ -306,10 +359,8 @@ export default function HeroSection() {
                     color: var(--color-primary-dim);
                 }
 
-                .hero-section-cursor-blink {
-                    display: inline-block;
+                .section-cursor-blink hero-section-cursor-blink {
                     margin-left: 4px;
-                    animation: hero-section-blink 0.7s infinite;
                 }
 
                 .hero-section-output-block {
@@ -385,11 +436,6 @@ export default function HeroSection() {
                         opacity: 1;
                         transform: translateY(0);
                     }
-                }
-
-                @keyframes hero-section-blink {
-                    0%, 50% { opacity: 1; }
-                    51%, 100% { opacity: 0; }
                 }
 
                 @media (min-width: 768px) {

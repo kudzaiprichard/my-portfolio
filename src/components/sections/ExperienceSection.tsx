@@ -10,70 +10,23 @@ import { useAnimationController } from '@/src/hooks/useAnimationController'
 import { useTypingAnimation } from '@/src/hooks/useTypingAnimation'
 import { AnimationController } from '@/src/lib/animationController'
 import { useBootContext } from "@/src/components/layout/context/BootContext"
+import { useReducedMotion } from '@/src/hooks/useReducedMotion'
+import { useTerminalInput } from '@/src/hooks/useTerminalInput'
+import TerminalInput from '@/src/components/shared/TerminalInput'
 import {
     getBaseSpeedForSection,
     getPatternForSection,
     audioConfig,
     sequenceTimings,
 } from '@/src/constants/typingConfig'
+import { experiences } from '@/src/content'
 
 const experiencePattern = getPatternForSection('experience')
 const experienceSpeed = getBaseSpeedForSection('experience')
 
-interface Experience {
-    id: string
-    period: string
-    role: string
-    company: string
-    description: string
-    achievements: string[]
-    technologies: string[]
-}
-
-const experiences: Experience[] = [
-    {
-        id: '1',
-        period: '2023 - Present',
-        role: 'Senior AI Engineer',
-        company: '@ TechCorp Solutions',
-        description: 'Leading AI/ML initiatives and developing intelligent systems for enterprise clients. Architected and deployed scalable machine learning pipelines processing millions of data points daily.',
-        achievements: [
-            'Built NLP models achieving 94% accuracy in sentiment analysis',
-            'Reduced model inference time by 60% through optimization',
-            'Mentored team of 5 junior engineers',
-        ],
-        technologies: ['Python', 'TensorFlow', 'AWS', 'Docker', 'PyTorch'],
-    },
-    {
-        id: '2',
-        period: '2021 - 2023',
-        role: 'Full Stack Developer',
-        company: '@ StartupHub Inc',
-        description: 'Developed and maintained full-stack applications serving 100K+ users. Implemented RESTful APIs and modern frontend interfaces with React and Node.js.',
-        achievements: [
-            'Launched 3 major product features on schedule',
-            'Improved application performance by 45%',
-            'Collaborated with cross-functional teams',
-        ],
-        technologies: ['React', 'Node.js', 'PostgreSQL', 'TypeScript', 'Git'],
-    },
-    {
-        id: '3',
-        period: '2020 - 2021',
-        role: 'Freelance Developer',
-        company: '@ Self-Employed',
-        description: 'Delivered custom web applications and AI solutions for various clients. Specialized in rapid prototyping and MVP development.',
-        achievements: [
-            'Completed 15+ client projects successfully',
-            'Maintained 100% client satisfaction rate',
-            'Built scalable solutions for diverse industries',
-        ],
-        technologies: ['Python', 'Django', 'React', 'MongoDB', 'AWS'],
-    },
-]
-
 export default function ExperienceSection() {
     const { isBooted } = useBootContext()
+    const prefersReducedMotion = useReducedMotion()
     const [showCommand, setShowCommand] = useState(false)
     const [showExperiences, setShowExperiences] = useState<boolean[]>([])
 
@@ -84,8 +37,12 @@ export default function ExperienceSection() {
         volumeRampEnabled: audioConfig.volumeRampEnabled,
     })
 
+    const hasCompletedOnceRef = useRef(false)
     const { onTypingKeystroke } = useTypingAudioCallback(audio)
-    const animation = useAnimationController({ debug: false })
+    const animation = useAnimationController({
+        onComplete: () => { hasCompletedOnceRef.current = true },
+        debug: false,
+    })
     const commandTyping = useTypingAnimation({ baseSpeed: experienceSpeed, humanPattern: experiencePattern })
     const roleRefs = useRef<(HTMLSpanElement | null)[]>([])
     const command = 'git log --all --author="kudzai"'
@@ -105,7 +62,7 @@ export default function ExperienceSection() {
                 audio.requestAudioControl()
             } else {
                 audio.releaseAudioControl()
-                if (animation.isRunning) {
+                if (animation.isRunning && !hasCompletedOnceRef.current) {
                     resetAnimationState()
                 }
             }
@@ -118,6 +75,11 @@ export default function ExperienceSection() {
         onInViewChange: (inView: boolean) => {
             onInViewChangeRef.current?.(inView)
         }
+    })
+
+    const terminalInput = useTerminalInput({
+        sectionId: 'experience',
+        isActive: animation.isCompleted && isInView,
     })
 
     const buildAnimationSequence = useCallback(() => {
@@ -145,16 +107,29 @@ export default function ExperienceSection() {
         return steps
     }, [command, commandTyping, onTypingKeystroke, audio])
 
+    // Skip all animations when reduced motion is preferred
+    useEffect(() => {
+        if (prefersReducedMotion && isBooted && !animation.isCompleted) {
+            setShowCommand(true)
+            setShowExperiences(experiences.map(() => true))
+            animation.complete()
+            hasCompletedOnceRef.current = true
+        }
+    }, [prefersReducedMotion, isBooted, animation])
+
     useEffect(() => {
         if (!isBooted) return
+        if (prefersReducedMotion) return
+        if (hasCompletedOnceRef.current) return
         if (!isInView || !audio.isAudioReady || !audio.hasAudioControl) return
         if (animation.isCompleted || animation.isRunning) return
 
         const steps = buildAnimationSequence()
         animation.start(steps)
-    }, [isBooted, isInView, audio.isAudioReady, audio.hasAudioControl, animation.isCompleted, animation.isRunning, buildAnimationSequence, animation])
+    }, [isBooted, isInView, audio.isAudioReady, audio.hasAudioControl, animation.isCompleted, animation.isRunning, buildAnimationSequence, animation, prefersReducedMotion])
 
     useEffect(() => {
+        if (prefersReducedMotion) return
         if (!isInView || showExperiences.length === 0) return
 
         const cleanups: (() => void)[] = []
@@ -172,14 +147,16 @@ export default function ExperienceSection() {
         })
 
         return () => cleanups.forEach(cleanup => cleanup())
-    }, [isInView, showExperiences])
+    }, [isInView, showExperiences, prefersReducedMotion])
 
+    // Unmount-only cleanup. audio.releaseAudioControl() dispatches through a
+    // stable sectionId ref; animation.cancel() dispatches through controllerRef.
+    // Neither captures mutable render-scope values, so the initial closure is safe.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         return () => {
             audio.releaseAudioControl()
-            if (animation && typeof animation.cancel === 'function') {
-                animation.cancel()
-            }
+            animation.cancel()
         }
     }, [])
 
@@ -188,7 +165,6 @@ export default function ExperienceSection() {
             <div className="experience-section-command-line">
                 <span className="experience-section-prompt">$ </span>
                 <span>{command}</span>
-                <span className="experience-section-cursor-blink">|</span>
             </div>
 
             <div className="experience-section-timeline-container">
@@ -237,6 +213,13 @@ export default function ExperienceSection() {
                     </div>
                 ))}
             </div>
+
+            <TerminalInput
+                history={terminalInput.history}
+                inputText={terminalInput.inputText}
+                isTypingResponse={terminalInput.isTypingResponse}
+                responseText={terminalInput.responseText}
+            />
         </div>
     )
 
@@ -247,7 +230,7 @@ export default function ExperienceSection() {
                     <span className="experience-section-prompt">$ </span>
                     <span>{commandTyping.text}</span>
                     {commandTyping.text.length < command.length && (
-                        <span className="experience-section-cursor-blink">|</span>
+                        <span className="section-cursor-blink experience-section-cursor-blink">|</span>
                     )}
                 </div>
             )}
@@ -307,8 +290,26 @@ export default function ExperienceSection() {
 
     return (
         <>
-            <div ref={ref} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-                <TerminalContainer title="developer@portfolio:~/experience$">
+            {/* Screen reader accessible content */}
+            <div className="sr-only" aria-live="polite">
+                <h2>Experience</h2>
+                {experiences.map((exp) => (
+                    <article key={exp.id}>
+                        <h3>{exp.role} {exp.company}</h3>
+                        <p>{exp.period}</p>
+                        <p>{exp.description}</p>
+                        <ul>
+                            {exp.achievements.map((a, i) => (
+                                <li key={i}>{a}</li>
+                            ))}
+                        </ul>
+                        <p>Technologies: {exp.technologies.join(', ')}</p>
+                    </article>
+                ))}
+            </div>
+
+            <div ref={ref} style={{ width: '100%', display: 'flex', justifyContent: 'center' }} aria-hidden="true">
+                <TerminalContainer title="developer@portfolio:~/experience$" ariaLabel="Experience section terminal — work history">
                     {animation.isCompleted ? renderStaticContent() : renderAnimatingContent()}
                 </TerminalContainer>
             </div>
@@ -329,15 +330,8 @@ export default function ExperienceSection() {
                     color: var(--color-primary-dim);
                 }
 
-                .experience-section-cursor-blink {
-                    display: inline-block;
+                .section-cursor-blink experience-section-cursor-blink {
                     margin-left: 2px;
-                    animation: experience-section-blink 0.7s infinite;
-                }
-
-                @keyframes experience-section-blink {
-                    0%, 50% { opacity: 1; }
-                    51%, 100% { opacity: 0; }
                 }
 
                 .experience-section-timeline-container {

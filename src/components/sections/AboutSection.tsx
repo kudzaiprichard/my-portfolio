@@ -10,56 +10,23 @@ import { useAnimationController } from '@/src/hooks/useAnimationController'
 import { useTypingAnimation } from '@/src/hooks/useTypingAnimation'
 import { AnimationController } from '@/src/lib/animationController'
 import { useBootContext } from "@/src/components/layout/context/BootContext"
+import { useReducedMotion } from '@/src/hooks/useReducedMotion'
+import { useTerminalInput } from '@/src/hooks/useTerminalInput'
+import TerminalInput from '@/src/components/shared/TerminalInput'
 import {
     getBaseSpeedForSection,
     getPatternForSection,
     audioConfig,
     sequenceTimings,
 } from '@/src/constants/typingConfig'
+import { skillCategories, specializations } from '@/src/content'
 
 const aboutPattern = getPatternForSection('about')
 const aboutSpeed = getBaseSpeedForSection('about')
 
-interface SkillCategory {
-    title: string
-    icon: string
-    technologies: string[]
-}
-
-const skillCategories: SkillCategory[] = [
-    {
-        title: 'AI/ML',
-        icon: '🤖',
-        technologies: ['TensorFlow', 'PyTorch', 'Scikit-learn', 'OpenAI', 'Hugging Face'],
-    },
-    {
-        title: 'Backend',
-        icon: '⚙️',
-        technologies: ['Python', 'Node.js', 'Django', 'FastAPI', 'PostgreSQL'],
-    },
-    {
-        title: 'Frontend',
-        icon: '💻',
-        technologies: ['React', 'Next.js', 'TypeScript', 'Tailwind', 'Vue.js'],
-    },
-    {
-        title: 'DevOps',
-        icon: '☁️',
-        technologies: ['Docker', 'AWS', 'Git', 'CI/CD', 'Linux'],
-    },
-]
-
-const specializations = [
-    'Machine Learning Engineering',
-    'Natural Language Processing',
-    'API Development',
-    'System Architecture',
-    'Data Engineering',
-    'Cloud Computing',
-]
-
 export default function AboutSection() {
     const { isBooted } = useBootContext()
+    const prefersReducedMotion = useReducedMotion()
     const [showOutput1, setShowOutput1] = useState(false)
     const [showOutput2, setShowOutput2] = useState(false)
     const [showOutput3, setShowOutput3] = useState(false)
@@ -71,9 +38,13 @@ export default function AboutSection() {
         volumeRampEnabled: audioConfig.volumeRampEnabled,
     })
 
+    const hasCompletedOnceRef = useRef(false)
     const { onTypingKeystroke } = useTypingAudioCallback(audio)
     const animation = useAnimationController({
-        onComplete: () => console.log('[AboutSection] Animation completed'),
+        onComplete: () => {
+            hasCompletedOnceRef.current = true
+            console.log('[AboutSection] Animation completed')
+        },
         debug: false,
     })
 
@@ -108,7 +79,7 @@ export default function AboutSection() {
                 audio.requestAudioControl()
             } else {
                 audio.releaseAudioControl()
-                if (animation.isRunning) {
+                if (animation.isRunning && !hasCompletedOnceRef.current) {
                     resetAnimationState()
                 }
             }
@@ -121,6 +92,11 @@ export default function AboutSection() {
         onInViewChange: (inView: boolean) => {
             onInViewChangeRef.current?.(inView)
         }
+    })
+
+    const terminalInput = useTerminalInput({
+        sectionId: 'about',
+        isActive: animation.isCompleted && isInView,
     })
 
     const buildAnimationSequence = useCallback(() => {
@@ -149,15 +125,29 @@ export default function AboutSection() {
         return steps
     }, [command1, command2, command3, command1Typing, command2Typing, command3Typing, onTypingKeystroke, audio])
 
+    // Skip all animations when reduced motion is preferred
+    useEffect(() => {
+        if (prefersReducedMotion && isBooted && !animation.isCompleted) {
+            setShowOutput1(true)
+            setShowOutput2(true)
+            setShowOutput3(true)
+            animation.complete()
+            hasCompletedOnceRef.current = true
+        }
+    }, [prefersReducedMotion, isBooted, animation])
+
     useEffect(() => {
         if (!isBooted) return
+        if (prefersReducedMotion) return
+        if (hasCompletedOnceRef.current) return
         if (!isInView || !audio.isAudioReady || !audio.hasAudioControl) return
         if (animation.isCompleted || animation.isRunning) return
         const steps = buildAnimationSequence()
         animation.start(steps)
-    }, [isBooted, isInView, audio.isAudioReady, audio.hasAudioControl, animation.isCompleted, animation.isRunning, buildAnimationSequence, animation])
+    }, [isBooted, isInView, audio.isAudioReady, audio.hasAudioControl, animation.isCompleted, animation.isRunning, buildAnimationSequence, animation, prefersReducedMotion])
 
     useEffect(() => {
+        if (prefersReducedMotion) return
         if (!showOutput1 || !isInView) return
 
         const cleanups: (() => void)[] = []
@@ -209,14 +199,16 @@ export default function AboutSection() {
         return () => {
             cleanups.forEach(cleanup => cleanup())
         }
-    }, [isInView, showOutput1])
+    }, [isInView, showOutput1, prefersReducedMotion])
 
+    // Unmount-only cleanup. audio.releaseAudioControl() dispatches through a
+    // stable sectionId ref; animation.cancel() dispatches through controllerRef.
+    // Neither captures mutable render-scope values, so the initial closure is safe.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         return () => {
             audio.releaseAudioControl()
-            if (animation && typeof animation.cancel === 'function') {
-                animation.cancel()
-            }
+            animation.cancel()
         }
     }, [])
 
@@ -264,7 +256,6 @@ export default function AboutSection() {
             <div className="about-section-command-line">
                 <span className="about-section-prompt">$ </span>
                 <span>{command3}</span>
-                <span className="about-section-cursor-blink">|</span>
             </div>
 
             <div className="about-section-output-block about-section-output-block-compact">
@@ -276,6 +267,13 @@ export default function AboutSection() {
                     ))}
                 </div>
             </div>
+
+            <TerminalInput
+                history={terminalInput.history}
+                inputText={terminalInput.inputText}
+                isTypingResponse={terminalInput.isTypingResponse}
+                responseText={terminalInput.responseText}
+            />
         </div>
     )
 
@@ -286,7 +284,7 @@ export default function AboutSection() {
                     <span className="about-section-prompt">$ </span>
                     <span>{command1Typing.text}</span>
                     {command1Typing.text.length < command1.length && (
-                        <span className="about-section-cursor-blink">|</span>
+                        <span className="section-cursor-blink about-section-cursor-blink">|</span>
                     )}
                 </div>
             )}
@@ -307,7 +305,7 @@ export default function AboutSection() {
                     <span className="about-section-prompt">$ </span>
                     <span>{command2Typing.text}</span>
                     {command2Typing.text.length < command2.length && (
-                        <span className="about-section-cursor-blink">|</span>
+                        <span className="section-cursor-blink about-section-cursor-blink">|</span>
                     )}
                 </div>
             )}
@@ -338,7 +336,7 @@ export default function AboutSection() {
                 <div className="about-section-command-line about-section-fade-in">
                     <span className="about-section-prompt">$ </span>
                     <span>{command3Typing.text}</span>
-                    <span className="about-section-cursor-blink">|</span>
+                    <span className="section-cursor-blink about-section-cursor-blink">|</span>
                 </div>
             )}
 
@@ -358,8 +356,33 @@ export default function AboutSection() {
 
     return (
         <>
-            <div ref={ref} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-                <TerminalContainer title="developer@portfolio:~/skills$">
+            {/* Screen reader accessible content */}
+            <div className="sr-only" aria-live="polite">
+                <h2>About</h2>
+                <p>
+                    Passionate developer with expertise in artificial intelligence and full-stack
+                    development. I combine cutting-edge AI technologies with robust backend systems to
+                    create innovative solutions. Committed to writing clean, efficient code and staying
+                    current with emerging technologies.
+                </p>
+                <h3>Tech Stack</h3>
+                <ul>
+                    {skillCategories.map((category) => (
+                        <li key={category.title}>
+                            {category.title}: {category.technologies.join(', ')}
+                        </li>
+                    ))}
+                </ul>
+                <h3>Specializations</h3>
+                <ul>
+                    {specializations.map((spec) => (
+                        <li key={spec}>{spec}</li>
+                    ))}
+                </ul>
+            </div>
+
+            <div ref={ref} style={{ width: '100%', display: 'flex', justifyContent: 'center' }} aria-hidden="true">
+                <TerminalContainer title="developer@portfolio:~/skills$" ariaLabel="About section terminal — skills and technologies">
                     {animation.isCompleted ? renderStaticContent() : renderAnimatingContent()}
                 </TerminalContainer>
             </div>
@@ -381,10 +404,8 @@ export default function AboutSection() {
                     color: var(--color-primary-dim);
                 }
 
-                .about-section-cursor-blink {
-                    display: inline-block;
+                .section-cursor-blink about-section-cursor-blink {
                     margin-left: 4px;
-                    animation: about-section-blink 0.7s infinite;
                 }
 
                 .about-section-output-block {
@@ -434,15 +455,6 @@ export default function AboutSection() {
                     100% {
                         opacity: 1;
                         transform: translateY(0);
-                    }
-                }
-
-                @keyframes about-section-blink {
-                    0%, 50% {
-                        opacity: 1;
-                    }
-                    51%, 100% {
-                        opacity: 0;
                     }
                 }
 
