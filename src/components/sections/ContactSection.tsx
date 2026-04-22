@@ -9,23 +9,25 @@ import { useAnimationController } from '@/src/hooks/useAnimationController'
 import { useTypingAnimation } from '@/src/hooks/useTypingAnimation'
 import { AnimationController } from '@/src/lib/animationController'
 import { useBootContext } from "@/src/components/layout/context/BootContext"
+import { useReducedMotion } from '@/src/hooks/useReducedMotion'
 import {
     getBaseSpeedForSection,
     getPatternForSection,
     audioConfig,
     sequenceTimings,
 } from '@/src/constants/typingConfig'
+import { contact } from '@/src/content'
 
 const contactPattern = getPatternForSection('contact')
 const contactSpeed = getBaseSpeedForSection('contact')
 
-const email = process.env.NEXT_PUBLIC_EMAIL || 'kudzai@example.com'
-const githubUrl = process.env.NEXT_PUBLIC_GITHUB_URL || 'https://github.com/kudzaiprichard'
-const linkedinUrl = process.env.NEXT_PUBLIC_LINKEDIN_URL || 'https://linkedin.com/in/kudzaiprichard'
-const twitterUrl = process.env.NEXT_PUBLIC_TWITTER_URL || 'https://twitter.com/kudzaiprichard'
-const githubHandle = process.env.NEXT_PUBLIC_GITHUB_HANDLE || '@kudzaiprichard'
-const twitterHandle = process.env.NEXT_PUBLIC_TWITTER_HANDLE || '@kudzaiprichard'
-const linkedinName = process.env.NEXT_PUBLIC_LINKEDIN_NAME || 'Kudzai Prichard'
+const email = contact.email
+const githubUrl = contact.githubUrl
+const linkedinUrl = contact.linkedinUrl
+const twitterUrl = contact.twitterUrl
+const githubHandle = contact.githubHandle
+const twitterHandle = contact.twitterHandle
+const linkedinName = contact.linkedinName
 
 type SubmitStatus = 'idle' | 'loading' | 'success' | 'error'
 
@@ -41,6 +43,7 @@ function validateEmail(emailStr: string): boolean {
 
 export default function ContactSection() {
     const { isBooted } = useBootContext()
+    const prefersReducedMotion = useReducedMotion()
     const [showCommand, setShowCommand] = useState(false)
     const [showContent, setShowContent] = useState(false)
     const [formData, setFormData] = useState({ name: '', email: '', message: '' })
@@ -54,8 +57,12 @@ export default function ContactSection() {
         volumeRampEnabled: audioConfig.volumeRampEnabled,
     })
 
+    const hasCompletedOnceRef = useRef(false)
     const { onTypingKeystroke } = useTypingAudioCallback(audio)
-    const animation = useAnimationController({ debug: false })
+    const animation = useAnimationController({
+        onComplete: () => { hasCompletedOnceRef.current = true },
+        debug: false,
+    })
     const commandTyping = useTypingAnimation({ baseSpeed: contactSpeed, humanPattern: contactPattern })
     const command = 'curl -X GET /contact/info'
 
@@ -74,7 +81,7 @@ export default function ContactSection() {
                 audio.requestAudioControl()
             } else {
                 audio.releaseAudioControl()
-                if (animation.isRunning) {
+                if (animation.isRunning && !hasCompletedOnceRef.current) {
                     resetAnimationState()
                 }
             }
@@ -102,21 +109,35 @@ export default function ContactSection() {
         return steps
     }, [command, commandTyping, onTypingKeystroke, audio])
 
+    // Skip all animations when reduced motion is preferred
+    useEffect(() => {
+        if (prefersReducedMotion && isBooted && !animation.isCompleted) {
+            setShowCommand(true)
+            setShowContent(true)
+            animation.complete()
+            hasCompletedOnceRef.current = true
+        }
+    }, [prefersReducedMotion, isBooted, animation])
+
     useEffect(() => {
         if (!isBooted) return
+        if (prefersReducedMotion) return
+        if (hasCompletedOnceRef.current) return
         if (!isInView || !audio.isAudioReady || !audio.hasAudioControl) return
         if (animation.isCompleted || animation.isRunning) return
 
         const steps = buildAnimationSequence()
         animation.start(steps)
-    }, [isBooted, isInView, audio.isAudioReady, audio.hasAudioControl, animation.isCompleted, animation.isRunning, buildAnimationSequence, animation])
+    }, [isBooted, isInView, audio.isAudioReady, audio.hasAudioControl, animation.isCompleted, animation.isRunning, buildAnimationSequence, animation, prefersReducedMotion])
 
+    // Unmount-only cleanup. audio.releaseAudioControl() dispatches through a
+    // stable sectionId ref; animation.cancel() dispatches through controllerRef.
+    // Neither captures mutable render-scope values, so the initial closure is safe.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         return () => {
             audio.releaseAudioControl()
-            if (animation && typeof animation.cancel === 'function') {
-                animation.cancel()
-            }
+            animation.cancel()
         }
     }, [])
 
@@ -370,7 +391,7 @@ export default function ContactSection() {
             <div className="contact-section-command-line">
                 <span className="contact-section-prompt">$ </span>
                 <span>{command}</span>
-                <span className="contact-section-cursor-blink">|</span>
+                <span className="section-cursor-blink contact-section-cursor-blink">|</span>
             </div>
             {renderContent()}
         </div>
@@ -383,7 +404,7 @@ export default function ContactSection() {
                     <span className="contact-section-prompt">$ </span>
                     <span>{commandTyping.text}</span>
                     {commandTyping.text.length < command.length && (
-                        <span className="contact-section-cursor-blink">|</span>
+                        <span className="section-cursor-blink contact-section-cursor-blink">|</span>
                     )}
                 </div>
             )}
@@ -393,8 +414,17 @@ export default function ContactSection() {
 
     return (
         <>
-            <div ref={ref} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-                <TerminalContainer title="developer@portfolio:~/contact$">
+            {/* Screen reader accessible content */}
+            {!animation.isCompleted && (
+                <div className="sr-only" aria-live="polite">
+                    <h2>Contact</h2>
+                    <p>Get in touch via email at {email}, GitHub at {githubHandle}, LinkedIn, or Twitter at {twitterHandle}.</p>
+                    <p>Or use the contact form to send a message.</p>
+                </div>
+            )}
+
+            <div ref={ref} style={{ width: '100%', display: 'flex', justifyContent: 'center' }} aria-hidden={!animation.isCompleted ? "true" : undefined}>
+                <TerminalContainer title="developer@portfolio:~/contact$" ariaLabel="Contact section terminal — contact form and links">
                     {animation.isCompleted ? renderStaticContent() : renderAnimatingContent()}
                 </TerminalContainer>
             </div>
@@ -430,15 +460,8 @@ export default function ContactSection() {
                     color: var(--color-primary-dim);
                 }
 
-                .contact-section-cursor-blink {
-                    display: inline-block;
+                .section-cursor-blink contact-section-cursor-blink {
                     margin-left: 2px;
-                    animation: contact-section-blink 0.7s infinite;
-                }
-
-                @keyframes contact-section-blink {
-                    0%, 50% { opacity: 1; }
-                    51%, 100% { opacity: 0; }
                 }
 
                 .contact-section-grid {
