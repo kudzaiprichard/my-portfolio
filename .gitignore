@@ -43,3 +43,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .claude/
+
+# local notes / scratch
+audit.md
+cursor.md
+.docs/
