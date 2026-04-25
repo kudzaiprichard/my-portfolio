@@ -95,6 +95,56 @@
 }
 
 /* ============================================
+   PER-SECTION PHOSPHOR TINTS
+
+   Subtle hue shifts within the green spectrum. Each variant
+   keeps S=100% / L≈50% so contrast against #0a0f0a is identical
+   to the anchor — the shift is hue-only and never reduces legibility.
+
+   Home and contact stay at the anchor (#00ff41) — they are the
+   entry point and the action point; visitors should feel grounded.
+
+   Hardcoded rgba(0, 255, 65, …) values inside component <style>
+   blocks (skill-card washes, tech-badge fills) stay anchor-green
+   on purpose: section backgrounds hold the unified theme while
+   text and primary borders take on each section's tint. This is
+   what stops the per-section variation from feeling like five
+   different sites.
+
+   The cursor, particle canvas, grid overlay, and gradient
+   background all live outside <section> elements and stay anchor —
+   they form the constant ambient layer.
+   ============================================ */
+
+section[id="about"] {
+  --color-primary: #22ff52;
+  --color-primary-dim: rgba(34, 255, 82, 0.7);
+  --color-primary-dimmer: rgba(34, 255, 82, 0.4);
+  --color-primary-dimmest: rgba(34, 255, 82, 0.2);
+}
+
+section[id="projects"] {
+  --color-primary: #00ff7d;
+  --color-primary-dim: rgba(0, 255, 125, 0.7);
+  --color-primary-dimmer: rgba(0, 255, 125, 0.4);
+  --color-primary-dimmest: rgba(0, 255, 125, 0.2);
+}
+
+section[id="experience"] {
+  --color-primary: #3aff2a;
+  --color-primary-dim: rgba(58, 255, 42, 0.7);
+  --color-primary-dimmer: rgba(58, 255, 42, 0.4);
+  --color-primary-dimmest: rgba(58, 255, 42, 0.2);
+}
+
+section[id="terminal"] {
+  --color-primary: #00ff70;
+  --color-primary-dim: rgba(0, 255, 112, 0.7);
+  --color-primary-dimmer: rgba(0, 255, 112, 0.4);
+  --color-primary-dimmest: rgba(0, 255, 112, 0.2);
+}
+
+/* ============================================
    HTML & BODY - SNAP SCROLL SETUP
    ============================================ */
 
