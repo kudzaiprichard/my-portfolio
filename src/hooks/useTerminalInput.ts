@@ -1,7 +1,7 @@
 // hooks/useTerminalInput.ts
 "use client"
 
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useSnakeGame } from './useSnakeGame'
 import { useAdventureGame } from './useAdventureGame'
 import { owner, contact, skillCategories, specializations, projects, experiences } from '@/src/content'
@@ -34,6 +34,7 @@ interface UseTerminalInputReturn {
     history: TerminalLine[]
     isTypingResponse: boolean
     responseText: string
+    suggestion: string
     cwd: string
     mode: TerminalMode
     vimContent: string
@@ -52,6 +53,10 @@ interface CommandResponse {
     navigateTo?: string
     loadingMessages?: string[]
     renderSection?: NavigableSection
+    /** Trigger a file download from this URL (relative to /public). */
+    downloadUrl?: string
+    /** Open this URL in a new tab (mailto:, https://, etc). */
+    openUrl?: string
 }
 
 const RESPONSE_CHAR_SPEED = 18
@@ -753,6 +758,117 @@ function getCompletions(cwd: string, partial: string): string[] {
 }
 
 /* ============================================
+   COMMAND LISTS, FUZZY MATCH, GHOST SUGGESTION
+   ============================================ */
+
+/** Canonical command names available in the dedicated terminal section. */
+const TERMINAL_COMMAND_LIST: readonly string[] = [
+    'adventure', 'ascii', 'cat', 'cd', 'clear', 'curl', 'cv', 'date',
+    'echo', 'email', 'exit', 'git', 'hack', 'help', 'history',
+    'htop', 'kill', 'ls', 'man', 'matrix', 'neofetch', 'ping',
+    'pwd', 'sl', 'snake', 'ssh', 'sudo', 'vim', 'whoami',
+]
+
+/** Limited command set available in the inline terminals on other sections. */
+const NON_TERMINAL_COMMAND_LIST: readonly string[] = [
+    'cd', 'clear', 'exit', 'help', 'ls', 'sudo', 'whoami',
+]
+
+/** Standard Levenshtein edit distance. */
+function levenshtein(a: string, b: string): number {
+    const m = a.length
+    const n = b.length
+    if (m === 0) return n
+    if (n === 0) return m
+
+    const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0))
+    for (let i = 0; i <= m; i++) dp[i][0] = i
+    for (let j = 0; j <= n; j++) dp[0][j] = j
+
+    for (let i = 1; i <= m; i++) {
+        for (let j = 1; j <= n; j++) {
+            const cost = a[i - 1] === b[j - 1] ? 0 : 1
+            dp[i][j] = Math.min(
+                dp[i - 1][j] + 1,
+                dp[i][j - 1] + 1,
+                dp[i - 1][j - 1] + cost,
+            )
+        }
+    }
+    return dp[m][n]
+}
+
+/**
+ * Find the closest matching command for a typo'd input.
+ * Threshold scales with input length to avoid false positives on short inputs.
+ * Returns null if nothing is close enough or the input already matches exactly.
+ */
+function findClosestCommand(input: string, sectionId: TerminalSectionId): string | null {
+    const cmd = input.trim().split(/\s+/)[0]?.toLowerCase()
+    if (!cmd || cmd.length < 2) return null
+
+    const threshold = cmd.length < 4 ? 1 : 2
+    const list = sectionId === 'terminal' ? TERMINAL_COMMAND_LIST : NON_TERMINAL_COMMAND_LIST
+
+    let closest: string | null = null
+    let minDist = Infinity
+
+    for (const c of list) {
+        const dist = levenshtein(cmd, c)
+        if (dist < minDist) {
+            minDist = dist
+            closest = c
+        }
+    }
+
+    if (minDist > threshold) return null
+    if (closest === cmd) return null
+    return closest
+}
+
+/**
+ * Compute the ghost-text suffix that would complete the current input.
+ * Returns the portion to render in dim text after what the user typed.
+ *
+ * - For single-token input: matches command names, prefers alphabetical first.
+ * - For path arguments to fs commands (cd/ls/cat in terminal section): matches filesystem entries.
+ * - Returns '' when the input is empty, already a complete match, or unmatched.
+ *
+ * Ghost shows the FIRST alphabetical match (single suggestion, fish-style),
+ * which intentionally differs from Tab's common-prefix behavior.
+ */
+function computeSuggestion(
+    input: string,
+    cwd: string,
+    sectionId: TerminalSectionId,
+): string {
+    if (!input) return ''
+
+    const parts = input.split(/\s+/)
+    const cmd = parts[0]?.toLowerCase()
+
+    // Filesystem path completion (terminal section only — fs commands need at least one char of path)
+    if (sectionId === 'terminal' && parts.length >= 2 && (cmd === 'cd' || cmd === 'ls' || cmd === 'cat')) {
+        const lastPart = parts[parts.length - 1]
+        if (!lastPart) return ''
+        const completions = getCompletions(cwd, lastPart)
+        if (completions.length === 0) return ''
+        return completions[0].slice(lastPart.length)
+    }
+
+    // Command name completion — single token, must be a strict superset
+    if (parts.length === 1) {
+        const cmds = sectionId === 'terminal' ? TERMINAL_COMMAND_LIST : NON_TERMINAL_COMMAND_LIST
+        const lower = input.toLowerCase()
+        const match = cmds.find(c => c.startsWith(lower) && c !== lower)
+        if (!match) return ''
+        return match.slice(input.length)
+    }
+
+    return ''
+}
+
+/* ============================================
    SECTION LS OUTPUT (non-terminal sections)
    ============================================ */
 
@@ -1070,6 +1186,122 @@ function generateHack(): string {
     ].join('\n')
 }
 
+function generateCv(url: string): string {
+    const isExternal = /^https?:\/\//.test(url)
+
+    if (isExternal) {
+        return [
+            '> Resolving resume...',
+            '> Opening in new tab → ' + url,
+            '',
+            'If the tab didn\'t open, the file lives at:',
+            '  ' + url,
+            '',
+            'Pro tip: forward to a hiring manager. Or skip the middle step.',
+        ].join('\n')
+    }
+
+    return [
+        '> Resolving ' + url + '...',
+        '> Preparing transfer...',
+        '',
+        'resume.pdf — saved to ~/Downloads.',
+        '',
+        'If your browser blocked the download, the file lives at:',
+        '  ' + url,
+        '',
+        'Pro tip: forward to a hiring manager. Or skip the middle step.',
+    ].join('\n')
+}
+
+function generateEmail(emailAddr: string): string {
+    return [
+        `> Composing message → ${emailAddr}`,
+        '> Opening default mail client...',
+        '',
+        'If nothing happened, your browser may have blocked the protocol.',
+        `Email directly: ${emailAddr}`,
+        '',
+        'Or use the contact form one section up — same destination, fewer steps.',
+    ].join('\n')
+}
+
+function generateSl(): string {
+    return [
+        '                  ___',
+        '            _-=-=|___|=-=-_',
+        '           |  ___       ___ |              ____',
+        '           | |   |     |   ||             /    \\',
+        '   ________| |___|_____|___||___________ /      \\',
+        '  |   ___                                |        |',
+        '  |  |AI |   KUDZAI ENGINEERING CO.      |   ML   |',
+        '  |  |___|________________________________|        |',
+        '  |________________________________________________|',
+        '       O-O           O-O           O-O      O-O',
+        '   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~',
+        '',
+        '> sl — the steam locomotive that visits when you typo \'ls\'.',
+        '> A classic Unix package. We honor the bit.',
+        '> (You probably wanted: ls)',
+    ].join('\n')
+}
+
+function generateMakeSandwich(): string {
+    return [
+        'What? Make it yourself.',
+        '',
+        '(If you really mean it, try with elevated privileges.)',
+    ].join('\n')
+}
+
+function generateSudoSandwich(): string {
+    return [
+        '[sudo] password for visitor: ********',
+        '',
+        'Okay.',
+        '',
+        '         _____________________',
+        '        |  bread              |',
+        '        |---------------------|',
+        '        |  lettuce   cheese   |',
+        '        |---------------------|',
+        '        |  tomato    bacon    |',
+        '        |---------------------|',
+        '        |  bread              |',
+        '        |_____________________|',
+        '',
+        '> Sandwich delivered. xkcd #149 honored.',
+    ].join('\n')
+}
+
+function generateKill(args: string): string {
+    const tokens = args.trim().split(/\s+/).filter(Boolean)
+    const target = tokens[tokens.length - 1]?.toLowerCase()
+
+    if (!target) {
+        return 'Usage: kill [-9] <process|pid>'
+    }
+
+    if (target === 'imposter-syndrome' || target === '7') {
+        return [
+            'imposter-syndrome (PID 7): killed.',
+            '',
+            'Note: process tends to respawn unattended.',
+            'Recommended cron: 0 9 * * * kill -9 imposter-syndrome',
+        ].join('\n')
+    }
+
+    if (target === 'self' || target === '$$' || target === '1') {
+        return 'kill: refusing to terminate the calling process. (good call)'
+    }
+
+    return [
+        `kill: (${target}) - No such process.`,
+        '',
+        'Tip: try \'htop\' to see what\'s running.',
+    ].join('\n')
+}
+
 function generateAscii(): string {
     return [
         '    ╭──────────────────────────────────╮',
@@ -1346,6 +1578,7 @@ function generateHelp(): string {
         '  whoami         who built this',
         '  neofetch       system specs (human edition)',
         '  htop           what\'s running in this brain',
+        '  kill <proc>    terminate a process (try: imposter-syndrome)',
         '  date           current time in the right timezone',
         '  history        a revealing session log',
         '  man <topic>    manual pages, lightly biased',
@@ -1361,6 +1594,10 @@ function generateHelp(): string {
         '  git log        commit history for portfolio v2.0',
         '  git blame      who wrote this (and what fueled them)',
         '',
+        '── Reach out ──────────────────────────────────────────',
+        '  cv             download my resume',
+        '  email          open mail client with my address',
+        '',
         '── Games ──────────────────────────────────────────────',
         '  snake          classic snake game (arrow keys)',
         '  adventure      a career-themed text adventure',
@@ -1370,10 +1607,11 @@ function generateHelp(): string {
         '  ascii          display ASCII art',
         '  matrix         enter the matrix (5 sec)',
         '  hack           breach the mainframe',
+        '  sl             see what happens when you typo \'ls\'',
         '  exit           close session (we\'ll miss you)',
         '  clear          clear terminal',
         '',
-        'Tab to autocomplete. Up/Down for command history.',
+        'Tab to autocomplete. → to accept ghost suggestion. Up/Down for command history.',
     ].join('\n')
 }
 
@@ -1426,6 +1664,16 @@ const COMMAND_ALIASES: Record<string, string> = {
     'micro':      'vim',
     'notepad':    'vim',
     'ed':         'vim',
+
+    // Reach-out
+    'resume':     'cv',
+    'download':   'cv',
+    'mail':       'email',
+    'mailto':     'email',
+
+    // Process
+    'pkill':      'kill',
+    'killall':    'kill',
 
     // Fun / misc
     'cls':        'clear',
@@ -1519,6 +1767,31 @@ function getCommandResponse(sectionId: TerminalSectionId, command: string, cwd: 
             const text = command.trim().slice(5) // preserve original casing
             return { response: generateEcho(text) }
         }
+        if (cmd === 'kill') {
+            const args = command.trim().slice(4)
+            return { response: generateKill(args) }
+        }
+
+        // Reach-out commands — turn the easter egg into a conversion path
+        if (cmd === 'cv') {
+            const url = contact.resumeUrl
+            const isExternal = /^https?:\/\//.test(url)
+            // Same-origin → use download attribute (forces save dialog).
+            // Cross-origin → open in new tab; the `download` attr is ignored on
+            // cross-origin URLs without proper Content-Disposition headers, and
+            // would otherwise navigate the visitor away from the portfolio.
+            return {
+                response: generateCv(url),
+                ...(isExternal ? { openUrl: url } : { downloadUrl: url }),
+            }
+        }
+        if (cmd === 'email') {
+            const subject = encodeURIComponent('Hello from your portfolio')
+            return {
+                response: generateEmail(contact.email),
+                openUrl: `mailto:${contact.email}?subject=${subject}`,
+            }
+        }
 
         // Network commands
         if (cmd === 'ping') {
@@ -1533,6 +1806,13 @@ function getCommandResponse(sectionId: TerminalSectionId, command: string, cwd: 
         if (cmd === 'curl') {
             const args = command.trim().slice(5)
             return { response: generateCurl(args), loadingMessages: LOADING_SETS.curl }
+        }
+        // xkcd #149 — must come BEFORE the generic sudo handler
+        if (trimmed === 'sudo make me a sandwich') {
+            return { response: generateSudoSandwich(), loadingMessages: LOADING_SETS.sudo }
+        }
+        if (trimmed === 'make me a sandwich') {
+            return { response: generateMakeSandwich() }
         }
         if (cmd === 'sudo') {
             const subCmd = command.trim().slice(5)
@@ -1552,6 +1832,7 @@ function getCommandResponse(sectionId: TerminalSectionId, command: string, cwd: 
             return { response: null, enterMode: 'vim', vimContent: VIM_FILE_CONTENT }
         }
         if (cmd === 'ascii') return { response: generateAscii() }
+        if (cmd === 'sl') return { response: generateSl() }
         if (cmd === 'matrix') {
             return { response: null, enterMode: 'matrix' }
         }
@@ -1567,7 +1848,9 @@ function getCommandResponse(sectionId: TerminalSectionId, command: string, cwd: 
             return { response: 'logout\nConnection to kudzai.dev closed. Come back anytime.' }
         }
 
-        return { response: `bash: ${command.trim()}: command not found\nType 'help' for available commands.` }
+        const closest = findClosestCommand(command, 'terminal')
+        const didYouMean = closest ? `\nDid you mean: ${closest}?` : ''
+        return { response: `bash: ${command.trim()}: command not found${didYouMean}\nType 'help' for available commands.` }
     }
 
     // Non-terminal sections — original behavior
@@ -1618,7 +1901,9 @@ function getCommandResponse(sectionId: TerminalSectionId, command: string, cwd: 
 
     if (trimmed === '') return { response: null }
 
-    return { response: `bash: ${command.trim()}: command not found\nType 'help' for available commands.` }
+    const closest = findClosestCommand(command, sectionId)
+    const didYouMean = closest ? `\nDid you mean: ${closest}?` : ''
+    return { response: `bash: ${command.trim()}: command not found${didYouMean}\nType 'help' for available commands.` }
 }
 
 /* ============================================
@@ -1974,6 +2259,25 @@ export function useTerminalInput(options: UseTerminalInputOptions): UseTerminalI
             }
         }
 
+        // Side-effect: trigger a download (cv/resume).
+        // The browser handles 404s if the file isn't present yet — the response
+        // text still types out as confirmation, so the visitor sees the intent.
+        if (result.downloadUrl) {
+            const link = document.createElement('a')
+            link.href = result.downloadUrl
+            link.rel = 'noopener'
+            // Empty `download` lets the browser use Content-Disposition or the URL filename
+            link.setAttribute('download', '')
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+        }
+
+        // Side-effect: open a URL in a new tab (mailto, external profiles).
+        if (result.openUrl) {
+            window.open(result.openUrl, '_blank', 'noopener,noreferrer')
+        }
+
         if (result.response) {
             if (result.loadingMessages) {
                 showLoadingThenResponse(result.response, result.loadingMessages)
@@ -1994,6 +2298,22 @@ export function useTerminalInput(options: UseTerminalInputOptions): UseTerminalI
 
             // Modifier combos are never captured
             if (e.ctrlKey || e.metaKey || e.altKey) return
+
+            // Ghost-completion accept: ArrowRight or End fills in the suggestion
+            // when one exists. Only fires in normal mode (not vim/snake/adventure)
+            // and not while a response is typing. If no suggestion is present,
+            // the key falls through to existing handling (page-level section nav, etc.).
+            if ((e.key === 'ArrowRight' || e.key === 'End') &&
+                modeRef.current === 'normal' &&
+                !isTypingRef.current) {
+                const sugg = computeSuggestion(inputTextRef.current, cwdRef.current, sectionId)
+                if (sugg) {
+                    e.preventDefault()
+                    inputTextRef.current = inputTextRef.current + sugg
+                    setInputText(inputTextRef.current)
+                    return
+                }
+            }
 
             // Terminal section: handle special modes and normal input
             if (sectionId === 'terminal') {
@@ -2186,13 +2506,7 @@ export function useTerminalInput(options: UseTerminalInputOptions): UseTerminalI
                         }
                     } else if (parts.length <= 1 && input.length > 0) {
                         // Autocomplete command names
-                        const cmds = [
-                            'adventure', 'ascii', 'cat', 'cd', 'clear', 'curl', 'date',
-                            'echo', 'exit', 'git', 'hack', 'help', 'history',
-                            'htop', 'ls', 'man', 'matrix', 'neofetch', 'ping',
-                            'pwd', 'snake', 'ssh', 'sudo', 'vim', 'whoami',
-                        ]
-                        const matches = cmds.filter(c => c.startsWith(input.toLowerCase()))
+                        const matches = TERMINAL_COMMAND_LIST.filter(c => c.startsWith(input.toLowerCase()))
                         if (matches.length === 1) {
                             inputTextRef.current = matches[0] + ' '
                             setInputText(inputTextRef.current)
@@ -2265,11 +2579,22 @@ export function useTerminalInput(options: UseTerminalInputOptions): UseTerminalI
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
+    // Ghost-completion suggestion. Suppressed in non-normal modes
+    // (vim/snake/adventure/matrix) and during response typing — those states
+    // either don't render the active input line or have their own input handling.
+    const suggestion = useMemo(() => {
+        if (mode !== 'normal') return ''
+        if (isTypingResponse) return ''
+        if (!inputText) return ''
+        return computeSuggestion(inputText, cwd, sectionId)
+    }, [inputText, cwd, sectionId, isTypingResponse, mode])
+
     return {
         inputText,
         history,
         isTypingResponse,
         responseText,
+        suggestion,
         cwd,
         mode,
         vimContent,

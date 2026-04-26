@@ -25,4 +25,7 @@ export const contact = {
     githubHandle: process.env.NEXT_PUBLIC_GITHUB_HANDLE || '@kudzaiprichard',
     twitterHandle: process.env.NEXT_PUBLIC_TWITTER_HANDLE || '@kudzaiprichard',
     linkedinName: process.env.NEXT_PUBLIC_LINKEDIN_NAME || 'Kudzai Prichard',
+    // Primary: Google Drive / GitHub release / external host (set via env).
+    // Fallback: /resume.pdf served from the public/ directory.
+    resumeUrl: process.env.NEXT_PUBLIC_RESUME_URL || '/resume.pdf',
 } as const

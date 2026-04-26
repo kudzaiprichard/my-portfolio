@@ -9,6 +9,10 @@ interface TerminalInputProps {
     isTypingResponse: boolean
     responseText: string
     prompt?: string
+    /** Ghost-completion suffix rendered in dim text after inputText. Press → or End to accept. */
+    suggestion?: string
+    /** When true, renders a faint discoverability hint line below the active input. Hidden once history is non-empty. */
+    showHint?: boolean
 }
 
 export default function TerminalInput({
@@ -17,7 +21,11 @@ export default function TerminalInput({
     isTypingResponse,
     responseText,
     prompt = '$ ',
+    suggestion = '',
+    showHint = false,
 }: TerminalInputProps) {
+    const hintVisible = showHint && history.length === 0 && !isTypingResponse && !inputText
+
     return (
         <>
             <div className="terminal-interactive">
@@ -41,7 +49,16 @@ export default function TerminalInput({
                     <div className="terminal-interactive-line terminal-interactive-active">
                         <span className="terminal-interactive-prompt">{prompt}</span>
                         <span className="terminal-interactive-text">{inputText}</span>
+                        {suggestion && (
+                            <span className="terminal-interactive-suggestion" aria-hidden="true">{suggestion}</span>
+                        )}
                         <span className="terminal-interactive-cursor">|</span>
+                    </div>
+                )}
+
+                {hintVisible && (
+                    <div className="terminal-interactive-hint" aria-hidden="true">
+                        type &apos;help&apos; · Tab to complete · → to accept · ↑↓ for history
                     </div>
                 )}
             </div>
@@ -89,9 +106,46 @@ export default function TerminalInput({
                     min-height: 1.5em;
                 }
 
+                /* Ghost completion suffix — fish/zsh-autosuggestions style.
+                   Sits between the typed text and the cursor, in dim color so
+                   it reads as "preview" rather than committed input. */
+                .terminal-interactive-suggestion {
+                    color: var(--color-primary-dimmer);
+                    white-space: pre-wrap;
+                    user-select: none;
+                    pointer-events: none;
+                }
+
+                /* Discoverability hint — only shown on a fresh prompt (empty history,
+                   no input, no typing). Disappears after the first command runs. */
+                .terminal-interactive-hint {
+                    margin-top: var(--spacing-sm);
+                    font-size: var(--font-size-xs);
+                    color: var(--color-primary-dimmest);
+                    font-family: var(--font-mono);
+                    line-height: var(--line-height-normal);
+                    animation: terminal-interactive-hint-fadein 1.2s ease 0.5s both;
+                    user-select: none;
+                }
+
+                @keyframes terminal-interactive-hint-fadein {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+
+                @media (prefers-reduced-motion: reduce) {
+                    .terminal-interactive-hint {
+                        animation: none;
+                        opacity: 1;
+                    }
+                }
+
                 @media (max-width: 480px) {
                     .terminal-interactive-line {
                         font-size: var(--font-size-sm);
+                    }
+                    .terminal-interactive-hint {
+                        font-size: 10px;
                     }
                 }
             `}</style>
