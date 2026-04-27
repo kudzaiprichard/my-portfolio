@@ -43,7 +43,6 @@ export default function HeroSection() {
     const animation = useAnimationController({
         onComplete: () => {
             hasCompletedOnceRef.current = true
-            console.log('[HeroSection] Animation completed')
         },
         debug: false,
     })
@@ -255,6 +254,7 @@ export default function HeroSection() {
                 inputText={terminalInput.inputText}
                 isTypingResponse={terminalInput.isTypingResponse}
                 responseText={terminalInput.responseText}
+                suggestion={terminalInput.suggestion}
             />
         </div>
     )

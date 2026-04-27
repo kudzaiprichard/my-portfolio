@@ -219,6 +219,7 @@ export default function ExperienceSection() {
                 inputText={terminalInput.inputText}
                 isTypingResponse={terminalInput.isTypingResponse}
                 responseText={terminalInput.responseText}
+                suggestion={terminalInput.suggestion}
             />
         </div>
     )

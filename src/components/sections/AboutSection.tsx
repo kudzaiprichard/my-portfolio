@@ -43,7 +43,6 @@ export default function AboutSection() {
     const animation = useAnimationController({
         onComplete: () => {
             hasCompletedOnceRef.current = true
-            console.log('[AboutSection] Animation completed')
         },
         debug: false,
     })
@@ -221,10 +220,10 @@ export default function AboutSection() {
 
             <div className="about-section-output-block">
                 <p className="about-section-bio-text">
-                    Passionate developer with expertise in <span ref={word1Ref}>artificial intelligence</span> and full-stack
-                    development. I combine <span ref={word2Ref}>cutting-edge</span> AI technologies with robust backend systems to
-                    create <span ref={word3Ref}>innovative</span> solutions. Committed to writing clean, efficient code and staying
-                    current with <span ref={word4Ref}>emerging technologies</span>.
+                    Engineer who builds <span ref={word1Ref}>intelligent systems</span> and ships them. ML pipelines
+                    processing millions of data points, NLP models hitting <span ref={word2Ref}>94% accuracy</span>,
+                    full-stack apps serving 100K+ users. Fluent in Python, TypeScript, and <span ref={word3Ref}>making
+                    machines do useful things</span>. Always: <span ref={word4Ref}>building the next thing</span>.
                 </p>
             </div>
 
@@ -273,6 +272,7 @@ export default function AboutSection() {
                 inputText={terminalInput.inputText}
                 isTypingResponse={terminalInput.isTypingResponse}
                 responseText={terminalInput.responseText}
+                suggestion={terminalInput.suggestion}
             />
         </div>
     )
@@ -292,10 +292,10 @@ export default function AboutSection() {
             {showOutput1 && (
                 <div className="about-section-output-block about-section-fade-in-smooth">
                     <p className="about-section-bio-text">
-                        Passionate developer with expertise in <span ref={word1Ref}>artificial intelligence</span> and full-stack
-                        development. I combine <span ref={word2Ref}>cutting-edge</span> AI technologies with robust backend systems to
-                        create <span ref={word3Ref}>innovative</span> solutions. Committed to writing clean, efficient code and staying
-                        current with <span ref={word4Ref}>emerging technologies</span>.
+                        Engineer who builds <span ref={word1Ref}>intelligent systems</span> and ships them. ML pipelines
+                        processing millions of data points, NLP models hitting <span ref={word2Ref}>94% accuracy</span>,
+                        full-stack apps serving 100K+ users. Fluent in Python, TypeScript, and <span ref={word3Ref}>making
+                        machines do useful things</span>. Always: <span ref={word4Ref}>building the next thing</span>.
                     </p>
                 </div>
             )}
@@ -360,10 +360,10 @@ export default function AboutSection() {
             <div className="sr-only" aria-live="polite">
                 <h2>About</h2>
                 <p>
-                    Passionate developer with expertise in artificial intelligence and full-stack
-                    development. I combine cutting-edge AI technologies with robust backend systems to
-                    create innovative solutions. Committed to writing clean, efficient code and staying
-                    current with emerging technologies.
+                    Engineer who builds intelligent systems and ships them. ML pipelines processing
+                    millions of data points, NLP models hitting 94% accuracy, full-stack apps serving
+                    100K+ users. Fluent in Python, TypeScript, and making machines do useful things.
+                    Always: building the next thing.
                 </p>
                 <h3>Tech Stack</h3>
                 <ul>
