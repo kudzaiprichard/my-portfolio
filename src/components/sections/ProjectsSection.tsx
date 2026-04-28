@@ -275,6 +275,7 @@ export default function ProjectsSection() {
                 inputText={terminalInput.inputText}
                 isTypingResponse={terminalInput.isTypingResponse}
                 responseText={terminalInput.responseText}
+                suggestion={terminalInput.suggestion}
             />
         </div>
     )

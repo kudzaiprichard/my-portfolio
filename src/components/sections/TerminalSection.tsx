@@ -411,6 +411,8 @@ export default function TerminalSection() {
                     inputText={terminalInput.inputText}
                     isTypingResponse={terminalInput.isTypingResponse}
                     responseText={terminalInput.responseText}
+                    suggestion={terminalInput.suggestion}
+                    showHint={true}
                     prompt={prompt}
                 />
             </div>
@@ -425,8 +427,23 @@ export default function TerminalSection() {
 
     return (
         <>
-            <div ref={ref} style={{ width: '100%', display: 'flex', justifyContent: 'center' }} aria-hidden="true">
-                <TerminalContainer title="visitor@kudzai:~$" ariaLabel="Hidden terminal — easter egg interactive shell">
+            {/* Screen-reader accessible content. Visually hidden, so the easter-egg
+                discovery flow for sighted users is preserved, while assistive tech
+                users get a real description of what the section is and how to use it. */}
+            <div className="sr-only">
+                <h2>Interactive Terminal</h2>
+                <p>
+                    A fully interactive shell session. Type a command and press Enter to run it.
+                    Available commands include: help, whoami, neofetch, htop, history, date,
+                    echo, man, ls, cd, cat, pwd, ping, ssh, curl, sudo, git log, git blame,
+                    vim, ascii, hack, matrix, snake, adventure, clear, exit.
+                    Press Tab to autocomplete. Use the Up and Down arrow keys to recall
+                    previous commands.
+                </p>
+            </div>
+
+            <div ref={ref} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                <TerminalContainer title="visitor@kudzai:~$" ariaLabel="Interactive terminal session">
                     {animation.isCompleted ? renderStaticContent() : renderAnimatingContent()}
                 </TerminalContainer>
             </div>
