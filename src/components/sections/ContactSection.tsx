@@ -46,6 +46,7 @@ export default function ContactSection() {
     const prefersReducedMotion = useReducedMotion()
     const [showCommand, setShowCommand] = useState(false)
     const [showContent, setShowContent] = useState(false)
+    const [showSuperuserPrompt, setShowSuperuserPrompt] = useState(false)
     const [formData, setFormData] = useState({ name: '', email: '', message: '' })
     const [status, setStatus] = useState<SubmitStatus>('idle')
     const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
@@ -64,14 +65,18 @@ export default function ContactSection() {
         debug: false,
     })
     const commandTyping = useTypingAnimation({ baseSpeed: contactSpeed, humanPattern: contactPattern })
+    const superuserTyping = useTypingAnimation({ baseSpeed: contactSpeed, humanPattern: contactPattern })
     const command = 'curl -X GET /contact/info'
+    const superuserPrompt = 'press Enter to enter superuser mode'
 
     const resetAnimationState = useCallback(() => {
         commandTyping.reset()
+        superuserTyping.reset()
         setShowCommand(false)
         setShowContent(false)
+        setShowSuperuserPrompt(false)
         animation.reset()
-    }, [animation, commandTyping])
+    }, [animation, commandTyping, superuserTyping])
 
     const onInViewChangeRef = useRef<((inView: boolean) => void) | undefined>(undefined)
 
@@ -106,14 +111,22 @@ export default function ContactSection() {
         steps.push(AnimationController.createDelayStep(sequenceTimings.postCommandDelay))
         steps.push(AnimationController.createActionStep(() => setShowContent(true)))
 
+        // Let the visitor read the contact content before the easter-egg prompt appears.
+        // The pause is part of the discovery — the line should land after attention has settled.
+        steps.push(AnimationController.createDelayStep(2200))
+        steps.push(AnimationController.createActionStep(() => audio.resetVolumeRamp()))
+        steps.push(AnimationController.createActionStep(() => setShowSuperuserPrompt(true)))
+        steps.push(...superuserTyping.generateSteps(superuserPrompt, { onKeystroke: onTypingKeystroke }))
+
         return steps
-    }, [command, commandTyping, onTypingKeystroke, audio])
+    }, [command, commandTyping, superuserPrompt, superuserTyping, onTypingKeystroke, audio])
 
     // Skip all animations when reduced motion is preferred
     useEffect(() => {
         if (prefersReducedMotion && isBooted && !animation.isCompleted) {
             setShowCommand(true)
             setShowContent(true)
+            setShowSuperuserPrompt(true)
             animation.complete()
             hasCompletedOnceRef.current = true
         }
@@ -140,6 +153,38 @@ export default function ContactSection() {
             animation.cancel()
         }
     }, [])
+
+    // Easter-egg: once the superuser prompt is showing and contact is in view,
+    // a plain Enter (no modifiers, no form element focused) scrolls to #terminal.
+    useEffect(() => {
+        if (!isInView) return
+        if (!showSuperuserPrompt && !animation.isCompleted) return
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key !== 'Enter') return
+            if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return
+
+            // Don't intercept form interactions or any focused control.
+            const active = document.activeElement
+            if (active && (
+                active.tagName === 'INPUT' ||
+                active.tagName === 'TEXTAREA' ||
+                active.tagName === 'BUTTON' ||
+                active.tagName === 'SELECT' ||
+                (active as HTMLElement).isContentEditable
+            )) return
+
+            const terminal = document.getElementById('terminal')
+            if (!terminal) return
+
+            e.preventDefault()
+            terminal.scrollIntoView({ behavior: 'smooth' })
+            terminal.focus({ preventScroll: true })
+        }
+
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [isInView, showSuperuserPrompt, animation.isCompleted])
 
     // Clear field error when user starts typing in that field
     const handleFieldChange = (field: keyof typeof formData, value: string) => {
@@ -386,6 +431,14 @@ export default function ContactSection() {
         </div>
     )
 
+    const superuserPromptLine = (typedText: string) => (
+        <div className="contact-section-superuser-line">
+            <span className="contact-section-superuser-prompt">root@kudzai:~# </span>
+            <span>{typedText}</span>
+            <span className="contact-section-superuser-cursor">█</span>
+        </div>
+    )
+
     const renderStaticContent = () => (
         <div className="contact-section-content">
             <div className="contact-section-command-line">
@@ -394,6 +447,7 @@ export default function ContactSection() {
                 <span className="section-cursor-blink contact-section-cursor-blink">|</span>
             </div>
             {renderContent()}
+            {superuserPromptLine(superuserPrompt)}
         </div>
     )
 
@@ -409,6 +463,7 @@ export default function ContactSection() {
                 </div>
             )}
             {showContent && renderContent()}
+            {showSuperuserPrompt && superuserPromptLine(superuserTyping.text)}
         </div>
     )
 
@@ -462,6 +517,58 @@ export default function ContactSection() {
 
                 .section-cursor-blink contact-section-cursor-blink {
                     margin-left: 2px;
+                }
+
+                /* Superuser easter-egg prompt — appears below the contact form
+                   after the section finishes rendering. The block cursor (█) and
+                   root@ prefix signal "input awaited" without explanation. */
+                .contact-section-superuser-line {
+                    margin-top: var(--spacing-lg);
+                    padding-top: var(--spacing-md);
+                    border-top: 1px solid var(--color-primary-dimmest);
+                    font-size: var(--font-size-md);
+                    line-height: var(--line-height-normal);
+                    color: var(--color-primary);
+                    font-family: var(--font-mono);
+                    animation: contact-section-superuser-fadein 0.4s ease forwards;
+                }
+
+                .contact-section-superuser-prompt {
+                    color: var(--color-primary-dim);
+                }
+
+                .contact-section-superuser-cursor {
+                    display: inline-block;
+                    margin-left: 2px;
+                    color: var(--color-primary);
+                    animation: contact-section-superuser-blink 0.9s step-end infinite;
+                }
+
+                @keyframes contact-section-superuser-blink {
+                    0%, 50% { opacity: 1; }
+                    51%, 100% { opacity: 0; }
+                }
+
+                @keyframes contact-section-superuser-fadein {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+
+                @media (prefers-reduced-motion: reduce) {
+                    .contact-section-superuser-cursor {
+                        animation: none;
+                        opacity: 1;
+                    }
+                    .contact-section-superuser-line {
+                        animation: none;
+                        opacity: 1;
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .contact-section-superuser-line {
+                        font-size: var(--font-size-sm);
+                    }
                 }
 
                 .contact-section-grid {
