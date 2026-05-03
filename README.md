@@ -1,724 +1,796 @@
-# Developer Portfolio — Architecture & Onboarding Guide
+# my-portfolio
 
-A terminal-themed developer portfolio built with Next.js. Every section animates like a real terminal session: commands type out character-by-character with keystroke audio, output fades in, and the whole thing resets gracefully when the user scrolls away.
+A terminal-themed personal portfolio for **Kudzai Prichard Matizirofa**, built as a Next.js 16 / React 19 single-page experience. Every section renders as a typed-out shell session — phosphor green on dark, animated, interactive, and audible.
 
----
+The site doubles as a working pseudo-OS: it boots, snaps between sections, accepts shell commands, ships an inline `vim`, an ASCII Snake game, a text adventure, and a Matrix rain mode. None of that is decorative — the components, hooks, and animation engine were built to support it.
 
-## Table of Contents
-
-1. [Project Overview](#1-project-overview)
-2. [Architecture Overview](#2-architecture-overview)
-3. [Animation System Deep Dive](#3-animation-system-deep-dive)
-4. [Typing Config — The Single Source of Truth](#4-typing-config--the-single-source-of-truth)
-5. [Audio System](#5-audio-system)
-6. [Glitch System](#6-glitch-system)
-7. [Particle System](#7-particle-system)
-8. [Section Component Pattern](#8-section-component-pattern)
-9. [Key Files & Directory Structure](#9-key-files--directory-structure)
-10. [How to Add a New Section](#10-how-to-add-a-new-section)
-11. [How to Tune Typing Feel](#11-how-to-tune-typing-feel)
+> The git history is the source of truth. This README explains structure and intent; for *why a specific change exists*, read the commit.
 
 ---
 
-## 1. Project Overview
+## Table of contents
 
-**What it is:** A single-page portfolio with five scroll sections (hero, about, projects, experience, contact), each rendered inside a terminal chrome. On first visit, a CRT boot screen plays before the portfolio becomes interactive.
-
-**Tech stack:**
-
-| Layer | Technology |
-|---|---|
-| Framework | Next.js 16 (App Router) |
-| UI | React 19, TypeScript 5 |
-| Styling | Tailwind CSS 4, component-scoped `<style>` blocks |
-| Email | Resend + @react-email/components |
-| Audio | Web Audio API (`new Audio()`) |
-| Animation | Custom step-based controller (no external lib) |
-| Particles | Canvas 2D API |
-
----
-
-## 2. Architecture Overview
-
-```
-app/layout.tsx
-└── BootProvider (context)
-    ├── BootScreen          — CRT boot sequence overlay
-    ├── Background          — Canvas particle system (fixed, full-viewport)
-    ├── CustomCursor        — Green dot cursor
-    ├── ScrollHint          — Scroll indicator
-    └── app/page.tsx
-        └── <main>
-            ├── ScrollSection id="home"       → HeroSection
-            ├── ScrollSection id="about"      → AboutSection
-            ├── ScrollSection id="projects"   → ProjectsSection
-            ├── ScrollSection id="experience" → ExperienceSection
-            └── ScrollSection id="contact"    → ContactSection
-```
-
-**How the major systems relate:**
-
-- **BootContext** gates every section: no animation starts until `isBooted === true`. The boot screen writes `sessionStorage['portfolio-booted']` so the animation skips on return visits.
-- **audioController** (`lib/audioController.ts`) is a module-level singleton. Only one section can own audio at a time; sections compete for control via `requestAudioControl()` / `releaseAudioControl()`.
-- **AnimationController** (`lib/animationController.ts`) is instantiated per section via `useAnimationController`. It drives everything — typing, output reveals, inter-command delays — as a flat array of `AnimationStep`s.
-- **typingConfig.ts** is the single configuration file. It supplies speed presets and pattern values to every section and hook. No speeds are hardcoded anywhere else.
-- **Glitch system** and **particle system** are self-contained. Glitch is called directly from section `useEffect`s after output is revealed; particles run continuously in `Background`.
+1. [Tech stack](#tech-stack)
+2. [Quick start](#quick-start)
+3. [Environment variables](#environment-variables)
+4. [Repository layout](#repository-layout)
+5. [Architecture overview](#architecture-overview)
+6. [Section anatomy](#section-anatomy)
+7. [Hook dependency map](#hook-dependency-map)
+8. [The animation pipeline](#the-animation-pipeline)
+9. [Typing config reference](#typing-config-reference)
+10. [Audio system](#audio-system)
+11. [Interactive terminal](#interactive-terminal)
+12. [Contact form & email pipeline](#contact-form--email-pipeline)
+13. [Boot screen & scroll model](#boot-screen--scroll-model)
+14. [Content data model](#content-data-model)
+15. [Styling & theming](#styling--theming)
+16. [Accessibility](#accessibility)
+17. [SEO](#seo)
+18. [Customising the content](#customising-the-content)
+19. [Deployment](#deployment)
+20. [Things to know before contributing](#things-to-know-before-contributing)
 
 ---
 
-## 3. Animation System Deep Dive
+## Tech stack
 
-### Core class: `AnimationController` (`src/lib/animationController.ts`)
+| Layer            | Choice                                                                           |
+|------------------|----------------------------------------------------------------------------------|
+| Framework        | **Next.js 16** (App Router, `app/` directory)                                    |
+| UI runtime       | **React 19** (client components for everything interactive)                      |
+| Language         | **TypeScript 5** (strict mode, `@/*` path alias to repo root)                    |
+| Styling          | Custom CSS (CSS custom properties) + per-component scoped `<style>` blocks. **Tailwind v4** + `@tailwindcss/postcss` are wired up but the codebase does not currently use Tailwind utility classes — the build pipeline is in place if you want to start. |
+| Email            | **Resend** + `@react-email/components` for the contact pipeline                  |
+| Lint             | `eslint-config-next` (core-web-vitals + typescript)                              |
+| Node             | `20.x` (pinned in `package.json` `engines`)                                      |
 
-An imperative state machine with the lifecycle:
-
-```
-idle → running → completed
-            ↓
-         cancelled → (reset back to) idle
-         paused   → resumed → running
-```
-
-It holds a flat `AnimationStep[]`. Each step has:
-
-```ts
-// src/lib/animationTypes.ts:18
-interface AnimationStep {
-  id?: string
-  action: () => void   // executed immediately when step is reached
-  duration: number     // ms to wait before advancing to next step
-}
-```
-
-The controller fires `action()`, then schedules `setTimeout(executeNextStep, duration)`. All pending timers are tracked in an array and bulk-cleared on `cancel()`. This guarantees no orphaned callbacks after scroll-away.
-
-### React wrapper: `useAnimationController` (`src/hooks/useAnimationController.ts`)
-
-Stores the `AnimationController` instance in a `useRef` so it survives re-renders. Exposes memoized methods (`start`, `cancel`, `reset`, etc.) and syncs controller state to React state so components can re-render on transitions:
-
-```ts
-// src/hooks/useAnimationController.ts:177
-const start = useCallback((steps: AnimationStep[]): boolean => {
-  controller.setSteps(steps)
-  const started = controller.start()
-  syncState()
-  return started
-}, [syncState])
-```
-
-Auto-cancels on unmount (`autoCleanup = true` by default).
-
-### Typing steps: `useTypingAnimation` (`src/hooks/useTypingAnimation.ts`)
-
-Generates one `AnimationStep` per character. Each step calls `setText(currentText)` and fires `onKeystroke(char, index, isLast)` for audio. The inter-character delay is calculated by `calculateDelay()` which stacks:
-
-1. Character-class multiplier (from `typingConfig.getCharClassMultiplier`)
-2. File extension slowdown (characters after the last `.` in text containing an extension)
-3. Positional multipliers (start / middle / end of string)
-4. Slow-character rules (path separators, punctuation)
-5. Repeated-character acceleration (muscle memory)
-6. Random micro-pause (probability gate)
-7. ±30% natural variation
-
-```ts
-// src/hooks/useTypingAnimation.ts:91
-const calculateDelay = useCallback((char, index, fullText, speed) => {
-  let delay = speed
-  delay *= getCharClassMultiplier(char)
-  // ... positional, slow-char, random layers applied in sequence ...
-  return Math.max(10, delay)
-}, [])
-```
-
-### Viewport detection: `useInView` (`src/hooks/useInView.ts`)
-
-Wraps `IntersectionObserver`. Returns `{ ref, isInView, hasBeenInView }`. Sections use `triggerOnce: false` so the animation resets every time the user scrolls away and returns.
-
-### How they connect in a section
-
-```
-useInView.onInViewChange(inView)
-  → if inView:  audio.requestAudioControl()
-  → if !inView: audio.releaseAudioControl()
-                resetAnimationState()   ← cancels controller + clears typing state
-
-useEffect([isBooted, isInView, audio.hasAudioControl, animation.isCompleted])
-  → when all conditions true:
-       steps = buildAnimationSequence()
-       animation.start(steps)
-```
-
-`buildAnimationSequence()` is a `useCallback` that assembles the full flat step array: initial delay → volume ramp reset → typing steps for command 1 → post-command delay → show output → between-commands delay → repeat for commands 2…N.
-
-Once `animation.isCompleted === true`, the component switches to `renderStaticContent()` — a plain HTML snapshot of the final state — and never re-animates until the page is refreshed.
+There is **no test runner**, **no Storybook**, **no state-management library**, and **no UI kit**. Everything rendered on screen is hand-built from primitives in `src/`.
 
 ---
 
-## 4. Typing Config — The Single Source of Truth
+## Quick start
 
-**File:** `src/constants/typingConfig.ts`
+```bash
+# Install
+npm install
 
-Every number that affects how typing feels lives here. No speed or pattern value is hardcoded in any hook or section component.
+# Run dev server (http://localhost:3000)
+npm run dev
 
-### Per-section speed presets
+# Production build
+npm run build
+npm run start
 
-```ts
-// src/constants/typingConfig.ts:100
-export const sectionTypingConfigs: Record<SectionId, SectionTypingConfig> = {
-  hero:       { baseSpeed: 90,  patternOverrides: { startSpeedMultiplier: 2.2, randomPauseProbability: 0.10 } },
-  about:      { baseSpeed: 65,  patternOverrides: { middleSpeedMultiplier: 0.65 } },
-  projects:   { baseSpeed: 70,  patternOverrides: { extensionSpeedMultiplier: 3.0 } },
-  experience: { baseSpeed: 70,  patternOverrides: { startSpeedMultiplier: 1.6 } },
-  contact:    { baseSpeed: 70,  patternOverrides: {} },
-}
+# Type-check without emitting
+npx tsc --noEmit
+
+# Lint
+npm run lint
 ```
 
-`baseSpeed` is milliseconds per character at baseline (before all multipliers). Lower = faster.
+You will need a `.env.local` (see next section) for the contact form to actually deliver mail. Without it the form will return 500 — everything else (boot screen, terminal, animations) works fine.
 
-### Global human typing pattern
+---
 
-```ts
-// src/constants/typingConfig.ts:24
-export const globalTypingPattern: Required<HumanTypingPattern> = {
-  startSpeedMultiplier: 1.8,       // slow start (thinking before typing)
-  middleSpeedMultiplier: 0.7,      // fast in the flow
-  endSpeedMultiplier: 1.3,         // slight hesitation at end
-  extensionSpeedMultiplier: 3.5,   // dramatic pause on .txt / .sh
-  randomPauseProbability: 0.08,    // 8% chance of a micro-pause per keystroke
-  randomPauseMultiplier: 2.5,      // pause = 2.5× base delay
-  repeatedCharMultiplier: 0.8,     // "ll", "ss" — muscle memory, slightly faster
-  slowCharacters: ['.', '/', '\\', '-', '_', '~', '|'],
-  slowCharMultiplier: 1.5,
-}
+## Environment variables
+
+All public values use the `NEXT_PUBLIC_` prefix and are inlined at build time. `RESEND_API_KEY` is server-only and never reaches the client bundle.
+
+| Variable                       | Used by                                  | Notes |
+|--------------------------------|------------------------------------------|-------|
+| `NEXT_PUBLIC_SITE_URL`         | `app/layout.tsx`, `sitemap.ts`, `robots.ts`, `StructuredData` | Canonical URL for OG/Twitter cards, sitemap, JSON-LD. Defaults to `http://localhost:3000`. **Set this in production** — every link that references itself derives from it. |
+| `NEXT_PUBLIC_EMAIL`            | `app/api/contact/route.ts`, `src/content/personal.ts` | Owner email — recipient for contact-form notifications **and** the `replyTo` address, so replying in your mail client goes directly to the sender. |
+| `NEXT_PUBLIC_GITHUB_URL`       | `personal.ts`, `StructuredData`          | Full URL e.g. `https://github.com/kudzaiprichard` |
+| `NEXT_PUBLIC_LINKEDIN_URL`     | `personal.ts`, `StructuredData`          | |
+| `NEXT_PUBLIC_TWITTER_URL`      | `personal.ts`, `StructuredData`          | |
+| `NEXT_PUBLIC_GITHUB_HANDLE`    | `personal.ts` (display)                  | e.g. `@kudzaiprichard` |
+| `NEXT_PUBLIC_TWITTER_HANDLE`   | `personal.ts`, `app/layout.tsx`          | Used as Twitter card `creator` and displayed on the Contact card. |
+| `NEXT_PUBLIC_LINKEDIN_NAME`    | `personal.ts`                            | Display label for LinkedIn link. |
+| `NEXT_PUBLIC_RESUME_URL`       | `personal.ts` (used by terminal `cv` cmd) | If unset, falls back to `/resume.pdf`. External URLs open in a new tab; same-origin paths trigger `download` attribute. |
+| `RESEND_API_KEY`               | `app/api/contact/route.ts`               | **Server-only.** Without it the contact route 500s silently. |
+
+A `.env.local` is used locally — strip the API key before pushing anywhere shared.
+
+---
+
+## Repository layout
+
+```
+my-portfolio/
+├── app/                              # Next.js App Router root
+│   ├── api/contact/route.ts          # POST handler — Resend dual-send
+│   ├── globals.css                   # Theme tokens, snap-scroll, glitch keyframes (1 092 lines)
+│   ├── layout.tsx                    # Root layout, metadata, BootProvider, ambient layers
+│   ├── page.tsx                      # Snap-scroll page composition + arrow-key nav
+│   ├── robots.ts                     # /robots.txt generator
+│   └── sitemap.ts                    # /sitemap.xml generator
+│
+├── src/
+│   ├── components/
+│   │   ├── layout/                   # Cross-cutting layout chrome
+│   │   │   ├── Background.tsx        # Particle canvas + grid + gradient
+│   │   │   ├── BootScreen.tsx        # The boot sequence overlay (5 phases)
+│   │   │   ├── CustomCursor.tsx      # Section-aware cursor (dot/ring/caret)
+│   │   │   ├── ScrollHint.tsx        # Up/down scroll indicators
+│   │   │   ├── context/BootContext.tsx
+│   │   │   └── seo/
+│   │   │       ├── SEOContent.tsx    # Visually-hidden semantic content for crawlers
+│   │   │       └── StructuredData.tsx # JSON-LD Person + WebSite schemas
+│   │   │
+│   │   ├── sections/                 # The six full-viewport sections
+│   │   │   ├── HeroSection.tsx
+│   │   │   ├── AboutSection.tsx
+│   │   │   ├── ProjectsSection.tsx
+│   │   │   ├── ExperienceSection.tsx
+│   │   │   ├── ContactSection.tsx
+│   │   │   └── TerminalSection.tsx
+│   │   │
+│   │   └── shared/
+│   │       ├── AmbientHum.tsx        # Looped 0.06-volume drone, fades in after boot
+│   │       ├── MuteToggle.tsx        # Persists to localStorage, broadcasts via CustomEvent
+│   │       ├── ScrollSection.tsx     # Wraps a section, syncs URL hash on intersect
+│   │       ├── TerminalContainer.tsx # The 3-dot framed CRT box every section uses
+│   │       ├── TerminalInput.tsx     # The active-line + history renderer
+│   │       └── email-templates/
+│   │           ├── ContactConfirmation.tsx  # Reply-to-sender template
+│   │           └── ContactNotification.tsx  # Owner-notification template
+│   │
+│   ├── constants/
+│   │   └── typingConfig.ts           # SINGLE source of truth for all typing feel
+│   │
+│   ├── content/                      # Site copy & data — edit these to make it yours
+│   │   ├── personal.ts               # owner + contact (env-driven)
+│   │   ├── projects.ts               # Project[] with its own Project interface
+│   │   ├── experience.ts             # Experience[] with its own Experience interface
+│   │   ├── skills.ts                 # SkillCategory[] + specializations[]
+│   │   └── index.ts                  # Re-exports
+│   │
+│   ├── hooks/                        # All client-side logic lives here
+│   │   ├── useAnimationController.ts # React wrapper around lib/animationController
+│   │   ├── useTypingAnimation.ts     # Step-generator for human-like typing
+│   │   ├── useKeystrokeAudio.ts      # Audio pool + keystroke playback per section
+│   │   ├── useInView.ts              # IntersectionObserver wrapper
+│   │   ├── useReducedMotion.ts       # prefers-reduced-motion media query
+│   │   ├── useTerminalInput.ts       # The interactive shell — ~2 600 lines, the core
+│   │   ├── useSnakeGame.ts           # Snake game state machine
+│   │   └── useAdventureGame.ts       # Text adventure world + parser
+│   │
+│   ├── lib/                          # Framework-agnostic utilities
+│   │   ├── animationController.ts    # Imperative step-runner with cancellation
+│   │   ├── animationTypes.ts         # All animation/audio interfaces
+│   │   ├── audioController.ts        # Global "which section owns the audio" arbiter
+│   │   ├── glitch.ts                 # Per-character glitch overlay system
+│   │   ├── particles.ts              # Particle physics, zones, clusters, hubs
+│   │   └── utils.ts                  # delay, debounce, throttle
+│   │
+│   └── types/
+│       └── index.ts                  # Shared component prop types
+│
+├── public/
+│   ├── sounds/                       # ambient_hum.wav + keystroke_{1..4}.mp3
+│   └── favicon.* / og-image.png / site.webmanifest / web-app-manifest-*.png
+│
+├── eslint.config.mjs
+├── next.config.ts                    # Empty config — all defaults
+├── postcss.config.mjs                # Loads @tailwindcss/postcss
+├── tsconfig.json                     # @/* → ./*
+└── package.json
 ```
 
-Section `patternOverrides` are shallow-merged on top: `{ ...globalTypingPattern, ...patternOverrides }`.
+---
+
+## Architecture overview
+
+The site is a single page composed of six full-viewport snap-scrolled sections. A shared layout owns the persistent visual chrome (boot screen, particles, cursor, audio toggle, scroll hint) and a `BootProvider` context gates anything that should not run before the user dismisses the boot screen.
+
+```mermaid
+flowchart TB
+    subgraph RootLayout["app/layout.tsx (RootLayout)"]
+        BootProvider --> SkipLink[skip-to-content link]
+        BootProvider --> SEOContent[SEOContent — sr-only crawler copy]
+        BootProvider --> BootScreen
+        BootProvider --> Background[Background — gradient + grid + particles canvas]
+        BootProvider --> CustomCursor
+        BootProvider --> MuteToggle
+        BootProvider --> AmbientHum
+        BootProvider --> ScrollHint
+        BootProvider --> Page["app/page.tsx (Home)"]
+    end
+
+    Page -->|ScrollSection #home| S1[HeroSection]
+    Page -->|ScrollSection #about| S2[AboutSection]
+    Page -->|ScrollSection #projects| S3[ProjectsSection]
+    Page -->|ScrollSection #experience| S4[ExperienceSection]
+    Page -->|ScrollSection #contact| S5[ContactSection]
+    Page -->|ScrollSection #terminal| S6[TerminalSection]
+
+    S5 -.POST /api/contact.-> API["app/api/contact/route.ts → Resend"]
+    StructuredData[/JSON-LD — Person + WebSite/] --- RootLayout
+```
+
+---
+
+## Section anatomy
+
+Every section (except `Terminal`) follows the same two-render-mode pattern:
+
+```mermaid
+flowchart TD
+    Mount([Section mounts]) --> RM{useReducedMotion?}
+    RM -- yes --> Static[renderStaticContent\ninstant full reveal]
+    RM -- no --> OOV{In view\n≥ 30% visible?}
+    OOV -- no --> Idle[Idle — nothing rendered]
+    OOV -- yes --> Request[requestAudioControl\nsectionId]
+    Request --> Start[animationController.start\nsteps array]
+    Start --> Animate[renderAnimatingContent\nchar-by-char typing]
+    Animate --> Done{isCompleted?}
+    Done -- no --> Animate
+    Done -- yes --> Static
+    Static --> Input[TerminalInput mounts\nmini-shell active]
+```
+
+**What happens at each stage:**
+
+1. **`sr-only` block** — always in the DOM, carries the real semantic content for screen readers and crawlers. The visible animated tree is `aria-hidden="true"` during animation.
+2. **`TerminalContainer`** — the 3-dot CRT frame. Renders either the *animating* tree (char-by-char) or the *static* tree (instant full reveal).
+3. **Animating render** — types out one or more shell-style commands, then reveals their output (real content from `src/content/`).
+4. **Static render** — shown immediately under `prefers-reduced-motion`, or once animation completes.
+5. **`TerminalInput`** — mounts after animation completes; provides the per-section mini-shell.
+
+The full lifecycle in terms of hook orchestration:
+
+```mermaid
+sequenceDiagram
+    participant V as Viewport
+    participant H as useInView
+    participant A as useKeystrokeAudio
+    participant C as useAnimationController
+    participant T as useTypingAnimation
+    participant S as Section state
+
+    V->>H: IntersectionObserver fires (≥30% visible)
+    H->>A: requestAudioControl(sectionId)
+    A->>A: audioController.setActiveSection — others release
+    A-->>H: hasAudioControl = true
+    H->>C: start(steps)
+    loop For each AnimationStep
+        C->>T: emit a keystroke (delay-aware)
+        T->>S: setText(prev + char)
+        T->>A: onTypingKeystroke(char) → playKeystroke
+    end
+    C->>S: onComplete → flip to static render
+    Note over S: TerminalInput mounts; mini-shell active
+```
+
+The `audioController` ensures only one section at a time owns the keystroke channel, so scrolling between sections does not produce overlapping click loops.
+
+---
+
+## Hook dependency map
+
+Which hooks each part of the site uses:
+
+| Consumer | useInView | useAnimationController | useTypingAnimation | useReducedMotion | useKeystrokeAudio | useTerminalInput | useSnakeGame | useAdventureGame |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| HeroSection | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ (mini) | | |
+| AboutSection | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ (mini) | | |
+| ProjectsSection | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ (mini) | | |
+| ExperienceSection | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ (mini) | | |
+| ContactSection | ✓ | ✓ | ✓ | ✓ | ✓ | | | |
+| TerminalSection | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ (full) | ✓ | ✓ |
+| CustomCursor | | | | ✓ | | | | |
+| Background | | | | ✓ | | | | |
+
+"mini" = reduced command set keyed to the section; "full" = the complete interactive shell.
+
+---
+
+## The animation pipeline
+
+Three layers, separated for testability and cancellation safety:
+
+```mermaid
+flowchart LR
+    Config["constants/typingConfig.ts\nbaseSpeed, multipliers,\nsequence timings"]
+    -->|getBaseSpeedForSection\ngetPatternForSection| Hook
+
+    Hook["useTypingAnimation\ngenerateSteps()"]
+    -->|AnimationStep[]| Controller
+
+    Controller["lib/animationController\nstate machine + timers"]
+    --> Section[Section state setters]
+
+    Hook --> Audio["onKeystroke\n→ useKeystrokeAudio"]
+
+    subgraph States
+        idle --> running --> completed
+        running --> cancelled
+        running --> paused --> running
+    end
+```
+
+- **`constants/typingConfig.ts`** is the *only* place to change typing feel. It is the single source of truth for base speeds, pattern multipliers, audio ramp settings, and sequence timings. See [Typing config reference](#typing-config-reference) below.
+- **`lib/animationController.ts`** is a class-based imperative runner. It tracks state (`idle | running | paused | completed | cancelled`), holds `AnimationStep[]` (each step is `{ action: () => void, duration: number }`), and is responsible for **clean cancellation** — every timer it schedules is recorded and cleared on `cancel()`. Sections call `animation.cancel()` on unmount and on `inView = false`, so navigating away never leaves orphaned `setTimeout` chains.
+- **`useTypingAnimation`** turns a target string into an `AnimationStep[]` honouring the section's pattern: positional speed (slow at start, fast through middle, slight slowdown at end), character-class multipliers, repeat-character reduction (muscle memory), random micro-pauses, and ±30% natural jitter.
+
+### Reduced-motion path
+
+Every section checks `useReducedMotion()` and, when set, **skips animation entirely** — flipping straight to the static render and calling `animation.complete()` immediately. Glitch overlays, the particle field loop, and cursor pulse also short-circuit under this flag.
+
+---
+
+## Typing config reference
+
+All values live in `src/constants/typingConfig.ts` and are the exact numbers in the codebase:
+
+### Per-section base speeds
+
+| Section | `baseSpeed` | Character-feel notes |
+|---------|------------|----------------------|
+| `hero` | **90 ms/char** | Most dramatic: `startSpeedMultiplier 2.2`, 10% random-pause probability, extension slowdown ×4.0 |
+| `about` | **65 ms/char** | Flows faster in the middle (`middleSpeedMultiplier 0.65`), fewer hesitations (6% pause prob) |
+| `projects` | **70 ms/char** | Extension slowdown ×3.0 |
+| `experience` | **70 ms/char** | Slightly quicker start (`startSpeedMultiplier 1.6`) |
+| `contact` | **70 ms/char** | Global defaults, no overrides |
+| `terminal` | **25 ms/char** | Near-instant: uniform multipliers (1.0/0.9/1.0), 3% pause probability |
+
+### Global pattern (applied to every section before overrides merge)
+
+| Parameter | Value | Effect |
+|-----------|-------|--------|
+| `startSpeedMultiplier` | 1.8× | Slower at the start — thinking before typing |
+| `middleSpeedMultiplier` | 0.7× | Fastest in the flow |
+| `endSpeedMultiplier` | 1.3× | Slight brake near end |
+| `extensionSpeedMultiplier` | 3.5× | Pause on `.txt`, `.sh`, etc. |
+| `randomPauseProbability` | 8% | Chance of micro-hesitation per keystroke |
+| `randomPauseMultiplier` | 2.5× | How long each hesitation lasts |
+| `repeatedCharMultiplier` | 0.8× | Faster on consecutive identical chars (muscle memory) |
+| Slow characters | `. / \ - _ ~ \|` | +1.5× duration each |
 
 ### Character-class multipliers
 
-```ts
-// src/constants/typingConfig.ts:51
-export const charClassMultipliers = {
-  digit:         1.35,   // reaching for number row
-  uppercase:     1.25,   // holding shift
-  specialSymbol: 1.55,   // shift + number row  (@#$%^&*)
-  pathSeparator: 1.45,   // - _ / \ | ~ . ;
-  lowercase:     1.0,    // baseline
-  space:         0.85,   // thumb hit — slightly faster
-}
-```
+| Class | Multiplier | Rationale |
+|-------|-----------|-----------|
+| Space | 0.72× | Thumb — fastest key |
+| Lowercase | 1.0× | Baseline |
+| Uppercase | 1.25× | Holding Shift |
+| Digit | 1.35× | Reaching for number row |
+| Path separator (`-_/\|~.;`) | 1.45× | Deliberate terminal keystrokes |
+| Special symbol (`@#$%^&*…`) | 1.55× | Shift + number row |
 
-### Audio / volume ramp settings
+### Sequence timing defaults
 
-```ts
-// src/constants/typingConfig.ts:140
-export const audioConfig = {
-  baseVolume: 0.4,
-  volumeRampEnabled: true,
-  volumeRampKeystrokes: 10,      // keystrokes to ramp from min to full volume
-  volumeRampMinFraction: 0.5,    // starts at 50% of baseVolume
-  volumeDecayDelayMs: 2000,      // ms of silence before the ramp decays
-  volumeDecayFactor: 0.5,        // ramp drops to 50% of current value on decay
-}
-```
+| Timing | Value |
+|--------|-------|
+| Initial delay before first command | 500 ms |
+| Post-command delay (before output appears) | 350 ms |
+| Between-commands delay (output → next command) | 900 ms |
 
-### Sequence timings
+### Audio config (also in `typingConfig.ts`)
 
-```ts
-// src/constants/typingConfig.ts:166
-export const sequenceTimings = {
-  initialDelay: 500,           // pause before first command starts
-  postCommandDelay: 350,       // pause after typing ends, before output appears
-  betweenCommandsDelay: 900,   // pause between output reveal and next command
-}
-```
-
-### Helper functions
-
-- `getPatternForSection(id)` — returns the merged `Required<HumanTypingPattern>` for a section
-- `getBaseSpeedForSection(id)` — returns `baseSpeed` for a section
-- `getCharClassMultiplier(char)` — returns the correct multiplier for one character
+| Setting | Value |
+|---------|-------|
+| `baseVolume` | 0.4 |
+| `volumeRampEnabled` | true |
+| `volumeRampKeystrokes` | 10 (ramp from 50% → 100% of baseVolume) |
+| `volumeDecayDelayMs` | 2 000 ms of silence triggers decay |
+| `volumeDecayFactor` | 0.5 (halves the ramp progress) |
 
 ---
 
-## 5. Audio System
+## Audio system
 
-### Global controller: `audioController` (`src/lib/audioController.ts`)
+```mermaid
+flowchart TD
+    Section1[HeroSection] -- requestAudioControl hero --> Ctrl[audioController\nactiveSection: string?]
+    Section2[AboutSection] -- requestAudioControl about --> Ctrl
+    Section3[TerminalSection] -- requestAudioControl terminal --> Ctrl
 
-A module-level singleton (`export const audioController = new GlobalAudioController()`). Tracks a single `activeSection: string | null`. When a section calls `setActiveSection(id)`, the previous section is notified it lost control via a subscribed callback. This ensures only one section plays sounds at a time.
+    Ctrl -- only one section owns it --> Pool[AudioPool\n3 elements per file × 4 keystroke files]
+    Pool --> KS["keystroke_1..4.mp3\npublic/sounds/"]
 
-```ts
-// src/lib/audioController.ts:10
-setActiveSection(sectionId: string) {
-  if (this.activeSection === sectionId) return
-  const previousSection = this.activeSection
-  this.activeSection = sectionId
-  if (previousSection) this.notifyListeners(previousSection)
-  this.notifyListeners(sectionId)
-}
+    Mute[MuteToggle button] -- localStorage: keystroke-audio-muted --> Hook[useKeystrokeAudio]
+    Mute -- CustomEvent: audio-mute-change --> Hook
+    Hook --> Pool
+
+    AmbientHum[AmbientHum] -.fades to 0.06 volume.- HumFile["ambient_hum.wav\npublic/sounds/"]
+    BootCtx[BootProvider isBooted] --> AmbientHum
 ```
 
-### Hook: `useKeystrokeAudio` (`src/hooks/useKeystrokeAudio.ts`)
+Notes worth knowing before changing anything in `useKeystrokeAudio.ts`:
 
-Handles everything for one section:
-
-- **Sound file arrays** — `regular[]`, `space[]`, `enter[]`. Defaults to four keystroke mp3s. Pass custom arrays via the `soundFiles` option.
-- **Keyboard-region-aware selection** — Left-hand characters (`qwertasdfgzxcvb…`) pull from the first half of the `regular` pool; right-hand characters from the second half. A no-repeat guard prevents the same file playing back-to-back within the same region.
-- **Volume per keystroke** — uppercase and punctuation play slightly louder (×1.05–1.15); spaces play quieter (×0.75–0.90); enter plays louder (×1.10–1.25).
-- **Volume ramp** — keystroke count is tracked in a ref. Volume scales from `baseVolume × volumeRampMinFraction` up to `baseVolume` over `volumeRampKeystrokes` keystrokes. A `setTimeout` decays the ramp counter after `volumeDecayDelayMs` of silence.
-- **Mute persistence** — stored in `localStorage` as `keystroke-audio-muted`.
-
-```ts
-// src/hooks/useKeystrokeAudio.ts:274
-const playKeystroke = useCallback((keyType: KeyType = 'regular') => {
-  if (isMuted || !audioController.hasControl(sectionId)) return
-  const audio = new Audio(soundFile)
-  audio.volume = calculateVolume(char, keyType, volume)
-  audio.play().catch(...)
-}, [isMuted, volume, sectionId, ...])
-```
-
-### Bridge: `useTypingAudioCallback` (`src/hooks/useKeystrokeAudio.ts:353`)
-
-Converts the `onKeystroke(char, index, isLast)` callback signature used by `useTypingAnimation` into the `playKeystroke(keyType)` call used by `useKeystrokeAudio`. Sections use it like this:
-
-```ts
-const audio = useKeystrokeAudio({ sectionId: 'hero', ... })
-const { onTypingKeystroke } = useTypingAudioCallback(audio)
-
-// In buildAnimationSequence:
-cmd1Typing.generateSteps('whoami', { onKeystroke: onTypingKeystroke })
-```
-
-### Sound file configuration
-
-Default files live in `public/sounds/`:
-
-```ts
-soundFiles: {
-  regular: ['/sounds/keystroke_1.mp3', '…_2.mp3', '…_3.mp3', '…_4.mp3'],
-  space:   ['/sounds/keystroke_1.mp3'],
-  enter:   ['/sounds/keystroke_2.mp3'],
-}
-```
-
-Add more files to any array to increase variety. The hook auto-selects without repeating consecutive hits within the same key type / region.
+- **Object pool** — three `Audio` element instances per source file are created up front and rotated, because reusing a single element on rapid keystrokes (every 25–90 ms) drops sounds in Safari/iOS.
+- **Volume ramp** — `audioConfig.volumeRampEnabled` makes the first 10 keystrokes after a `resetVolumeRamp()` call ramp from 50% to 100% of base volume. This eliminates the "machine gun" feel when a long string begins. Each section calls `resetVolumeRamp()` at the start of every command in its sequence.
+- **Decay after inactivity** — after 2 s of silence the next keystroke partially decays the ramp (`volumeDecayFactor: 0.5`) so a fresh burst again starts softer.
+- **Hand alternation** — characters are mapped to left/right/thumb keyboard regions; each region picks a different keystroke sample, with a "no-immediate-repeat" guard. Space gets its own sample.
+- **Mute persistence** — `localStorage` key `keystroke-audio-muted`. Because `localStorage` storage events do not fire in the same tab, `MuteToggle` also dispatches a `CustomEvent('audio-mute-change')` for in-tab listeners.
+- **`AmbientHum`** loops `/sounds/ambient_hum.wav` at volume 0.06. It starts only after `BootProvider.isBooted === true` and respects the same mute key.
 
 ---
 
-## 6. Glitch System
+## Interactive terminal
 
-**File:** `src/lib/glitch.ts`
+`useTerminalInput.ts` (~2 600 lines) is the largest single file in the codebase and the heart of the experience. It is consumed by every section's `TerminalInput`, but only **`TerminalSection` (`#terminal`)** exposes the full command set.
 
-### 2-phase character glitch cycle
+```mermaid
+flowchart TD
+    KeyDown[window keydown] --> Filter{section in view?\nnot in form input?}
+    Filter -- yes --> Buffer[inputText buffer]
+    Buffer -->|Tab| AC[autocomplete:\ncommands + filesystem\n+ section names]
+    Buffer -->|Right / End| Ghost[accept ghost suggestion]
+    Buffer -->|↑ / ↓| Hist[command history nav]
+    Buffer -->|Enter| Resolve[resolveAlias → getCommandResponse]
 
-Every glitch event has two phases:
-
-1. **Phase 1** — Vintage CSS effects fire (`glitch-rgb` animation + `digital-noise` class). Simultaneously, a random character from the pool `01アイウエオ…!@#$%^&*█▓▒░` replaces a random character in the target element via an overlay `<span>`. The vintage effects fade in ~150ms but the **glitch character stays visible**.
-2. **Phase 2** — After `glitchCharDisplayDuration` ms, vintage effects fire again and the **original character is restored** to the overlay.
-
-The DOM wraps each non-space character on first call:
-
-```html
-<span class="glitch-char-wrapper">
-  <span class="glitch-char-original" data-original-char="K">K</span>
-  <span class="glitch-char-overlay">K</span>  ← swapped in phase 1
-</span>
+    Resolve --> Branch{response kind}
+    Branch --> Print[type out response\nline-by-line, char-by-char]
+    Branch --> Render["renderSection: home/about/projects/experience/contact\ncd alias → inline section content"]
+    Branch --> Mode{enterMode?}
+    Mode --> Vim["VIM_FILE_CONTENT viewer\n:q to exit"]
+    Mode --> Matrix["Matrix rain canvas\nany key exits"]
+    Mode --> Snake["useSnakeGame\narrow keys / on-screen pad"]
+    Mode --> Adv["useAdventureGame\nlook / take / use / go"]
+    Branch --> Side["downloadUrl or openUrl\ncv → resume / email → mailto:"]
 ```
 
-Spaces are left as plain text nodes to preserve layout. The wrapping is idempotent (`data-glitch-wrapped` guard).
+### Full command reference
 
-### Entry point: `startCharacterGlitch`
+Commands are registered in `getCommandResponse()` and surfaced via `help`.
 
-```ts
-// src/lib/glitch.ts:333
-const cleanup = startCharacterGlitch(element, {
-  intensity: 'low',
-  singleCharInterval: 10000,        // single-char glitch every 10s
-  multiCharInterval: 15000,         // multi-char glitch every 15s
-  glitchCharDisplayDuration: 3000,  // glitch char visible for 3s
-})
-// Call cleanup() to stop (returns from useEffect)
-```
+| Category | Commands |
+|----------|----------|
+| **Navigation** | `cd home\|about\|projects\|experience\|contact` — renders section content inline |
+| **Filesystem** | `ls`, `ls -l`, `ls -la`, `pwd`, `cat <file>`, `cd <dir>` |
+| **System** | `whoami`, `neofetch`, `htop`, `kill <proc>`, `date`, `history`, `man <topic>`, `echo <text>` |
+| **Network** | `ping <host>`, `ssh <host>`, `curl <args>`, `sudo <cmd>` |
+| **Git** | `git log`, `git blame` (aliases: `hist`, `annotate`) |
+| **Reach-out** | `cv` (downloads resume), `email` (opens `mailto:` with pre-filled subject) |
+| **Games** | `snake`, `adventure` |
+| **Fun** | `vim` / `vi` / `nano`, `ascii`, `matrix`, `hack`, `sl` |
+| **Utility** | `help` / `?` / `commands`, `clear`, `exit`, `settings` |
 
-### Intensity presets
+### Aliases and did-you-mean
 
-| Preset | singleCharInterval | multiCharInterval | numChars | glitchCharDisplayDuration |
-|---|---|---|---|---|
-| `low` | 3000ms | 6000ms | 1 | 2000ms |
-| `medium` | 1500ms | 3000ms | 2–3 | 1500ms |
-| `high` | 800ms | 1800ms | 3–5 | 1000ms |
+`COMMAND_ALIASES` maps Windows/Mac names to canonical commands — `dir`, `type`, `notepad`, `runas`, `nvim`, `code`, `wget`, `screenfetch`, etc., all resolve. Unknown commands run through `findClosestCommand` for a `Did you mean: ?` suggestion before returning `bash: <cmd>: command not found`.
 
-Custom interval/duration options override the preset values when provided.
+### Loading messages
 
-### CSS-only vintage effects (no character replacement)
+Commands that feel "heavyweight" (`neofetch`, `htop`, `git log`, `ssh`, `sudo`, `curl`) show a sequence of fake loading lines before their real output, defined in `LOADING_SETS`. This is the right place to add fake telemetry for a new command.
 
-`startPeriodicGlitch(element)` fires `glitch-rgb`, `chromatic-aberration`, and `digital-noise` CSS classes on a schedule without touching the DOM text. Use this for containers where character replacement would break layout.
+### In-memory filesystem
+
+The terminal maintains a fake `~` directory tree containing project READMEs at `~/projects/<slug>/README.md`, an `experience.log`, fake config files, and a `~/.secret/` directory rewarded by `ls -la`. These are hand-authored in `useTerminalInput.ts` and currently mirror but do not automatically track changes in `src/content/projects.ts` — if you add or rename a project, update the filesystem tree manually.
+
+### Inline mini-shell on non-terminal sections
+
+Hero, About, Projects, and Experience sections mount a `TerminalInput` after animation completes, with a **reduced** command set (navigation, `whoami`, `help`, `clear`). They share the same `useTerminalInput` hook keyed by `sectionId`, and `getCommandResponse` switches on it.
 
 ---
 
-## 7. Particle System
+## Contact form & email pipeline
 
-**Files:** `src/lib/particles.ts` (all logic), `src/components/layout/Background.tsx` (rendering loop)
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant C as ContactSection
+    participant API as POST /api/contact
+    participant R as Resend SDK
+    participant O as Owner inbox
+    participant S as Sender inbox
 
-### Spatial structure
+    U->>C: fills name / email / message
+    C->>C: client validateForm — required + email regex
+    C->>API: fetch JSON {name, email, message}
+    API->>API: parse + validate (400 on bad input)
+    par dual send
+        API->>R: send ContactNotification → ownerEmail (replyTo: sender)
+        API->>R: send ContactConfirmation → sender
+    end
+    R-->>API: result with optional error
+    API-->>C: 200 success | 500 error
+    C->>U: render success / error state in form
+```
 
-Particles are distributed across three overlapping structures at init:
+- Both emails use `@react-email/components` templates (`src/components/shared/email-templates/`). They share a CRT-window aesthetic matching the site.
+- The notification sets `replyTo` to the sender's email, so the owner can reply directly from their mail client.
+- The `from` address is `noreply@prichard.co.zw` in `app/api/contact/route.ts`. **Change this if you fork** — Resend requires a verified sending domain.
+- The route does **not** persist messages anywhere. To keep a record, add a write to your store before or after the `Resend` calls.
+- Client-side validation: required fields + `/^[^\s@]+@[^\s@]+\.[^\s@]+$/` for email. Field-level errors clear on edit.
 
-1. **Cluster zones** — Pre-seeded high-density areas. Desktop: 5 clusters (center radius 250px × 18 particles, four corners ~120–150px × 12–15 particles). Mobile: 3 clusters with reduced counts. Cluster particles are free-roaming (no zone bounds).
-2. **Particle zones** — A 3×3 grid divides the canvas into 9 cells. Most regular particles are assigned a zone and bounce within its bounds, ensuring even coverage.
-3. **Filler particles** — Small, subtle (opacity 0.1–0.25) particles, ~4 per grid cell, filling background gaps.
+### Easter egg
 
-### Depth layers
-
-Three tiers simulate parallax:
-
-| Layer | % of total | Size | Base speed | Opacity |
-|---|---|---|---|---|
-| Far | 30% | 0.3–1.1px | 0.12 | 0.05–0.17 |
-| Mid | 40% | 0.8–2.0px | 0.20 | 0.15–0.35 |
-| Close | 30% | 1.5–3.0px | 0.35 | 0.25–0.50 |
-
-### Hub particles
-
-20% of non-filler particles are hubs: 1.5× larger (3.75–6.0px), brighter (0.4–0.7 opacity), with a sine-wave pulse (`pulsePhase += 0.03` per frame). Hub-to-hub connections extend 20% further than the `hubConnectionDistance` threshold, render at 1.8× brightness, and use 1.5px line width.
-
-### Fast particles
-
-5% of particles move at 3× their tier speed, creating "shooting star" streaks with 12px canvas shadow blur.
-
-### Mouse interaction (desktop only)
-
-In `updateParticle` (`src/lib/particles.ts:314`):
-
-- **0–150px from cursor** — particle `currentSize` grows up to 40% beyond `baseSize`.
-- **150–300px from cursor** — gentle direction steering toward cursor at 2% blend per frame.
-- **Click** — radial repulsion force scaled by depth (`depthFactor` 1–2.5×, radius 250px).
-
-Mouse tracking is skipped entirely on mobile (no `mousemove` listener, no ripple on click).
-
-### Mobile optimization
-
-`mobileParticleConfig`: 70 particles (vs 200), shorter connection distances (120/150/150 vs 180/210/240), 30fps cap (vs 60fps), 3 smaller clusters.
+After Contact finishes animating, a `root@kudzai:~# press Enter to enter superuser mode` line appears. Pressing **Enter** while no form field is focused scrolls to `#terminal`. Modifier keys are ignored; any active `INPUT`/`TEXTAREA`/`BUTTON`/`SELECT`/`contentEditable` short-circuits the handler.
 
 ---
 
-## 8. Section Component Pattern
+## Boot screen & scroll model
 
-All five sections follow the same structure. This is the critical pattern for adding a new section.
+`BootScreen` overlays a 5-phase CRT-style boot when the page first loads:
 
-### Full annotated pattern
+```mermaid
+stateDiagram-v2
+    [*] --> idle
+    idle --> idle : bootSequence lines appear one by one\n"start_portfolio.sh" button enables
+    idle --> scrolling : user clicks Start or Skip
+    scrolling --> clearing : existing log scrolls away
+    clearing --> scanline : shutdown lines print
+    scanline --> flash : scanline sweep + horizontal collapse
+    flash --> done : CRT compress (scaleY 0)
+    done --> [*] : completeBoot\nBootContext.isBooted = true\nsessionStorage portfolio-booted = "1"
+```
 
-```ts
-// --- Module level: pull config once, not inside the component ---
-const pattern = getPatternForSection('hero')
-const speed   = getBaseSpeedForSection('hero')
+- `sessionStorage['portfolio-booted']` skips the screen on subsequent navigations within the same tab, so internal hash-link navigation does not replay the sequence.
+- A **Skip** button appears 1.5 s in for impatient users.
+- `prefers-reduced-motion` collapses every phase animation to 0.01 ms.
 
-export default function HeroSection() {
-  // 1. BootContext gate — nothing runs until the boot screen completes
-  const { isBooted } = useBootContext()
+### Scroll model
 
-  // 2. Output visibility flags — one per command output block
-  const [showOutput1, setShowOutput1] = useState(false)
+`html` has `overflow: hidden`; `body` has `overflow-y: scroll; scroll-snap-type: y mandatory`. Every `<section>` is a `100vh` snap target with `scroll-snap-stop: always`. `ScrollSection` updates `window.location.hash` via `replaceState` when its section is ≥50% visible, and reads the hash on mount to restore the right section from a deep link.
 
-  // 3. Audio — section declares its own sectionId
-  const audio = useKeystrokeAudio({
-    sectionId: 'hero',
-    volume: audioConfig.baseVolume,
-    volumeRampEnabled: audioConfig.volumeRampEnabled,
-  })
-  const { onTypingKeystroke } = useTypingAudioCallback(audio)
+`app/page.tsx` adds **arrow-key navigation** (`Up`/`Left` and `Down`/`Right`) that pages between sections and moves DOM focus. It is gated on `isBooted` and respects `e.defaultPrevented` so per-section handlers (the terminal's own arrow handling, the Contact Enter easter egg) win.
 
-  // 4. Animation controller
-  const animation = useAnimationController({ onComplete: () => {} })
+---
 
-  // 5. One useTypingAnimation instance per command in the section
-  const cmd1Typing = useTypingAnimation({ baseSpeed: speed, humanPattern: pattern })
+## Content data model
 
-  // 6. Stable ref for inView callback — prevents observer teardown on state changes
-  const onInViewChangeRef = useRef<((inView: boolean) => void) | undefined>(undefined)
-  useEffect(() => {
-    onInViewChangeRef.current = (inView: boolean) => {
-      if (inView) {
-        audio.requestAudioControl()
-      } else {
-        audio.releaseAudioControl()
-        if (animation.isRunning) resetAnimationState()  // cancel controller + reset all typing
-      }
+### The two interface systems — and why they differ
+
+There are two parallel sets of interfaces in this codebase:
+
+- **`src/types/index.ts`** — general-purpose component prop types. `Project` here has fields like `title`, `demoUrl`, `featured`, `imageUrl`, `status: 'completed' | 'in-progress' | 'archived'`.
+- **`src/content/*.ts`** — the interfaces actually consumed by section components. Each content file re-declares a simpler, purpose-built interface.
+
+The section components and `useTerminalInput` import exclusively from `src/content/`. `src/types/index.ts` is used for component props (`ScrollSectionProps`, `TerminalContainerProps`, `ButtonProps`, etc.). If you need to add a field to a project card, edit the interface in `src/content/projects.ts` and the data in `projects[]` — not `types/index.ts`.
+
+### Actual content shapes (what sections render)
+
+```mermaid
+erDiagram
+    OWNER {
+        string name
+        string fullName
+        string title
+        string[] description
+        string bio
+        string[] aliases
     }
-  }, [audio, animation.isRunning, resetAnimationState])
 
-  // 7. Attach IntersectionObserver
-  const { ref, isInView } = useInView({
-    threshold: 0.3,
-    triggerOnce: false,
-    onInViewChange: (inView) => onInViewChangeRef.current?.(inView),
-  })
-
-  // 8. Build the flat step array — all commands, outputs, and delays in sequence
-  const buildAnimationSequence = useCallback(() => {
-    const steps = []
-    steps.push(AnimationController.createDelayStep(sequenceTimings.initialDelay))
-    steps.push(AnimationController.createActionStep(() => audio.resetVolumeRamp()))
-    steps.push(...cmd1Typing.generateSteps('whoami', { onKeystroke: onTypingKeystroke }))
-    steps.push(AnimationController.createDelayStep(sequenceTimings.postCommandDelay))
-    steps.push(AnimationController.createActionStep(() => setShowOutput1(true)))
-    // ... repeat pattern for each subsequent command
-    return steps
-  }, [cmd1Typing, onTypingKeystroke, audio])
-
-  // 9. Start condition — all gates must pass simultaneously
-  useEffect(() => {
-    if (!isBooted) return
-    if (!isInView || !audio.isAudioReady || !audio.hasAudioControl) return
-    if (animation.isCompleted || animation.isRunning) return
-    animation.start(buildAnimationSequence())
-  }, [isBooted, isInView, audio.isAudioReady, audio.hasAudioControl,
-      animation.isCompleted, animation.isRunning, buildAnimationSequence, animation])
-
-  // 10. Optional: start glitch on output elements after they appear
-  useEffect(() => {
-    if (!showOutput1 || !isInView || !nameRef.current) return
-    return startCharacterGlitch(nameRef.current, { intensity: 'low', ... })
-  }, [showOutput1, isInView])
-
-  // 11. Release resources on unmount
-  useEffect(() => {
-    return () => {
-      audio.releaseAudioControl()
-      animation.cancel()
+    CONTACT {
+        string email
+        string githubUrl
+        string linkedinUrl
+        string twitterUrl
+        string githubHandle
+        string twitterHandle
+        string linkedinName
+        string resumeUrl
     }
-  }, [])
 
-  // 12. Once completed → static snapshot; otherwise animated content
-  return (
-    <div ref={ref}>
-      <TerminalContainer title="developer@portfolio:~$">
-        {animation.isCompleted ? renderStaticContent() : renderAnimatingContent()}
-      </TerminalContainer>
-    </div>
-  )
-}
+    PROJECT {
+        string id
+        string name
+        string status
+        string description
+        string[] technologies
+        string githubUrl
+        string liveUrl
+    }
+
+    EXPERIENCE {
+        string id
+        string period
+        string role
+        string company
+        string description
+        string[] achievements
+        string[] technologies
+    }
+
+    SKILL_CATEGORY {
+        string title
+        string icon
+        string[] technologies
+    }
+
+    SPECIALIZATION {
+        string name
+    }
+
+    OWNER ||--|| CONTACT : "personal.ts exports both"
+    SKILL_CATEGORY ||--o{ SPECIALIZATION : "skills.ts"
+    PROJECT }o--|| PROJECT : "projects[] array"
+    EXPERIENCE }o--|| EXPERIENCE : "experiences[] array"
 ```
 
-**Why `renderStaticContent`?** Once `animation.isCompleted`, the section renders a plain HTML snapshot. This removes all typing-state React overhead and gives crawlers clean, stable markup.
+`status` on `Project` is the display badge: `'LIVE' | 'BETA' | 'WIP'`. `period` on `Experience` is a freeform string (`'2023 - Present'`).
 
-**Why the stable `onInViewChangeRef`?** `useInView` captures `onInViewChange` inside its observer setup `useEffect`. Using a ref-forwarded callback prevents the observer from being disconnected and re-created every time `audio` or `animation` state changes.
+### How content flows to the UI
+
+```mermaid
+flowchart LR
+    personal["content/personal.ts\nowner + contact"] --> Hero[HeroSection\nwhoami output]
+    personal --> About[AboutSection\nbio in terminal]
+    personal --> Contact[ContactSection\nlinks card]
+    personal --> Term[useTerminalInput\nwhoami / cd about]
+
+    projects["content/projects.ts\nprojects[]"] --> Proj[ProjectsSection\ncard grid]
+    projects --> Term
+
+    experience["content/experience.ts\nexperiences[]"] --> Exp[ExperienceSection\ntimeline]
+    experience --> Term
+
+    skills["content/skills.ts\nskillCategories[]\nspecializations[]"] --> About
+```
+
+Note: the terminal's **in-memory filesystem** (`~/projects/<slug>/README.md`) does *not* auto-sync with `content/projects.ts` — those README files are hand-authored inside `useTerminalInput.ts`.
 
 ---
 
-## 9. Key Files & Directory Structure
+## Styling & theming
 
-```
-.
-├── app/
-│   ├── layout.tsx              — Root layout: BootProvider, Background, BootScreen
-│   ├── page.tsx                — ScrollSection wrappers + keyboard navigation
-│   ├── globals.css             — CSS custom properties (colors, fonts, spacing)
-│   ├── robots.ts               — robots.txt generation
-│   └── sitemap.ts              — sitemap.xml generation
-│
-└── src/
-    ├── constants/
-    │   ├── typingConfig.ts     — ★ SINGLE SOURCE OF TRUTH: all typing/audio config
-    │   └── hero.ts             — Static content constants for hero section
-    │
-    ├── lib/
-    │   ├── animationController.ts  — AnimationController class (imperative state machine)
-    │   ├── animationTypes.ts       — All TypeScript interfaces/types for animation system
-    │   ├── audioController.ts      — GlobalAudioController singleton
-    │   ├── glitch.ts               — 2-phase character glitch + CSS vintage effects
-    │   ├── particles.ts            — Particle creation, update, draw, connection logic
-    │   └── utils.ts                — General utilities
-    │
-    ├── hooks/
-    │   ├── useAnimationController.ts — React wrapper for AnimationController
-    │   ├── useTypingAnimation.ts     — Generates AnimationStep[] for character typing
-    │   ├── useInView.ts              — IntersectionObserver hook
-    │   └── useKeystrokeAudio.ts      — Audio playback + useTypingAudioCallback bridge
-    │
-    ├── components/
-    │   ├── layout/
-    │   │   ├── Background.tsx        — Canvas particle system (fixed, full-viewport)
-    │   │   ├── BootScreen.tsx        — CRT boot sequence overlay (5-phase exit)
-    │   │   ├── CustomCursor.tsx      — Custom cursor element
-    │   │   ├── ScrollHint.tsx        — Scroll indicator
-    │   │   ├── context/
-    │   │   │   └── BootContext.tsx   — isBooted / completeBoot context
-    │   │   └── seo/
-    │   │       ├── SEOContent.tsx    — Visually-hidden semantic HTML for crawlers
-    │   │       └── StructuredData.tsx — JSON-LD structured data (Person schema)
-    │   │
-    │   ├── sections/
-    │   │   ├── HeroSection.tsx
-    │   │   ├── AboutSection.tsx
-    │   │   ├── ProjectsSection.tsx
-    │   │   ├── ExperienceSection.tsx
-    │   │   └── ContactSection.tsx
-    │   │
-    │   └── shared/
-    │       ├── TerminalContainer.tsx — Terminal chrome wrapper (title bar + border)
-    │       ├── ScrollSection.tsx     — Full-height scroll-snap section wrapper
-    │       └── email-templates/      — Resend email templates (confirmation + notification)
-    │
-    └── types/
-        └── index.ts              — Shared application types
-```
+All theme values live as CSS custom properties in `app/globals.css`. There are five families:
 
----
+| Family             | Examples                                              |
+|--------------------|-------------------------------------------------------|
+| Colours            | `--color-primary`, `--color-bg-dark`, dim/dimmer/dimmest opacity tiers |
+| Spacing            | `--spacing-xs` … `--spacing-2xl` (mobile-first, 6 breakpoint overrides) |
+| Typography         | `--font-mono`, `--font-size-xs` … `--font-size-3xl`, `--line-height-*` |
+| Layout             | `--container-max-width`, `--terminal-padding-*`, `--grid-size`, `--grid-opacity` |
+| Z-index            | `--z-background` (0) … `--z-cursor` (100 000)          |
 
-## 10. How to Add a New Section
+### Per-section phosphor tints
 
-### Step 1 — Register the section ID in `typingConfig.ts`
+Each section shifts the green hue via a `section[id="..."]` selector that overrides `--color-primary` and its dim variants. Hue-only shift keeps contrast against `#0a0f0a` constant (S=100% / L≈50%):
 
-```ts
-// src/constants/typingConfig.ts
-export type SectionId = 'hero' | 'about' | 'projects' | 'experience' | 'contact' | 'skills'
+| Section     | Tint        |
+|-------------|-------------|
+| `home`      | `#00ff41` (anchor) |
+| `about`     | `#22ff52`   |
+| `projects`  | `#00ff7d`   |
+| `experience`| `#3aff2a`   |
+| `contact`   | `#00ff41` (anchor — action point) |
+| `terminal`  | `#00ff70`   |
 
-export const sectionTypingConfigs: Record<SectionId, SectionTypingConfig> = {
-  // ... existing entries ...
-  skills: {
-    baseSpeed: 70,
-    patternOverrides: {
-      randomPauseProbability: 0.07,
-    },
-  },
-}
-```
+Background, particles, grid, gradient, and cursor stay at the anchor `#00ff41` — they form the constant ambient layer that prevents the per-section shift from feeling like five different sites.
 
-### Step 2 — Create the section component
+### Component-scoped styles
 
-Create `src/components/sections/SkillsSection.tsx` following the [Section Component Pattern](#8-section-component-pattern). The minimal imports you need:
+Every section component has a `<style>{...}</style>` block at the bottom for its own classnames (`.hero-section-name`, `.about-section-skill-category`, etc.). Convention:
 
-```ts
-import { useBootContext } from '@/src/components/layout/context/BootContext'
-import { useInView } from '@/src/hooks/useInView'
-import { useKeystrokeAudio, useTypingAudioCallback } from '@/src/hooks/useKeystrokeAudio'
-import { useAnimationController } from '@/src/hooks/useAnimationController'
-import { useTypingAnimation } from '@/src/hooks/useTypingAnimation'
-import { AnimationController } from '@/src/lib/animationController'
-import TerminalContainer from '@/src/components/shared/TerminalContainer'
-import {
-  getBaseSpeedForSection,
-  getPatternForSection,
-  audioConfig,
-  sequenceTimings,
-} from '@/src/constants/typingConfig'
-```
+- Use CSS variables from `globals.css` for anything that should track the theme.
+- Hard-code anchor green (`rgba(0, 255, 65, …)`) for *fills* and *backgrounds* you want constant across sections (skill-card washes, tech-badge fills) — this is intentional and keeps variation cohesive.
 
-### Step 3 — Wire it into `app/page.tsx`
+### Glitch effects
 
-```tsx
-import SkillsSection from '@/src/components/sections/SkillsSection'
+`src/lib/glitch.ts` provides `startCharacterGlitch` — a per-character overlay that rotates through random chars at configurable cadence and intensity. Active on:
 
-// Inside <main>:
-<ScrollSection id="skills">
-  <SkillsSection />
-</ScrollSection>
-```
+- Hero name + four highlight phrases in About.
+- Project names in Projects.
+- Role names in Experience.
+- The `visitor@kudzai` part of the terminal title bar.
+- Random output lines after `cd <section>` in the Terminal.
 
-Add `'skills'` to the `sections` array in the keyboard navigation `useEffect` in `page.tsx`.
+All glitch effects no-op under `prefers-reduced-motion`.
 
-### Step 4 — (Optional) Add glitch to output elements
+### Custom cursor
 
-After output is revealed, start a glitch on any `ref`-attached element:
+Hidden on touch devices (`@media (hover: none) and (pointer: coarse)` — `cursor: none !important` on `*`, replaced by a `<div class="custom-cursor">` containing a dot (8 px), ring (36 px border), and caret (2 px). JS sets `data-state="default|link|input"` and `data-section="home|about|…"` based on `event.target.closest()` and IntersectionObserver. Per-section glow multipliers (hero 1.2×, terminal 1.3×, about 0.8×) are derived from typing-config pacing — faster sections get brighter glows.
 
-```ts
-useEffect(() => {
-  if (!showOutput1 || !isInView || !myRef.current) return
-  return startCharacterGlitch(myRef.current, {
-    intensity: 'low',
-    singleCharInterval: 12000,
-    glitchCharDisplayDuration: 2500,
-  })
-}, [showOutput1, isInView])
-```
+### Particle background
+
+`Background.tsx` runs `lib/particles.ts` on a `<canvas>` at z-index 2. Particles maintain *zones* (3×3 grid to prevent drift) and *cluster zones* (focal points of higher density).
+
+| Setting              | Desktop | Mobile |
+|----------------------|---------|--------|
+| `numberOfParticles`  | 200     | 70     |
+| `connectionDistance` | 180 px  | 120 px |
+| `hubConnectionDistance` | 210 px | 150 px |
+| Target FPS           | 60      | 30     |
+
+Mobile detection: `width < 768 || ontouchstart || maxTouchPoints > 0`. `prefers-reduced-motion` renders **one** static frame and stops the RAF loop entirely.
 
 ---
 
-## 11. How to Tune Typing Feel
+## Accessibility
 
-All adjustments are made exclusively in `src/constants/typingConfig.ts`.
+This site goes hard on the visual aesthetic, which makes accessibility especially important. What is in place:
 
-### Make a section type faster or slower overall
+- **Skip link** (`a.skip-to-content`) at the top of `<body>`, visible on focus, jumps to `#home`.
+- **`SEOContent`** in `app/layout.tsx` is a visually-hidden but DOM-present block with the full semantic content (heading hierarchy, projects, experience, contact). Crawlers and assistive tech that do not execute the animation pipeline still get everything.
+- Every animated section renders a parallel `<div class="sr-only" aria-live="polite">` with the same content as plain HTML, and marks the visible animated tree as `aria-hidden="true"` while it is typing.
+- **`prefers-reduced-motion: reduce`** is honoured in: every section's animation (skipped → static), particle field (single static frame), boot screen (collapsed durations), glitch effects (no-op), and a `globals.css` rule that compresses every `*` animation/transition to 0.01 ms.
+- **Focus management** — arrow-key section navigation calls `targetSection.focus({ preventScroll: true })` so the next section becomes a tab anchor. Sections have `tabIndex={-1}` and `outline: none` so the focus is programmatic rather than visible.
+- **Focus indicators** — `:focus-visible` gets a 2 px green outline + glow site-wide.
+- **Touch targets** — `--min-touch-target: 44 px` (48 px on coarse pointers), enforced on CTAs, contact links, social icons, and the Snake on-screen d-pad.
+- **Form errors** — per-field error messages with `[ERROR]` prefix, distinct red border, and animated entry — rendered inline below each field.
+- **`role="log"`** on `TerminalContainer` with an `aria-label`.
 
-Change `baseSpeed` (milliseconds per character; lower = faster):
+What is *not* fully accessible: the interactive terminal lacks a validated power-user screen-reader workflow. The `sr-only` summary in `TerminalSection` lists available commands, but this has not been tested with a real blind-user workflow.
 
-```ts
-skills: { baseSpeed: 50, ... }  // fast — was 70
-skills: { baseSpeed: 110, ... } // slow — deliberate, dramatic
-```
+---
 
-### Make the start less or more dramatic
+## SEO
 
-Adjust `startSpeedMultiplier` in `patternOverrides` (1.0 = no effect, 3.0 = very slow start):
+Three layers of crawler signal:
 
-```ts
-patternOverrides: { startSpeedMultiplier: 1.2 }  // quicker to get going
-```
+1. **`metadata`** in `app/layout.tsx` — title, description, keywords, authors, canonical, OG image, Twitter card, robots directives.
+2. **`StructuredData`** (`<script type="application/ld+json">`) — `Person` and `WebSite` schema, with `alternateName` for name spelling variants and `knowsAbout` enumerating tech stack.
+3. **`SEOContent`** — the visually-hidden DOM block with full semantic heading hierarchy, projects, experience, and contact. Crawlers that do not execute JS animations still index the real content.
 
-### Reduce or increase hesitation
+Plus `app/sitemap.ts` (one entry, monthly changeFrequency, priority 1.0) and `app/robots.ts` (allow all, disallow `/api/` and `/_next/`).
 
-`randomPauseProbability` is the per-keystroke chance of a micro-pause (0 = never, 0.15 = frequent):
+---
 
-```ts
-patternOverrides: { randomPauseProbability: 0.04 }  // smooth, less hesitant
-```
+## Customising the content
 
-`randomPauseMultiplier` controls how long that pause is relative to the base delay:
+If you fork this for yourself, **everything you need to change lives in `src/content/` and `.env.local`**:
 
-```ts
-globalTypingPattern.randomPauseMultiplier = 4.0  // very long hesitations when they hit
-```
+| File | Edit to change |
+|------|---------------|
+| `src/content/personal.ts` | Name, title, bio, three-line description, aliases. Contact links read from env. |
+| `src/content/projects.ts` | Project cards. Each `Project` has `id`, `name`, `status` (`LIVE`/`BETA`/`WIP`), `description`, `technologies[]`, `githubUrl`, optional `liveUrl`. **Current values are placeholders (`github.com/yourusername/...`) — replace them.** |
+| `src/content/experience.ts` | Work history. `Experience[]` with `period`, `role`, `company` (prefix with `@ `), `description`, `achievements[]`, `technologies[]`. **Also placeholders — replace them.** |
+| `src/content/skills.ts` | `skillCategories[]` (4 cards: AI/ML, Backend, Frontend, DevOps) + `specializations[]` (6 chip tags). |
+| `.env.local` | All contact links, email, resume URL, site URL. |
 
-### Make file extension typing more or less dramatic
+The terminal's `formatSectionLines` in `useTerminalInput.ts` reads from these same content files — a change in `src/content/projects.ts` automatically updates both the Projects card grid **and** the output of `cd projects` in the terminal.
 
-`extensionSpeedMultiplier` applies to characters after the last `.` in text like `cat role.txt`:
+Two places you also need to update manually when changing projects:
+1. The in-memory filesystem tree in `useTerminalInput.ts` (project READMEs under `~/projects/<slug>/README.md`) — hand-authored, does not auto-sync.
+2. The `AboutSection.tsx` bio JSX block — it uses a richer JSX tree with four glitching highlight phrases hardcoded in the component. The `bio` field in `personal.ts` is used by the *terminal's* `whoami` and `cd about` output, not by the visual About card.
 
-```ts
-projects: { baseSpeed: 70, patternOverrides: { extensionSpeedMultiplier: 6.0 } }
-```
+Static assets (`/og-image.png`, `/resume.pdf`, favicons) live in `public/`.
 
-### Change how individual character classes feel
+---
 
-Edit `charClassMultipliers` (higher = slower):
+## Deployment
 
-```ts
-export const charClassMultipliers = {
-  digit: 1.5,          // was 1.35 — number row feels more labored
-  specialSymbol: 1.3,  // was 1.55 — symbols feel less effortful
-  space: 0.7,          // was 0.85 — thumb hits are snappier
-}
-```
+- **Configured for Vercel** (the most recent migration removed `netlify.toml`; there is no `vercel.json` because the defaults work for a Next.js App Router project).
+- Node 20.x is pinned in `package.json` `engines`.
+- All env vars in [Environment variables](#environment-variables) must be set in the Vercel dashboard. `RESEND_API_KEY` is the only server-only one.
+- **Set `NEXT_PUBLIC_SITE_URL`** to the canonical domain — every OG image URL, sitemap entry, JSON-LD `url`, and Resend `replyTo` derives from it.
+- The `from` address `noreply@prichard.co.zw` in `app/api/contact/route.ts` requires a verified domain in your Resend account. Change it if you're not running this site under that domain.
 
-### Add a new slow character
+---
 
-Append to `slowCharacters` in `globalTypingPattern`:
+## Things to know before contributing
 
-```ts
-slowCharacters: ['.', '/', '\\', '-', '_', '~', '|', ':'],
-```
+These are non-obvious, learned-the-hard-way things — read them before touching the listed files.
 
-### Adjust audio volume ramp speed
+### Animation cancellation is load-bearing
 
-Change how many keystrokes reach full volume, and how quiet the first keystroke is:
+`useAnimationController.cancel()` is called from every section's unmount cleanup *and* from the `onInViewChange(false)` handler when the section scrolls out before completing. Without it, you get stuck partial states — half-typed strings that never reveal their output, leaked `setTimeout` chains, and audio that keeps firing after navigation. If you add a new section, mirror the pattern in `HeroSection.tsx` (look for the `eslint-disable-next-line react-hooks/exhaustive-deps` comments — they document why the unmount-only effect is intentionally dep-free).
 
-```ts
-export const audioConfig = {
-  volumeRampKeystrokes: 5,    // was 10 — louder faster
-  volumeRampMinFraction: 0.2, // was 0.5 — starts very quiet
-  volumeDecayDelayMs: 1000,   // was 2000 — ramp resets faster after silence
-}
-```
+### `audioController` is a singleton
 
-### Change inter-command pacing
+There is exactly one global "active section" at a time. New sections must call `requestAudioControl(sectionId)` on enter and `releaseAudioControl()` on exit — otherwise their `onTypingKeystroke` callback will silently no-op (`hasAudioControl === false`) or steal audio from a section that should own it.
 
-These apply globally to all sections:
+### Don't put typing speeds in components
 
-```ts
-export const sequenceTimings = {
-  initialDelay: 300,          // was 500 — less pause before first command
-  postCommandDelay: 150,      // was 350 — output appears quicker after typing
-  betweenCommandsDelay: 600,  // was 900 — tighter flow between commands
-}
-```
+All typing feel — base speed, pattern multipliers, sequence delays, audio ramp settings — lives in `src/constants/typingConfig.ts`. Tune one section by editing its entry in `sectionTypingConfigs`, not by sprinkling magic numbers in the component. The helpers `getBaseSpeedForSection` and `getPatternForSection` are the only intended consumers.
+
+### The two `Project` / `Experience` interfaces
+
+`src/types/index.ts` and the individual content files each define their own `Project` and `Experience` interfaces with **different shapes**. The section components import from `src/content/` — that is the authoritative shape for what gets rendered. `src/types/index.ts` is for component prop types. Do not confuse them when adding fields.
+
+### `<style>{...}</style>` blocks at the bottom of section components
+
+Intentional — each section's component-specific CSS lives in a `<style>` element inside its return. Do not move them to `globals.css`; the locality is what makes large refactors safe. When writing a new section, scope all classnames with the section prefix (`.hero-section-…`, `.about-section-…`).
+
+### The interactive terminal is one large file by design
+
+`useTerminalInput.ts` is ~2 600 lines because it contains the entire shell — command table, alias map, in-memory filesystem, response generators, parser, history, autocomplete, and mode dispatch. It has been kept in one file so all the pieces stay co-located. If you add a command: add a response generator in the "RESPONSES" region, a branch in `getCommandResponse`, and an entry in `generateHelp`.
+
+### Reduced motion is non-negotiable
+
+Every animated effect needs a `prefers-reduced-motion` short-circuit. The pattern is `const prefersReducedMotion = useReducedMotion()` then early-return or skip-to-static. There is no CI enforcement — the only protection is the convention.
+
+### Tailwind v4 is plumbed but unused
+
+`@tailwindcss/postcss` is configured and `tailwindcss` is a devDependency. There are no utility classes in the codebase. Either start using Tailwind for new components, or remove the dependency — the current state costs ~1.4 MB of devDependencies for nothing.
+
+---
+
+## License
+
+No license file is currently present in this repository. Treat the source as **all rights reserved** unless and until one is added.
