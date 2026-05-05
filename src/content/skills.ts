@@ -10,30 +10,30 @@ export const skillCategories: SkillCategory[] = [
     {
         title: 'AI/ML',
         icon: '\u{1F916}',
-        technologies: ['TensorFlow', 'PyTorch', 'Scikit-learn', 'OpenAI', 'Hugging Face'],
+        technologies: ['TensorFlow', 'Keras', 'PyTorch', 'scikit-learn', 'OpenCV', 'NLP', 'OCR', 'Google Gemini'],
     },
     {
         title: 'Backend',
         icon: '\u2699\uFE0F',
-        technologies: ['Python', 'Node.js', 'Django', 'FastAPI', 'PostgreSQL'],
+        technologies: ['Python', 'C#', '.NET', 'Java', 'Spring Boot', 'FastAPI', 'Flask'],
     },
     {
         title: 'Frontend',
         icon: '\u{1F4BB}',
-        technologies: ['React', 'Next.js', 'TypeScript', 'Tailwind', 'Vue.js'],
+        technologies: ['Next.js', 'React', 'TypeScript', 'Angular', 'TanStack Query', 'Tailwind CSS'],
     },
     {
-        title: 'DevOps',
+        title: 'Cloud & DevOps',
         icon: '\u2601\uFE0F',
-        technologies: ['Docker', 'AWS', 'Git', 'CI/CD', 'Linux'],
+        technologies: ['AWS', 'Azure', 'Docker', 'Vercel', 'CI/CD', 'Git'],
     },
 ]
 
 export const specializations: string[] = [
-    'Machine Learning Engineering',
-    'Natural Language Processing',
-    'API Development',
-    'System Architecture',
-    'Data Engineering',
-    'Cloud Computing',
+    'Distributed Systems & Backend Architecture',
+    'AI/ML Integration & Model Deployment',
+    'Cloud-Native APIs (AWS / Azure)',
+    'Microservices & Event-Driven Systems',
+    'Voice AI & Automation',
+    'Full Stack Web Development',
 ]
