@@ -3,13 +3,13 @@
 export const owner = {
     name: 'kudzai prichard',
     fullName: 'Kudzai Prichard Matizirofa',
-    title: 'AI & Full Stack Developer',
+    title: 'Backend Software Engineer · Distributed Systems · AI Integration',
     description: [
-        'Building intelligent systems and scalable applications.',
-        'Specializing in AI/ML, backend architecture, and modern web technologies.',
-        'Transforming complex problems into elegant solutions.',
+        'Building distributed backend systems and cloud-native APIs at scale.',
+        'Specializing in AI/ML integration, model deployment, and AWS infrastructure.',
+        'Shipping production systems that process high volumes of data reliably.',
     ],
-    bio: 'Passionate developer with expertise in artificial intelligence and full-stack development. I combine cutting-edge AI technologies with robust backend systems to create innovative solutions. Committed to writing clean, efficient code and staying current with emerging technologies.',
+    bio: 'Backend software engineer with production experience shipping distributed APIs, ML pipelines, and AI-integrated systems on AWS and Azure. I focus on cloud-native architecture, scalable backend design, and deploying machine learning models into production — building systems that hold up under real load and real clients.',
     aliases: [
         'Kudzai Prichard',
         'Kudzai Matizirofa',
