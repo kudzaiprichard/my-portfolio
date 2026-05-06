@@ -220,9 +220,9 @@ export default function AboutSection() {
 
             <div className="about-section-output-block">
                 <p className="about-section-bio-text">
-                    Engineer who builds <span ref={word1Ref}>intelligent systems</span> and ships them. ML pipelines
-                    processing millions of data points, NLP models hitting <span ref={word2Ref}>94% accuracy</span>,
-                    full-stack apps serving 100K+ users. Fluent in Python, TypeScript, and <span ref={word3Ref}>making
+                    Engineer who builds <span ref={word1Ref}>distributed backend systems</span> and ships them. ML pipelines
+                    processing high volumes of data, models deployed with <span ref={word2Ref}>high accuracy</span> in
+                    production, full-stack apps serving a multitude of users. Fluent in Python, C#, TypeScript, and <span ref={word3Ref}>making
                     machines do useful things</span>. Always: <span ref={word4Ref}>building the next thing</span>.
                 </p>
             </div>
@@ -292,9 +292,9 @@ export default function AboutSection() {
             {showOutput1 && (
                 <div className="about-section-output-block about-section-fade-in-smooth">
                     <p className="about-section-bio-text">
-                        Engineer who builds <span ref={word1Ref}>intelligent systems</span> and ships them. ML pipelines
-                        processing millions of data points, NLP models hitting <span ref={word2Ref}>94% accuracy</span>,
-                        full-stack apps serving 100K+ users. Fluent in Python, TypeScript, and <span ref={word3Ref}>making
+                        Engineer who builds <span ref={word1Ref}>distributed backend systems</span> and ships them. ML pipelines
+                        processing high volumes of data, models deployed with <span ref={word2Ref}>high accuracy</span> in
+                        production, full-stack apps serving a multitude of users. Fluent in Python, C#, TypeScript, and <span ref={word3Ref}>making
                         machines do useful things</span>. Always: <span ref={word4Ref}>building the next thing</span>.
                     </p>
                 </div>
@@ -360,9 +360,9 @@ export default function AboutSection() {
             <div className="sr-only" aria-live="polite">
                 <h2>About</h2>
                 <p>
-                    Engineer who builds intelligent systems and ships them. ML pipelines processing
-                    millions of data points, NLP models hitting 94% accuracy, full-stack apps serving
-                    100K+ users. Fluent in Python, TypeScript, and making machines do useful things.
+                    Engineer who builds distributed backend systems and ships them. ML pipelines processing
+                    high volumes of data, models deployed with high accuracy in production, full-stack apps
+                    serving a multitude of users. Fluent in Python, C#, TypeScript, and making machines do useful things.
                     Always: building the next thing.
                 </p>
                 <h3>Tech Stack</h3>

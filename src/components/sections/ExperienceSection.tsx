@@ -210,6 +210,19 @@ export default function ExperienceSection() {
                                 </span>
                             ))}
                         </div>
+
+                        {exp.url && (
+                            <div className="experience-section-links">
+                                <a
+                                    href={exp.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="experience-section-link"
+                                >
+                                    → Website
+                                </a>
+                            </div>
+                        )}
                     </div>
                 ))}
             </div>
@@ -281,6 +294,19 @@ export default function ExperienceSection() {
                                         </span>
                                     ))}
                                 </div>
+
+                                {exp.url && (
+                                    <div className="experience-section-links">
+                                        <a
+                                            href={exp.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="experience-section-link"
+                                        >
+                                            → Website
+                                        </a>
+                                    </div>
+                                )}
                             </div>
                         )
                     ))}
@@ -460,6 +486,25 @@ export default function ExperienceSection() {
                 .experience-section-tech-tag:hover {
                     border-color: var(--color-primary);
                     background: rgba(0, 255, 65, 0.05);
+                }
+
+                .experience-section-links {
+                    display: flex;
+                    gap: var(--spacing-md);
+                    margin-top: var(--spacing-sm);
+                }
+
+                .experience-section-link {
+                    font-size: var(--font-size-sm);
+                    color: var(--color-primary);
+                    text-decoration: none;
+                    transition: text-shadow var(--transition-fast);
+                    line-height: var(--line-height-tight);
+                    text-shadow: 0 0 8px var(--color-primary-dimmer);
+                }
+
+                .experience-section-link:hover {
+                    text-shadow: 0 0 12px var(--color-primary-dim);
                 }
 
                 @media (min-width: 768px) {
