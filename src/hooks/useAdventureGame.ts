@@ -135,7 +135,7 @@ const ROOMS: Record<string, Room> = {
         description: [
             'A bustling open-plan office. Whiteboards everywhere. A "Days',
             'Since Last Deploy" counter reads "0" (it always reads 0).',
-            'Three product launches happened here. 100K+ users served.',
+            'Three product launches happened here. A multitude of users served.',
             'The energy of StartupHub, 2021-2023.',
         ].join('\n'),
         lookAround: [
@@ -227,9 +227,9 @@ const ROOMS: Record<string, Room> = {
         name: 'The AI Lab',
         description: [
             'A high-tech laboratory filled with GPUs and whiteboards covered',
-            'in neural network diagrams. NLP models achieve 94% accuracy here.',
-            'Inference pipelines have been optimized by 60%. Five mentees',
-            'learned their craft in this room. TechCorp, 2023-present.',
+            'in neural network diagrams. ML models deployed with high accuracy here.',
+            'Inference pipelines optimized and running in production. Engineers',
+            'learned their craft in this room.',
         ].join('\n'),
         lookAround: [
             'A TRAINED-MODEL sits in a glass case, glowing with potential.',
@@ -238,7 +238,7 @@ const ROOMS: Record<string, Room> = {
             'The exit leads SOUTH back to the startup.',
         ].join('\n'),
         items: [
-            { name: 'trained-model', description: 'A neural network trained to 94% accuracy. It\'s compact, efficient, and surprisingly opinionated about architecture decisions.' },
+            { name: 'trained-model', description: 'A neural network trained to high accuracy. It\'s compact, efficient, and surprisingly opinionated about architecture decisions.' },
         ],
         exits: [
             { direction: 'south', roomId: 'the-startup' },
@@ -303,8 +303,8 @@ const WIN_MESSAGE = [
     '║                                                      ║',
     '║  Kudzai Prichard Matizirofa:                         ║',
     '║  AI & Full Stack Engineer. 15+ projects shipped.     ║',
-    '║  100K+ users served. 94% model accuracy.             ║',
-    '║  Currently building the future at TechCorp.          ║',
+    '║  Enterprise clients. High-accuracy ML in production.  ║',
+    '║  Currently building the future — Teleagents & more.  ║',
     '║                                                      ║',
     '║  The developer you just played as? They\'re also      ║',
     '║  the one who built the terminal you\'re standing in.  ║',
