@@ -243,10 +243,13 @@ export default function HeroSection() {
 
             <div className="hero-section-description-section">
                 <p className="hero-section-description-text">
-                    Building intelligent systems and scalable applications.<br />
-                    Specializing in AI/ML, backend architecture, and modern web technologies.<br />
-                    Transforming complex problems into elegant solutions.
+                    {owner.description.join(' ')}
                 </p>
+                <div className="hero-section-tech-pills">
+                    {['Python', 'Java', 'C#', 'AWS', 'Docker', 'CI/CD', 'Spring Boot', 'TypeScript'].map(tech => (
+                        <span key={tech} className="hero-section-tech-pill">{tech}</span>
+                    ))}
+                </div>
             </div>
 
             <TerminalInput
@@ -317,10 +320,13 @@ export default function HeroSection() {
             {showDescriptionOutput && (
                 <div className="hero-section-description-section hero-section-fade-in-smooth-delayed">
                     <p className="hero-section-description-text">
-                        {owner.description[0]}<br />
-                        {owner.description[1]}<br />
-                        {owner.description[2]}
+                        {owner.description.join(' ')}
                     </p>
+                    <div className="hero-section-tech-pills">
+                        {['Python', 'Java', 'C#', 'AWS', 'Docker', 'CI/CD', 'Spring Boot', 'TypeScript'].map(tech => (
+                            <span key={tech} className="hero-section-tech-pill">{tech}</span>
+                        ))}
+                    </div>
                 </div>
             )}
         </div>
@@ -395,7 +401,23 @@ export default function HeroSection() {
                     font-size: var(--font-size-md);
                     color: var(--color-primary);
                     line-height: var(--line-height-relaxed);
-                    margin: 0;
+                    margin: 0 0 var(--spacing-md) 0;
+                    text-align: justify;
+                }
+
+                .hero-section-tech-pills {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: var(--spacing-xs);
+                }
+
+                .hero-section-tech-pill {
+                    font-size: var(--font-size-sm);
+                    font-family: var(--font-mono);
+                    color: var(--color-primary-dim);
+                    border: 1px solid var(--color-primary-dimmest);
+                    padding: 2px var(--spacing-xs);
+                    border-radius: 2px;
                 }
 
                 .hero-section-fade-in {
@@ -468,6 +490,10 @@ export default function HeroSection() {
                     .hero-section-description-text {
                         font-size: var(--font-size-sm);
                         line-height: var(--line-height-normal);
+                    }
+
+                    .hero-section-tech-pill {
+                        font-size: var(--font-size-xs);
                     }
                 }
             `}</style>
