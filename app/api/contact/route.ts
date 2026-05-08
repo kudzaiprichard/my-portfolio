@@ -1,10 +1,5 @@
-import { Resend } from 'resend'
 import { NextResponse } from 'next/server'
-import { ContactConfirmation, ContactNotification } from '@/src/components/shared/email-templates'
-
-const resend = new Resend(process.env.RESEND_API_KEY)
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://prichard.co.zw'
-const ownerEmail = process.env.NEXT_PUBLIC_EMAIL!
+import { sendContactEmail } from '@/src/lib/sendContactEmail'
 
 export async function POST(req: Request) {
     let body
@@ -20,31 +15,12 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'All fields are required' }, { status: 400 })
     }
 
-    try {
-        const [notification, confirmation] = await Promise.all([
-            resend.emails.send({
-                from: `Portfolio Contact <noreply@prichard.co.zw>`,
-                replyTo: process.env.NEXT_PUBLIC_EMAIL!,
-                to: ownerEmail,
-                subject: `New message from ${name}`,
-                react: ContactNotification({ name, email, message }),
-            }),
-            resend.emails.send({
-                from: `Kudzai Prichard <noreply@prichard.co.zw>`,
-                to: email,
-                subject: 'Message received — kudzai@portfolio',
-                react: ContactConfirmation({ name, email, message }),
-            }),
-        ])
+    const result = await sendContactEmail({ name, email, message })
 
-        if (notification.error || confirmation.error) {
-            console.error('[contact] Send error:', notification.error || confirmation.error)
-            return NextResponse.json({ error: 'Failed to send email' }, { status: 500 })
-        }
-
-        return NextResponse.json({ success: true })
-    } catch (error) {
-        console.error(`[contact] Failed to send email from ${siteUrl}:`, error)
-        return NextResponse.json({ error: 'Failed to send email' }, { status: 500 })
+    if (!result.success) {
+        const status = result.error?.includes('required') || result.error?.includes('valid') ? 400 : 500
+        return NextResponse.json({ error: result.error || 'Failed to send email' }, { status })
     }
+
+    return NextResponse.json({ success: true })
 }
