@@ -5,6 +5,7 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useSnakeGame } from './useSnakeGame'
 import { useAdventureGame } from './useAdventureGame'
 import { owner, contact, skillCategories, specializations, projects, experiences } from '@/src/content'
+import type { AgentAction, ChatMessage } from '@/src/lib/aiAgent'
 import {
     getCharClassMultiplier,
     getBaseSpeedForSection,
@@ -20,14 +21,23 @@ export interface TerminalLine {
     type: 'input' | 'output'
     text: string
     prompt?: string
+    /** 'agent' marks a spoken reply from the AI, styled distinctly from raw output. */
+    variant?: 'agent'
 }
 
 interface UseTerminalInputOptions {
     sectionId: TerminalSectionId
     isActive: boolean
+    /** Called with each agent reply as it starts (used to speak it aloud). */
+    onAgentReply?: (text: string) => void
+    /** Called when the visitor interrupts a reply (used to stop speech). */
+    onAgentInterrupt?: () => void
 }
 
-type TerminalMode = 'normal' | 'vim' | 'matrix' | 'snake' | 'adventure'
+type TerminalMode = 'normal' | 'vim' | 'matrix' | 'snake' | 'adventure' | 'tour' | 'contact'
+
+/** Visual state of the agent presence orb, derived from terminal activity. */
+type AgentState = 'idle' | 'thinking' | 'speaking'
 
 interface UseTerminalInputReturn {
     inputText: string
@@ -43,6 +53,16 @@ interface UseTerminalInputReturn {
     snakeChangeDirection: (dir: 'up' | 'down' | 'left' | 'right') => void
     adventurePrompt: string
     displayedSection: NavigableSection | null
+    /** Variant of the in-progress typing line ('agent' for AI replies). */
+    responseVariant: 'agent' | undefined
+    /** True once the AI has answered — show the quick-action chips. */
+    agentUsed: boolean
+    /** Run a command programmatically (used by quick-action chips). */
+    submitCommand: (command: string) => void
+    /** Contextual follow-up questions suggested by the agent (chip labels). */
+    agentSuggestions: readonly string[]
+    /** Submit a spoken transcript (reply will be read aloud). */
+    submitVoiceCommand: (command: string) => void
 }
 
 interface CommandResponse {
@@ -57,6 +77,21 @@ interface CommandResponse {
     downloadUrl?: string
     /** Open this URL in a new tab (mailto:, https://, etc). */
     openUrl?: string
+    /**
+     * Route this plain-English input to the AI agent (/api/chat) instead of
+     * returning a static response. Set when an unknown command reads like a
+     * natural-language question rather than a typo'd command.
+     */
+    askAI?: string
+    /** Launch the scripted guided tour (from the `tour` command or a tour phrase). */
+    startTour?: boolean
+    /** Launch the step-by-step contact flow (from `email`/`contact` — no AI needed). */
+    startContact?: boolean
+    /**
+     * Marks a scripted onboarding/greeting reply — typed as the agent's voice
+     * and followed by onboarding chips, without an AI round-trip.
+     */
+    onboarding?: boolean
 }
 
 const RESPONSE_CHAR_SPEED = 18
@@ -763,10 +798,10 @@ function getCompletions(cwd: string, partial: string): string[] {
 
 /** Canonical command names available in the dedicated terminal section. */
 const TERMINAL_COMMAND_LIST: readonly string[] = [
-    'adventure', 'ascii', 'cat', 'cd', 'clear', 'curl', 'cv', 'date',
+    'adventure', 'ai', 'ascii', 'ask', 'cat', 'cd', 'chat', 'clear', 'curl', 'cv', 'date',
     'echo', 'email', 'exit', 'git', 'hack', 'help', 'history',
     'htop', 'kill', 'ls', 'man', 'matrix', 'neofetch', 'ping',
-    'pwd', 'sl', 'snake', 'ssh', 'sudo', 'vim', 'whoami',
+    'pwd', 'sl', 'snake', 'ssh', 'sudo', 'tour', 'vim', 'whoami',
 ]
 
 /** Limited command set available in the inline terminals on other sections. */
@@ -1213,17 +1248,6 @@ function generateCv(url: string): string {
     ].join('\n')
 }
 
-function generateEmail(emailAddr: string): string {
-    return [
-        `> Composing message → ${emailAddr}`,
-        '> Opening default mail client...',
-        '',
-        'If nothing happened, your browser may have blocked the protocol.',
-        `Email directly: ${emailAddr}`,
-        '',
-        'Or use the contact form one section up — same destination, fewer steps.',
-    ].join('\n')
-}
 
 function generateSl(): string {
     return [
@@ -1564,6 +1588,11 @@ function generateEcho(text: string): string {
 
 function generateHelp(): string {
     return [
+        '── Just ask ───────────────────────────────────────────',
+        '  Type a question in plain English and my AI will answer —',
+        '  e.g. "what do you specialize in?" or "can I see your resume?"',
+        '  Or use:  ask <question>',
+        '',
         '── Navigation ─────────────────────────────────────────',
         '  cd <section>   view section content (home, about, projects, experience, contact)',
         '',
@@ -1720,6 +1749,140 @@ function resolveAlias(command: string): string {
 }
 
 /* ============================================
+   GUIDED TOUR + SCRIPTED ONBOARDING
+   ============================================ */
+
+/** Natural phrasings that launch the guided tour without an AI round-trip. */
+const TOUR_TRIGGERS: ReadonlySet<string> = new Set([
+    'tour', 'take a tour', 'take the tour', 'start tour', 'start the tour',
+    'show me around', 'give me a tour', 'guided tour', 'walk me through',
+    'show me round', 'show me around the site',
+])
+
+function isTourTrigger(trimmed: string): boolean {
+    return TOUR_TRIGGERS.has(trimmed)
+}
+
+/** Phrasings that launch the step-by-step contact flow. */
+const CONTACT_TRIGGERS: ReadonlySet<string> = new Set([
+    'email', 'contact', 'contact you', 'get in touch', 'send a message',
+    'send message', 'message you', 'reach you', 'reach out', 'hire you',
+    'i want to hire you', 'work with you', 'email you', 'leave a message',
+])
+
+function isContactTrigger(trimmed: string): boolean {
+    return CONTACT_TRIGGERS.has(trimmed)
+}
+
+/** Basic email-shape validation for the contact flow. */
+const CONTACT_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/**
+ * Scripted, instant replies for greetings and "what is this?" — the most common
+ * first interaction from non-technical visitors. Handled without calling Gemini
+ * so it's immediate, free, and reliable.
+ */
+function matchOnboarding(trimmed: string): string | null {
+    const greetings = [
+        'hi', 'hello', 'hey', 'yo', 'hi there', 'hello there', 'hey there',
+        'howdy', 'sup', 'greetings', 'hallo', 'hie', 'hiya', 'good morning',
+        'good afternoon', 'good evening', 'hey kudzai', 'hi kudzai',
+    ]
+    const explainers = [
+        'what is this', 'whats this', "what's this", 'what is this site',
+        'what is this place', 'what can you do', 'what can i do here',
+        'what do i do', 'what do i do here', 'how does this work',
+        'how do i use this', 'i am lost', "i'm lost", 'im lost', 'what now',
+        'where do i start', 'how do i start', 'what is this thing',
+    ]
+    if (greetings.includes(trimmed)) {
+        return [
+            "Hey — I'm Kudzai's assistant, right here in the terminal.",
+            "You don't need to know any commands. Just ask me anything in plain English,",
+            'like "what do you do?" or "can I see your projects?".',
+            "Or type 'tour' and I'll walk you through everything.",
+        ].join('\n')
+    }
+    if (explainers.includes(trimmed)) {
+        return [
+            "This is Kudzai Prichard's interactive portfolio — a terminal you can actually talk to.",
+            "I'm his AI assistant. Ask me anything about his work, skills, projects, or how to",
+            'get in touch — no commands needed.',
+            "New here? Type 'tour' and I'll show you around, or tap a suggestion below.",
+        ].join('\n')
+    }
+    return null
+}
+
+/** A stop on the guided tour: a line of narration, then that section rendered. */
+interface TourStep {
+    section: NavigableSection
+    narration: string
+}
+
+const TOUR_STEPS: readonly TourStep[] = [
+    { section: 'about', narration: "First, a bit about who I am and what I work on." },
+    { section: 'projects', narration: "Next — some of the things I've actually built. This is where I spend most of my time." },
+    { section: 'experience', narration: "Here's where I've done the work: the companies, the roles, the real production systems." },
+    { section: 'contact', narration: "And that's the tour. If you'd like to talk, here's how to reach me — or just ask me to send a message." },
+]
+
+/** Prompt shown while the guided tour waits for the visitor to continue. */
+const TOUR_PROMPT = "[tour] press enter for next ▸ or ask me anything · "
+
+/** Default chips shown after a scripted onboarding reply. */
+const ONBOARDING_SUGGESTIONS: readonly string[] = [
+    'Take a tour', 'What do you do?', 'See your projects', 'How can I reach you?',
+]
+
+/** Chips shown after the guided tour finishes. */
+const POST_TOUR_SUGGESTIONS: readonly string[] = [
+    'Download your CV', 'Tell me about your experience', 'How can I reach you?',
+]
+
+/**
+ * Decide whether plain-English input should be handled by the agent layer
+ * (tour, scripted onboarding, explicit ask, or auto-detected question).
+ * Shared by every section so the AI is reachable everywhere, not just the
+ * dedicated terminal. Returns null when the input is better treated as a
+ * typo'd command (the caller then offers "did you mean").
+ */
+function routeNaturalLanguage(command: string, sectionId: TerminalSectionId): CommandResponse | null {
+    const trimmed = command.trim().toLowerCase()
+
+    // Guided tour — explicit command or natural phrasing. Instant, no AI call.
+    if (isTourTrigger(trimmed)) return { response: null, startTour: true }
+
+    // Contact flow — explicit command or natural phrasing. Instant, no AI call,
+    // so it works even when the AI is rate-limited.
+    if (isContactTrigger(trimmed)) return { response: null, startContact: true }
+
+    // Scripted onboarding for greetings / "what is this" — instant, no AI call.
+    const onboardingReply = matchOnboarding(trimmed)
+    if (onboardingReply) return { response: onboardingReply, onboarding: true }
+
+    // Explicit AI invocation: `ask <question>` / `ai <question>` / `chat ...`.
+    const cmd = trimmed.split(/\s+/)[0]
+    if (cmd === 'ask' || cmd === 'ai' || cmd === 'chat') {
+        const query = command.trim().slice(cmd.length).trim()
+        if (!query) {
+            return { response: "Ask me anything — e.g. `ask what do you specialize in?` or just type your question." }
+        }
+        return { response: null, askAI: query }
+    }
+
+    // Auto-detect natural language: route questions / multi-word phrases to the
+    // agent; leave close single-token typos for the caller's "did you mean".
+    const wordCount = trimmed.split(/\s+/).length
+    const closest = findClosestCommand(command, sectionId)
+    const looksLikeQuestion = /[?]/.test(command) || wordCount >= 2
+    if (looksLikeQuestion || !closest) {
+        return { response: null, askAI: command.trim() }
+    }
+    return null
+}
+
+/* ============================================
    NON-TERMINAL COMMAND RESPONSES
    ============================================ */
 
@@ -1785,11 +1948,9 @@ function getCommandResponse(sectionId: TerminalSectionId, command: string, cwd: 
             }
         }
         if (cmd === 'email') {
-            const subject = encodeURIComponent('Hello from your portfolio')
-            return {
-                response: generateEmail(contact.email),
-                openUrl: `mailto:${contact.email}?subject=${subject}`,
-            }
+            // Launch the in-terminal step-by-step contact flow (no mail client,
+            // no AI needed). Falls through to startContact handling.
+            return { response: null, startContact: true }
         }
 
         // Network commands
@@ -1847,9 +2008,14 @@ function getCommandResponse(sectionId: TerminalSectionId, command: string, cwd: 
             return { response: 'logout\nConnection to kudzai.dev closed. Come back anytime.' }
         }
 
+        // Agent layer: tour / onboarding / explicit ask / auto-detected question.
+        const aiRoute = routeNaturalLanguage(command, 'terminal')
+        if (aiRoute) return aiRoute
+
+        // Single-token typo with a close command match — keep the classic hint.
         const closest = findClosestCommand(command, 'terminal')
         const didYouMean = closest ? `\nDid you mean: ${closest}?` : ''
-        return { response: `bash: ${command.trim()}: command not found${didYouMean}\nType 'help' for available commands.` }
+        return { response: `bash: ${command.trim()}: command not found${didYouMean}\nType 'help' for available commands, or just ask me a question.` }
     }
 
     // Non-terminal sections — original behavior
@@ -1900,9 +2066,13 @@ function getCommandResponse(sectionId: TerminalSectionId, command: string, cwd: 
 
     if (trimmed === '') return { response: null }
 
+    // Agent layer is available on every section — route natural language to it.
+    const aiRoute = routeNaturalLanguage(command, sectionId)
+    if (aiRoute) return aiRoute
+
     const closest = findClosestCommand(command, sectionId)
     const didYouMean = closest ? `\nDid you mean: ${closest}?` : ''
-    return { response: `bash: ${command.trim()}: command not found${didYouMean}\nType 'help' for available commands.` }
+    return { response: `bash: ${command.trim()}: command not found${didYouMean}\nType 'help' for available commands, or just ask me a question.` }
 }
 
 /* ============================================
@@ -1919,17 +2089,44 @@ function cwdToPrompt(cwd: string): string {
    ============================================ */
 
 export function useTerminalInput(options: UseTerminalInputOptions): UseTerminalInputReturn {
-    const { sectionId, isActive } = options
+    const { sectionId, isActive, onAgentReply, onAgentInterrupt } = options
+
+    // Latest voice callbacks in refs, so timers/handlers read them without
+    // re-binding. Updated every render below.
+    const onAgentReplyRef = useRef(onAgentReply)
+    const onAgentInterruptRef = useRef(onAgentInterrupt)
+    onAgentReplyRef.current = onAgentReply
+    onAgentInterruptRef.current = onAgentInterrupt
 
     const [inputText, setInputText] = useState('')
     const [history, setHistory] = useState<TerminalLine[]>([])
     const [isTypingResponse, setIsTypingResponse] = useState(false)
     const [responseText, setResponseText] = useState('')
+    const [responseVariant, setResponseVariant] = useState<'agent' | undefined>(undefined)
+    const pendingVariantRef = useRef<'agent' | undefined>(undefined)
     const [cwd, setCwd] = useState('/')
     const [mode, setMode] = useState<TerminalMode>('normal')
     const [vimContent, setVimContent] = useState('')
     const [vimCommand, setVimCommand] = useState('')
     const [displayedSection, setDisplayedSection] = useState<NavigableSection | null>(null)
+    // True once the AI agent has answered at least once — gates the quick-action chips.
+    const [agentUsed, setAgentUsed] = useState(false)
+    // Contextual follow-up chips suggested by the agent (or onboarding defaults).
+    const [agentSuggestions, setAgentSuggestions] = useState<readonly string[]>([])
+    // Mirror of isThinkingRef as state, so the orb re-renders on change.
+    const [thinking, setThinking] = useState(false)
+    // When set, the NEXT agent reply is spoken aloud (voice-initiated only).
+    const shouldSpeakRef = useRef(false)
+    // Current step index of the guided tour.
+    const tourStepRef = useRef(0)
+
+    // ── Contact flow state ──
+    const contactStepRef = useRef<'name' | 'email' | 'message' | 'retry'>('name')
+    const contactDataRef = useRef<{ name: string; email: string; message: string }>({
+        name: '', email: '', message: '',
+    })
+    // Indirection so the keydown handler can call the latest step handler.
+    const submitContactStepRef = useRef<((raw: string) => void) | null>(null)
     const displayedSectionRef = useRef<NavigableSection | null>(null)
     const pendingSectionLinesRef = useRef<string[] | null>(null)
     const sectionLineIndexRef = useRef(0)
@@ -1942,6 +2139,20 @@ export function useTerminalInput(options: UseTerminalInputOptions): UseTerminalI
     const modeRef = useRef<TerminalMode>('normal')
     const vimCommandRef = useRef('')
     const matrixTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+    // ── AI agent state ──
+    // Multi-turn conversation history sent to /api/chat. Capped server-side too.
+    const chatHistoryRef = useRef<ChatMessage[]>([])
+    // Interval driving the "thinking" spinner while we await the API.
+    const thinkingTimerRef = useRef<NodeJS.Timeout | null>(null)
+    // True while awaiting the API. Swallows keystrokes so a network wait
+    // can't be "skipped" like the typing animation can.
+    const isThinkingRef = useRef(false)
+    // Stable indirection so agent-run commands can re-enter the dispatcher,
+    // which is defined further down. Assigned via effect below.
+    const processCommandRef = useRef<((command: string) => void) | null>(null)
+    // Stable indirection to launch the tour from runAgentQuery (defined later).
+    const startTourRef = useRef<(() => void) | null>(null)
 
     // Game hooks
     const snakeGame = useSnakeGame()
@@ -1960,6 +2171,8 @@ export function useTerminalInput(options: UseTerminalInputOptions): UseTerminalI
 
     const completeResponseImmediately = useCallback(() => {
         clearResponseTimers()
+        // Interrupting a reply also stops it being spoken aloud.
+        onAgentInterruptRef.current?.()
 
         // Flush remaining section content lines
         if (pendingSectionLinesRef.current) {
@@ -1977,24 +2190,36 @@ export function useTerminalInput(options: UseTerminalInputOptions): UseTerminalI
 
         if (pendingResponseRef.current) {
             const text = pendingResponseRef.current
+            const variant = pendingVariantRef.current
             pendingResponseRef.current = null
+            pendingVariantRef.current = undefined
             setHistory(prev => [...prev, {
                 id: ++lineIdRef.current,
                 type: 'output' as const,
                 text,
+                variant,
             }])
         }
         setResponseText('')
+        setResponseVariant(undefined)
         setIsTypingResponse(false)
         isTypingRef.current = false
     }, [clearResponseTimers])
 
-    const typeResponse = useCallback((text: string) => {
+    const typeResponse = useCallback((text: string, onComplete?: () => void, variant?: 'agent') => {
         setIsTypingResponse(true)
         isTypingRef.current = true
         setResponseText('')
+        setResponseVariant(variant)
         pendingResponseRef.current = text
+        pendingVariantRef.current = variant
         clearResponseTimers()
+
+        // Speak agent replies aloud ONLY when the question was asked by voice.
+        if (variant === 'agent' && shouldSpeakRef.current) {
+            onAgentReplyRef.current?.(text)
+            shouldSpeakRef.current = false
+        }
 
         for (let i = 0; i <= text.length; i++) {
             const timer = setTimeout(() => {
@@ -2005,11 +2230,15 @@ export function useTerminalInput(options: UseTerminalInputOptions): UseTerminalI
                         id: ++lineIdRef.current,
                         type: 'output' as const,
                         text,
+                        variant,
                     }])
                     setResponseText('')
+                    setResponseVariant(undefined)
                     setIsTypingResponse(false)
                     isTypingRef.current = false
                     pendingResponseRef.current = null
+                    pendingVariantRef.current = undefined
+                    onComplete?.()
                 }
             }, i * RESPONSE_CHAR_SPEED)
             responseTimersRef.current.push(timer)
@@ -2127,6 +2356,281 @@ export function useTerminalInput(options: UseTerminalInputOptions): UseTerminalI
         responseTimersRef.current.push(unlockTimer)
     }, [clearResponseTimers])
 
+    /* ── AI agent ────────────────────────────────────────────────────────── */
+
+    // Animated "thinking" spinner shown while we await /api/chat. Distinct from
+    // the typing animation: isThinkingRef (not isTypingRef) gates it, so a
+    // keypress can't "skip" a network round-trip — keys are swallowed instead.
+    const startThinking = useCallback((messages?: string[]) => {
+        clearResponseTimers()
+        setIsTypingResponse(true)
+        isThinkingRef.current = true
+        setThinking(true)
+
+        const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+        const msgs = messages ?? ['Thinking', 'Pulling that together', 'Almost there']
+        let i = 0
+        const tick = () => {
+            const spinner = frames[i % frames.length]
+            const msg = msgs[Math.min(Math.floor(i / 28), msgs.length - 1)]
+            const dots = '.'.repeat((Math.floor(i / 5) % 3) + 1)
+            setResponseText(`${spinner} ${msg}${dots}`)
+            i++
+        }
+        tick()
+        thinkingTimerRef.current = setInterval(tick, 90)
+    }, [clearResponseTimers])
+
+    const stopThinking = useCallback(() => {
+        if (thinkingTimerRef.current) {
+            clearInterval(thinkingTimerRef.current)
+            thinkingTimerRef.current = null
+        }
+        isThinkingRef.current = false
+        setThinking(false)
+        setResponseText('')
+    }, [])
+
+    // Map an agent action onto an existing terminal side-effect. Only the
+    // "instant" effects live here (navigate / open link / download). Inline
+    // renders (showSection / runCommand) are deferred by the caller so they
+    // appear AFTER the agent's spoken reply, not on top of it.
+    const executeAgentAction = useCallback((action: AgentAction) => {
+        switch (action.type) {
+            case 'navigate': {
+                const el = document.getElementById(action.section)
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth' })
+                    el.focus({ preventScroll: true })
+                }
+                break
+            }
+            case 'openLink': {
+                const url =
+                    action.target === 'github' ? contact.githubUrl
+                    : action.target === 'linkedin' ? contact.linkedinUrl
+                    : action.target === 'twitter' ? contact.twitterUrl
+                    : `mailto:${contact.email}`
+                window.open(url, '_blank', 'noopener,noreferrer')
+                break
+            }
+            case 'downloadResume': {
+                const url = contact.resumeUrl
+                if (/^https?:\/\//.test(url)) {
+                    window.open(url, '_blank', 'noopener,noreferrer')
+                } else {
+                    const link = document.createElement('a')
+                    link.href = url
+                    link.rel = 'noopener'
+                    link.setAttribute('download', '')
+                    document.body.appendChild(link)
+                    link.click()
+                    document.body.removeChild(link)
+                }
+                break
+            }
+            // 'showSection' and 'runCommand' are handled by runAgentQuery's
+            // deferred step — they produce terminal output, not a side-effect.
+        }
+    }, [])
+
+    const runAgentQuery = useCallback(async (query: string) => {
+        // Record the user's turn; keep the client-side window bounded too.
+        chatHistoryRef.current.push({ role: 'user', content: query })
+        if (chatHistoryRef.current.length > 12) {
+            chatHistoryRef.current = chatHistoryRef.current.slice(-12)
+        }
+
+        startThinking()
+
+        let data: { text?: string; actions?: AgentAction[]; suggestions?: string[] }
+        try {
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ messages: chatHistoryRef.current }),
+            })
+            data = await res.json()
+        } catch {
+            stopThinking()
+            typeResponse("Couldn't reach my AI side just now. Try again in a moment, or type `email` to contact me directly.", undefined, 'agent')
+            return
+        }
+
+        stopThinking()
+
+        const text = (typeof data.text === 'string' && data.text.trim())
+            ? data.text.trim()
+            : 'Ask me about my experience, projects, skills, or how to get in touch.'
+        const actions: AgentAction[] = Array.isArray(data.actions) ? data.actions : []
+
+        chatHistoryRef.current.push({ role: 'model', content: text })
+        setAgentUsed(true)
+        setAgentSuggestions(Array.isArray(data.suggestions) ? data.suggestions : [])
+
+        // Fire instant side-effects now; hold inline-render / tour actions until
+        // the reply finishes typing. Only the first deferred action is honored to
+        // avoid two animations fighting over the output area.
+        const isDeferred = (a: AgentAction) =>
+            a.type === 'showSection' || a.type === 'runCommand' || a.type === 'startTour'
+        const deferred = actions.find(isDeferred)
+        for (const a of actions) {
+            if (!isDeferred(a)) executeAgentAction(a)
+        }
+
+        typeResponse(text, deferred
+            ? () => {
+                if (deferred.type === 'showSection') renderSectionContent(deferred.section)
+                else if (deferred.type === 'runCommand') processCommandRef.current?.(deferred.command)
+                else if (deferred.type === 'startTour') startTourRef.current?.()
+            }
+            : undefined, 'agent')
+    }, [startThinking, stopThinking, typeResponse, executeAgentAction, renderSectionContent])
+
+    /* ── Guided tour ─────────────────────────────────────────────────────── */
+
+    const finishTour = useCallback((silent?: boolean) => {
+        modeRef.current = 'normal'
+        setMode('normal')
+        tourStepRef.current = 0
+        if (!silent) {
+            setAgentUsed(true)
+            setAgentSuggestions(POST_TOUR_SUGGESTIONS)
+        }
+    }, [])
+
+    // Run one tour stop: type the narration, then render that section inline.
+    const runTourStep = useCallback((step: number) => {
+        if (step >= TOUR_STEPS.length) {
+            finishTour()
+            typeResponse("That's the whirlwind tour. Ask me anything, or pick a suggestion below.", undefined, 'agent')
+            return
+        }
+        tourStepRef.current = step
+        const { section, narration } = TOUR_STEPS[step]
+        typeResponse(narration, () => renderSectionContent(section), 'agent')
+    }, [finishTour, typeResponse, renderSectionContent])
+
+    const startTour = useCallback(() => {
+        clearResponseTimers()
+        modeRef.current = 'tour'
+        setMode('tour')
+        tourStepRef.current = 0
+        setAgentUsed(true)
+        setAgentSuggestions([])
+        typeResponse(
+            "Happy to show you around. I'll walk you through the highlights — press Enter to move to the next stop, or ask me anything at any time to jump out.",
+            () => runTourStep(0),
+            'agent',
+        )
+    }, [clearResponseTimers, typeResponse, runTourStep])
+
+    // Keep the ref current so runAgentQuery (defined above) can launch the tour.
+    useEffect(() => {
+        startTourRef.current = startTour
+    }, [startTour])
+
+    /* ── Contact flow (no AI — works even when the agent is rate-limited) ──── */
+
+    const sendContact = useCallback(() => {
+        startThinking(['Sending your message', 'Almost there'])
+        fetch('/api/contact', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(contactDataRef.current),
+        })
+            .then(async res => ({ ok: res.ok, body: await res.json().catch(() => ({})) }))
+            .then(({ ok, body }) => {
+                stopThinking()
+                if (ok && body?.success) {
+                    modeRef.current = 'normal'
+                    setMode('normal')
+                    const email = contactDataRef.current.email
+                    typeResponse(
+                        `Sent ✓ — your message is in Kudzai's inbox, and a copy went to ${email}. He'll be in touch. Anything else I can help with?`,
+                        undefined, 'agent',
+                    )
+                    setAgentUsed(true)
+                    setAgentSuggestions(['See his projects', 'Download his CV', 'What does he do?'])
+                } else {
+                    contactStepRef.current = 'retry'
+                    const reason = typeof body?.error === 'string' ? body.error : 'something went wrong on our end'
+                    typeResponse(`Hmm — it didn't send: ${reason}. Want me to try again? (yes / no)`, undefined, 'agent')
+                }
+            })
+            .catch(() => {
+                stopThinking()
+                contactStepRef.current = 'retry'
+                typeResponse("Hmm — I couldn't reach the server (looks like a network hiccup). Want me to try again? (yes / no)", undefined, 'agent')
+            })
+    }, [startThinking, stopThinking, typeResponse])
+
+    const submitContactStep = useCallback((raw: string) => {
+        const value = raw.trim()
+        const low = value.toLowerCase()
+        const step = contactStepRef.current
+
+        // Let the visitor bail out (except mid-message, where the text is theirs).
+        if (step !== 'message' && ['exit', 'cancel', 'quit', 'stop'].includes(low)) {
+            modeRef.current = 'normal'
+            setMode('normal')
+            typeResponse('No problem — cancelled. Ask me anything else.', undefined, 'agent')
+            return
+        }
+
+        if (step === 'name') {
+            if (!value) { typeResponse("I'll need a name to go on — what should I call you?", undefined, 'agent'); return }
+            contactDataRef.current = { name: value, email: '', message: '' }
+            contactStepRef.current = 'email'
+            typeResponse(`Thanks, ${value}. What's the best email to reach you on?`, undefined, 'agent')
+            return
+        }
+        if (step === 'email') {
+            if (!CONTACT_EMAIL_RE.test(value)) {
+                typeResponse("That doesn't look like a valid email — mind typing it again?", undefined, 'agent')
+                return
+            }
+            contactDataRef.current.email = value
+            contactStepRef.current = 'message'
+            typeResponse('Got it. And what would you like to say?', undefined, 'agent')
+            return
+        }
+        if (step === 'message') {
+            if (!value) { typeResponse("Add a short message and I'll send it along.", undefined, 'agent'); return }
+            contactDataRef.current.message = value
+            sendContact()
+            return
+        }
+        if (step === 'retry') {
+            if (['yes', 'y', 'retry', 'ok', 'sure', 'yeah', 'yep'].includes(low)) {
+                // Resend the details already given — no need to re-type them.
+                sendContact()
+            } else {
+                modeRef.current = 'normal'
+                setMode('normal')
+                typeResponse(`No worries. You can also reach me directly at ${contact.email}.`, undefined, 'agent')
+            }
+        }
+    }, [typeResponse, sendContact])
+
+    useEffect(() => {
+        submitContactStepRef.current = submitContactStep
+    }, [submitContactStep])
+
+    const startContact = useCallback(() => {
+        clearResponseTimers()
+        modeRef.current = 'contact'
+        setMode('contact')
+        contactStepRef.current = 'name'
+        contactDataRef.current = { name: '', email: '', message: '' }
+        setAgentUsed(true)
+        setAgentSuggestions([])
+        typeResponse(
+            "Happy to pass a message to Kudzai. First — what's your name? (type 'cancel' anytime to stop)",
+            undefined, 'agent',
+        )
+    }, [clearResponseTimers, typeResponse])
+
     const exitMatrix = useCallback(() => {
         if (matrixTimerRef.current) {
             clearTimeout(matrixTimerRef.current)
@@ -2195,6 +2699,9 @@ export function useTerminalInput(options: UseTerminalInputOptions): UseTerminalI
             prompt: currentPrompt(),
         }])
 
+        // Each new command supersedes the previous contextual chips.
+        setAgentSuggestions([])
+
         // Resolve aliases for processing (original stays in display/history)
         const resolved = resolveAlias(command)
         const trimmed = resolved.trim().toLowerCase()
@@ -2203,6 +2710,7 @@ export function useTerminalInput(options: UseTerminalInputOptions): UseTerminalI
             setHistory([])
             displayedSectionRef.current = null
             setDisplayedSection(null)
+            setAgentUsed(false)
             return
         }
 
@@ -2218,6 +2726,18 @@ export function useTerminalInput(options: UseTerminalInputOptions): UseTerminalI
         // Handle section content rendering (terminal section only)
         if (result.renderSection) {
             renderSectionContent(result.renderSection)
+            return
+        }
+
+        // Launch the guided tour (from the `tour` command or a tour phrase).
+        if (result.startTour) {
+            startTour()
+            return
+        }
+
+        // Launch the step-by-step contact flow (from `email`/`contact`).
+        if (result.startContact) {
+            startContact()
             return
         }
 
@@ -2277,6 +2797,20 @@ export function useTerminalInput(options: UseTerminalInputOptions): UseTerminalI
             window.open(result.openUrl, '_blank', 'noopener,noreferrer')
         }
 
+        // Route plain-English input to the AI agent.
+        if (result.askAI) {
+            runAgentQuery(result.askAI)
+            return
+        }
+
+        // Scripted onboarding reply — typed in the agent's voice, with onboarding chips.
+        if (result.onboarding && result.response) {
+            setAgentUsed(true)
+            setAgentSuggestions(ONBOARDING_SUGGESTIONS)
+            typeResponse(result.response, undefined, 'agent')
+            return
+        }
+
         if (result.response) {
             if (result.loadingMessages) {
                 showLoadingThenResponse(result.response, result.loadingMessages)
@@ -2284,7 +2818,13 @@ export function useTerminalInput(options: UseTerminalInputOptions): UseTerminalI
                 typeResponse(result.response)
             }
         }
-    }, [sectionId, typeResponse, showLoadingThenResponse, exitMatrix, renderSectionContent, currentPrompt])
+    }, [sectionId, typeResponse, showLoadingThenResponse, exitMatrix, renderSectionContent, currentPrompt, runAgentQuery, startTour, startContact])
+
+    // Keep the ref pointing at the latest processCommand so agent-run commands
+    // (run_command tool) can re-enter the dispatcher without a forward-ref.
+    useEffect(() => {
+        processCommandRef.current = processCommand
+    }, [processCommand])
 
     // Attach/detach the keydown listener based on isActive.
     useEffect(() => {
@@ -2297,6 +2837,13 @@ export function useTerminalInput(options: UseTerminalInputOptions): UseTerminalI
 
             // Modifier combos are never captured
             if (e.ctrlKey || e.metaKey || e.altKey) return
+
+            // While the agent is thinking (awaiting the network), swallow all
+            // keys — a round-trip can't be skipped the way typing can.
+            if (isThinkingRef.current) {
+                e.preventDefault()
+                return
+            }
 
             // Ghost-completion accept: ArrowRight or End fills in the suggestion
             // when one exists. Only fires in normal mode (not vim/snake/adventure)
@@ -2312,6 +2859,105 @@ export function useTerminalInput(options: UseTerminalInputOptions): UseTerminalI
                     setInputText(inputTextRef.current)
                     return
                 }
+            }
+
+            // ── TOUR MODE ── (available on every section, not just the terminal)
+            if (modeRef.current === 'tour') {
+                if (isTypingRef.current) {
+                    e.preventDefault()
+                    completeResponseImmediately()
+                    return
+                }
+
+                if (e.key === 'Enter') {
+                    e.preventDefault()
+                    const raw = inputTextRef.current
+                    const low = raw.trim().toLowerCase()
+                    inputTextRef.current = ''
+                    setInputText('')
+
+                    const advance = ['', 'next', 'n', 'continue', 'yes', 'y', 'ok', 'go'].includes(low)
+                    const quit = ['exit', 'quit', 'stop', 'q', 'done', 'skip'].includes(low)
+
+                    if (advance) {
+                        setHistory(prev => [...prev, {
+                            id: ++lineIdRef.current, type: 'input' as const, text: raw, prompt: TOUR_PROMPT,
+                        }])
+                        runTourStep(tourStepRef.current + 1)
+                    } else if (quit) {
+                        setHistory(prev => [...prev, {
+                            id: ++lineIdRef.current, type: 'input' as const, text: raw, prompt: TOUR_PROMPT,
+                        }])
+                        finishTour()
+                        typeResponse('Tour ended. Ask me anything, or explore on your own.', undefined, 'agent')
+                    } else {
+                        // A real question — leave the tour and answer it.
+                        // processCommand echoes the input itself, so don't echo here.
+                        finishTour(true)
+                        processCommandRef.current?.(raw)
+                    }
+                    return
+                }
+
+                if (e.key === 'Backspace') {
+                    e.preventDefault()
+                    inputTextRef.current = inputTextRef.current.slice(0, -1)
+                    setInputText(inputTextRef.current)
+                    return
+                }
+
+                if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                    e.preventDefault()
+                    return
+                }
+
+                if (e.key.length === 1) {
+                    e.preventDefault()
+                    inputTextRef.current += e.key
+                    setInputText(inputTextRef.current)
+                }
+                return
+            }
+
+            // ── CONTACT MODE ── (available on every section)
+            if (modeRef.current === 'contact') {
+                // While the agent's question is typing, a key skips ahead.
+                if (isTypingRef.current) {
+                    e.preventDefault()
+                    completeResponseImmediately()
+                    return
+                }
+
+                if (e.key === 'Enter') {
+                    e.preventDefault()
+                    const raw = inputTextRef.current
+                    inputTextRef.current = ''
+                    setInputText('')
+                    setHistory(prev => [...prev, {
+                        id: ++lineIdRef.current, type: 'input' as const, text: raw, prompt: currentPrompt(),
+                    }])
+                    submitContactStepRef.current?.(raw)
+                    return
+                }
+
+                if (e.key === 'Backspace') {
+                    e.preventDefault()
+                    inputTextRef.current = inputTextRef.current.slice(0, -1)
+                    setInputText(inputTextRef.current)
+                    return
+                }
+
+                if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                    e.preventDefault()
+                    return
+                }
+
+                if (e.key.length === 1) {
+                    e.preventDefault()
+                    inputTextRef.current += e.key
+                    setInputText(inputTextRef.current)
+                }
+                return
             }
 
             // Terminal section: handle special modes and normal input
@@ -2565,18 +3211,55 @@ export function useTerminalInput(options: UseTerminalInputOptions): UseTerminalI
 
         document.addEventListener('keydown', handleKeyDown)
         return () => document.removeEventListener('keydown', handleKeyDown)
-    }, [isActive, sectionId, processCommand, completeResponseImmediately, exitVim, exitMatrix, exitSnake, exitAdventure, snakeGame, adventureGame, typeResponse])
+    }, [isActive, sectionId, processCommand, completeResponseImmediately, exitVim, exitMatrix, exitSnake, exitAdventure, snakeGame, adventureGame, typeResponse, runTourStep, finishTour, currentPrompt])
 
     // Cleanup timers on unmount
     useEffect(() => {
         return () => {
             responseTimersRef.current.forEach(t => clearTimeout(t))
             if (matrixTimerRef.current) clearTimeout(matrixTimerRef.current)
+            if (thinkingTimerRef.current) clearInterval(thinkingTimerRef.current)
             snakeGame.stop()
             adventureGame.stop()
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
+
+    // Run a command as if typed — used by the quick-action chips. Ignored
+    // while the terminal is busy typing or awaiting the agent.
+    const submitCommand = useCallback((command: string) => {
+        if (isThinkingRef.current || isTypingRef.current) return
+        if (modeRef.current !== 'normal') return
+        processCommandRef.current?.(command)
+    }, [])
+
+    // Submit a spoken transcript: marks the reply to be read aloud and enters
+    // voice mode (the input line shows the orb until the reply finishes).
+    const submitVoiceCommand = useCallback((command: string) => {
+        if (isThinkingRef.current || isTypingRef.current) return
+        if (modeRef.current !== 'normal') return
+        shouldSpeakRef.current = true
+        processCommandRef.current?.(command)
+    }, [])
+
+    // Presence-orb state, derived from current activity. 'thinking' while
+    // awaiting the API, 'speaking' while an agent reply types out, else 'idle'.
+    const agentState: AgentState = useMemo(() => {
+        if (thinking) return 'thinking'
+        if (isTypingResponse && responseVariant === 'agent') return 'speaking'
+        return 'idle'
+    }, [thinking, isTypingResponse, responseVariant])
+
+    // Once activity settles back to idle, clear the speak flag so a later TYPED
+    // reply is never accidentally read aloud.
+    const prevAgentStateRef = useRef<AgentState>('idle')
+    useEffect(() => {
+        const prev = prevAgentStateRef.current
+        prevAgentStateRef.current = agentState
+        if (prev !== 'idle' && agentState === 'idle') {
+            shouldSpeakRef.current = false
+        }
+    }, [agentState])
 
     // Ghost-completion suggestion. Suppressed in non-normal modes
     // (vim/snake/adventure/matrix) and during response typing — those states
@@ -2602,8 +3285,13 @@ export function useTerminalInput(options: UseTerminalInputOptions): UseTerminalI
         snakeChangeDirection: snakeGame.changeDirection,
         adventurePrompt,
         displayedSection,
+        responseVariant,
+        agentUsed,
+        submitCommand,
+        agentSuggestions,
+        submitVoiceCommand,
     }
 }
 
 export { cwdToPrompt }
-export type { TerminalMode, NavigableSection }
+export type { TerminalMode, NavigableSection, AgentState }

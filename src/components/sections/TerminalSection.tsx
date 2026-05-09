@@ -13,6 +13,7 @@ import { useBootContext } from "@/src/components/layout/context/BootContext"
 import { useReducedMotion } from '@/src/hooks/useReducedMotion'
 import { useTerminalInput, cwdToPrompt } from '@/src/hooks/useTerminalInput'
 import TerminalInput from '@/src/components/shared/TerminalInput'
+import { useVoiceContext } from '@/src/components/shared/VoiceProvider'
 import {
     getBaseSpeedForSection,
     getPatternForSection,
@@ -84,9 +85,13 @@ export default function TerminalSection() {
         }
     })
 
+    const voice = useVoiceContext()
+
     const terminalInput = useTerminalInput({
         sectionId: 'terminal',
         isActive: animation.isCompleted && isInView,
+        onAgentReply: voice.speak,
+        onAgentInterrupt: voice.cancelSpeak,
     })
 
     const buildAnimationSequence = useCallback(() => {
@@ -387,11 +392,16 @@ export default function TerminalSection() {
         if (terminalInput.mode === 'snake') return renderSnakeContent()
 
         const isAdventure = terminalInput.mode === 'adventure'
+        const isTour = terminalInput.mode === 'tour'
         const ds = terminalInput.displayedSection
         const sectionPrompt = ds
             ? ds === 'home' ? 'visitor@kudzai:~$ ' : `visitor@kudzai:~/${ds}$ `
             : cwdToPrompt(terminalInput.cwd)
-        const prompt = isAdventure ? terminalInput.adventurePrompt : sectionPrompt
+        const prompt = isAdventure
+            ? terminalInput.adventurePrompt
+            : isTour
+                ? '[tour] enter ▸ next · or ask anything · '
+                : sectionPrompt
 
         return (
             <div className="terminal-section-content">
@@ -414,6 +424,11 @@ export default function TerminalSection() {
                     suggestion={terminalInput.suggestion}
                     showHint={true}
                     prompt={prompt}
+                    responseVariant={terminalInput.responseVariant}
+                    showChips={terminalInput.mode === 'normal'}
+                    suggestions={terminalInput.agentSuggestions}
+                    onChip={terminalInput.submitCommand}
+                    onVoiceSubmit={terminalInput.submitVoiceCommand}
                 />
             </div>
         )
@@ -433,8 +448,10 @@ export default function TerminalSection() {
             <div className="sr-only">
                 <h2>Interactive Terminal</h2>
                 <p>
-                    A fully interactive shell session. Type a command and press Enter to run it.
-                    Available commands include: help, whoami, neofetch, htop, history, date,
+                    A fully interactive shell session. Type a command and press Enter to run it,
+                    or simply ask a question in plain English and the built-in AI assistant
+                    (Kudzai&apos;s terminal agent) will answer and can navigate the site for you.
+                    Available commands include: ask, help, whoami, neofetch, htop, history, date,
                     echo, man, ls, cd, cat, pwd, ping, ssh, curl, sudo, git log, git blame,
                     vim, ascii, hack, matrix, snake, adventure, clear, exit.
                     Press Tab to autocomplete. Use the Up and Down arrow keys to recall
