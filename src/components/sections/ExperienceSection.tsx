@@ -13,6 +13,7 @@ import { useBootContext } from "@/src/components/layout/context/BootContext"
 import { useReducedMotion } from '@/src/hooks/useReducedMotion'
 import { useTerminalInput } from '@/src/hooks/useTerminalInput'
 import TerminalInput from '@/src/components/shared/TerminalInput'
+import { useVoiceContext } from '@/src/components/shared/VoiceProvider'
 import {
     getBaseSpeedForSection,
     getPatternForSection,
@@ -77,9 +78,13 @@ export default function ExperienceSection() {
         }
     })
 
+    const voice = useVoiceContext()
+
     const terminalInput = useTerminalInput({
         sectionId: 'experience',
         isActive: animation.isCompleted && isInView,
+        onAgentReply: voice.speak,
+        onAgentInterrupt: voice.cancelSpeak,
     })
 
     const buildAnimationSequence = useCallback(() => {
@@ -233,6 +238,11 @@ export default function ExperienceSection() {
                 isTypingResponse={terminalInput.isTypingResponse}
                 responseText={terminalInput.responseText}
                 suggestion={terminalInput.suggestion}
+                responseVariant={terminalInput.responseVariant}
+                showChips={terminalInput.mode === 'normal'}
+                suggestions={terminalInput.agentSuggestions}
+                onChip={terminalInput.submitCommand}
+                onVoiceSubmit={terminalInput.submitVoiceCommand}
             />
         </div>
     )
