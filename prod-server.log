@@ -1,0 +1,165 @@
+
+> my-portfolio@0.1.0 start
+> next start
+
+▲ Next.js 16.1.1
+- Local:         http://localhost:3000
+- Network:       http://192.168.10.219:3000
+
+✓ Starting...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+✓ Ready in 808ms
+[chat] round-2 confirmation failed; returning actions anyway: Error: Gemini 400: {
+  "error": {
+    "code": 400,
+    "message": "Function call is missing a thought_signature in functionCall parts. This is required for tools to work correctly, and missing thought_signature may lead
+    at ignore-listed frames {
+  status: 400
+}
+[chat] round-2 confirmation failed; returning actions anyway: Error: Gemini 400: {
+  "error": {
+    "code": 400,
+    "message": "Function call is missing a thought_signature in functionCall parts. This is required for tools to work correctly, and missing thought_signature may lead
+    at ignore-listed frames {
+  status: 400
+}
+[chat] round-2 confirmation failed; returning actions anyway: Error: Gemini 400: {
+  "error": {
+    "code": 400,
+    "message": "Function call is missing a thought_signature in functionCall parts. This is required for tools to work correctly, and missing thought_signature may lead
+    at ignore-listed frames {
+  status: 400
+}
+[chat] round-2 confirmation failed; returning actions anyway: Error: Gemini 400: {
+  "error": {
+    "code": 400,
+    "message": "Function call is missing a thought_signature in functionCall parts. This is required for tools to work correctly, and missing thought_signature may lead
+    at ignore-listed frames {
+  status: 400
+}
+[chat] round-2 confirmation failed; returning actions anyway: Error: Gemini 400: {
+  "error": {
+    "code": 400,
+    "message": "Function call is missing a thought_signature in functionCall parts. This is required for tools to work correctly, and missing thought_signature may lead
+    at ignore-listed frames {
+  status: 400
+}
+[chat] round-2 confirmation failed; returning actions anyway: Error: Gemini 400: {
+  "error": {
+    "code": 400,
+    "message": "Function call is missing a thought_signature in functionCall parts. This is required for tools to work correctly, and missing thought_signature may lead
+    at ignore-listed frames {
+  status: 400
+}
+[chat] round-2 confirmation failed; returning actions anyway: Error: Gemini 400: {
+  "error": {
+    "code": 400,
+    "message": "Function call is missing a thought_signature in functionCall parts. This is required for tools to work correctly, and missing thought_signature may lead
+    at ignore-listed frames {
+  status: 400
+}
+[chat] Gemini error: Error: Gemini 429: {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+    at ignore-listed frames {
+  status: 429
+}
+[chat] round-2 confirmation failed; returning actions anyway: Error: Gemini 429: {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+    at ignore-listed frames {
+  status: 429
+}
+[chat] Gemini error: Error: Gemini 429: {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+    at ignore-listed frames {
+  status: 429
+}
+[chat] round-2 confirmation failed; returning actions anyway: Error: Gemini 400: {
+  "error": {
+    "code": 400,
+    "message": "Function call is missing a thought_signature in functionCall parts. This is required for tools to work correctly, and missing thought_signature may lead
+    at ignore-listed frames {
+  status: 400
+}
+[chat] round-2 confirmation failed; returning actions anyway: Error: Gemini 400: {
+  "error": {
+    "code": 400,
+    "message": "Function call is missing a thought_signature in functionCall parts. This is required for tools to work correctly, and missing thought_signature may lead
+    at ignore-listed frames {
+  status: 400
+}
+[chat] round-2 confirmation failed; returning actions anyway: Error: Gemini 400: {
+  "error": {
+    "code": 400,
+    "message": "Function call is missing a thought_signature in functionCall parts. This is required for tools to work correctly, and missing thought_signature may lead
+    at ignore-listed frames {
+  status: 400
+}
+[chat] Gemini error: Error: Gemini 429: {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+    at ignore-listed frames {
+  status: 429
+}
+[chat] round-2 confirmation failed; returning actions anyway: Error: Gemini 429: {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+    at ignore-listed frames {
+  status: 429
+}
+[chat] Gemini error: Error: Gemini 429: {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+    at ignore-listed frames {
+  status: 429
+}
+[chat] Gemini error: Error: Gemini 429: {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+    at ignore-listed frames {
+  status: 429
+}
+[chat] Gemini error: Error: Gemini 429: {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+    at ignore-listed frames {
+  status: 429
+}
+[chat] Gemini error: Error: Gemini 429: {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+    at ignore-listed frames {
+  status: 429
+}
+[chat] Gemini error: Error: Gemini 429: {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+    at ignore-listed frames {
+  status: 429
+}
+[chat] Gemini error: Error: Gemini 429: {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+    at ignore-listed frames {
+  status: 429
+}
+[chat] round-2 confirmation failed; returning actions anyway: Error: Gemini 400: {
+  "error": {
+    "code": 400,
+    "message": "Function call is missing a thought_signature in functionCall parts. This is required for tools to work correctly, and missing thought_signature may lead
+    at ignore-listed frames {
+  status: 400
+}
