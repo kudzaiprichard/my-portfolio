@@ -9,6 +9,7 @@ import ProjectsSection from '@/src/components/sections/ProjectsSection'
 import ExperienceSection from '@/src/components/sections/ExperienceSection'
 import ContactSection from '@/src/components/sections/ContactSection'
 import TerminalSection from '@/src/components/sections/TerminalSection'
+import { VoiceProvider } from '@/src/components/shared/VoiceProvider'
 import {useBootContext} from "@/src/components/layout/context/BootContext";
 
 export default function Home() {
@@ -64,30 +65,32 @@ export default function Home() {
     }, [isBooted])
 
     return (
-        <main>
-            <ScrollSection id="home">
-                <HeroSection />
-            </ScrollSection>
+        <VoiceProvider>
+            <main>
+                <ScrollSection id="home">
+                    <HeroSection />
+                </ScrollSection>
 
-            <ScrollSection id="about">
-                <AboutSection />
-            </ScrollSection>
+                <ScrollSection id="about">
+                    <AboutSection />
+                </ScrollSection>
 
-            <ScrollSection id="projects">
-                <ProjectsSection />
-            </ScrollSection>
+                <ScrollSection id="projects">
+                    <ProjectsSection />
+                </ScrollSection>
 
-            <ScrollSection id="experience">
-                <ExperienceSection />
-            </ScrollSection>
+                <ScrollSection id="experience">
+                    <ExperienceSection />
+                </ScrollSection>
 
-            <ScrollSection id="contact">
-                <ContactSection />
-            </ScrollSection>
+                <ScrollSection id="contact">
+                    <ContactSection />
+                </ScrollSection>
 
-            <ScrollSection id="terminal">
-                <TerminalSection />
-            </ScrollSection>
-        </main>
+                <ScrollSection id="terminal">
+                    <TerminalSection />
+                </ScrollSection>
+            </main>
+        </VoiceProvider>
     )
 }
