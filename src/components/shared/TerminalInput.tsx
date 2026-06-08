@@ -1,6 +1,7 @@
 // components/shared/TerminalInput.tsx
 "use client"
 
+import { useRef } from 'react'
 import AgentOrb from '@/src/components/shared/AgentOrb'
 import { useVoiceContext } from '@/src/components/shared/VoiceProvider'
 import type { TerminalLine } from '@/src/hooks/useTerminalInput'
@@ -62,6 +63,36 @@ export default function TerminalInput({
     onVoiceSubmit,
 }: TerminalInputProps) {
     const voice = useVoiceContext()
+
+    // ── Mobile keyboard support ──
+    // The terminal has no real text field — input is captured by a document-level
+    // keydown listener (see useTerminalInput). That works for hardware keyboards
+    // but mobile browsers only raise the soft keyboard when a focusable form
+    // element is focused. This hidden <input> ("keyboard proxy") exists purely to
+    // be focused on tap so the on-screen keyboard appears; its keystrokes flow to
+    // the same document handler (which is exempted for data-terminal-proxy).
+    const proxyRef = useRef<HTMLInputElement>(null)
+
+    // Focus the proxy when the visitor taps the terminal — must run inside the
+    // tap gesture for mobile to open the keyboard. Ignore taps on the mic / chips
+    // / cancel buttons so those keep working and don't pop the keyboard.
+    const focusKeyboard = (e: React.MouseEvent<HTMLDivElement>) => {
+        if ((e.target as HTMLElement).closest('button')) return
+        proxyRef.current?.focus()
+    }
+
+    // Bridge for soft keyboards (notably Android/Gboard) that emit unreliable
+    // keydown events: translate each inserted character into the synthetic
+    // keydown the document handler already knows how to process, then clear the
+    // field. Keeping it empty also makes Backspace fire a real keydown on Android.
+    const handleProxyInput = (e: React.FormEvent<HTMLInputElement>) => {
+        const el = e.currentTarget
+        for (const ch of el.value) {
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: ch, bubbles: true }))
+        }
+        el.value = ''
+    }
+
     // The input line morphs into the listening orb while the mic is capturing.
     // Thinking/replying are shown by the conversation itself, so the orb is
     // intentionally listening-only.
@@ -81,7 +112,24 @@ export default function TerminalInput({
 
     return (
         <>
-            <div className="terminal-interactive">
+            <div className="terminal-interactive" onClick={focusKeyboard}>
+                {/* Hidden field that raises the mobile soft keyboard on tap. */}
+                <input
+                    ref={proxyRef}
+                    data-terminal-proxy="true"
+                    className="terminal-kbd-proxy"
+                    type="text"
+                    inputMode="text"
+                    enterKeyHint="send"
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    autoComplete="off"
+                    spellCheck={false}
+                    tabIndex={-1}
+                    aria-hidden="true"
+                    onInput={handleProxyInput}
+                />
+
                 {history.map((line) => (
                     <div
                         key={line.id}
@@ -185,9 +233,31 @@ export default function TerminalInput({
 
             <style>{`
                 .terminal-interactive {
+                    position: relative;
                     margin-top: var(--spacing-lg);
                     padding-top: var(--spacing-md);
                     border-top: 1px solid var(--color-primary-dimmest);
+                }
+
+                /* Hidden keyboard proxy — focusable so mobile raises the soft
+                   keyboard, but invisible. font-size:16px prevents iOS from
+                   auto-zooming on focus; pointer-events:none because focus is
+                   driven programmatically from the terminal tap handler. */
+                .terminal-kbd-proxy {
+                    position: absolute;
+                    left: 0;
+                    bottom: 0;
+                    width: 1px;
+                    height: 1px;
+                    padding: 0;
+                    margin: 0;
+                    border: 0;
+                    opacity: 0;
+                    font-size: 16px;
+                    background: transparent;
+                    color: transparent;
+                    caret-color: transparent;
+                    pointer-events: none;
                 }
 
                 .terminal-interactive-line {
@@ -271,6 +341,7 @@ export default function TerminalInput({
                     min-height: 1.5em;
                     display: flex;
                     align-items: center;
+                    cursor: text;
                 }
 
                 /* ── Inline mic button (left of the prompt) ── */

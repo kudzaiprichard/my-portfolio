@@ -2831,9 +2831,13 @@ export function useTerminalInput(options: UseTerminalInputOptions): UseTerminalI
         if (!isActive) return
 
         const handleKeyDown = (e: KeyboardEvent) => {
-            // Don't capture if an input/textarea/button is focused
+            // Don't capture if an input/textarea/button is focused — EXCEPT the
+            // hidden keyboard proxy (data-terminal-proxy), which exists purely to
+            // raise the mobile soft keyboard and must feed this handler.
             const active = document.activeElement
-            if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'BUTTON')) return
+            if (active &&
+                (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'BUTTON') &&
+                !active.hasAttribute('data-terminal-proxy')) return
 
             // Modifier combos are never captured
             if (e.ctrlKey || e.metaKey || e.altKey) return
