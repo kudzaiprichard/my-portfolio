@@ -429,34 +429,71 @@ export function updateParticle(
    PARTICLE DRAWING WITH DEPTH BLUR
    ============================================ */
 
+// Blur bucket key: "blur,glowIntensity"
+// Deterministic from particle properties — no allocation per frame.
+type BlurBucket = { blur: number; glow: number }
+
+const BLUR_BUCKETS: BlurBucket[] = [
+    { blur: 3,  glow: 0.2 }, // far particles (baseSize < 1)
+    { blur: 5,  glow: 0.3 }, // mid particles (baseSize 1-2)
+    { blur: 7,  glow: 0.4 }, // close particles (baseSize >= 2, non-hub)
+    { blur: 12, glow: 0.5 }, // fast particles
+    { blur: 15, glow: 0.7 }, // hub particles (baseSize >= 2)
+]
+
+function getBlurBucketIndex(particle: Particle): number {
+    if (particle.isFastParticle) return 3
+    if (particle.baseSize < 1) return 0
+    if (particle.baseSize < 2) return 1
+    if (particle.isHub) return 4
+    return 2
+}
+
+/**
+ * Draw all particles batched by shadow blur amount.
+ * Reduces canvas shadow state transitions from ~200/frame to ~5/frame.
+ */
+function drawParticlesBatched(
+    ctx: CanvasRenderingContext2D,
+    particles: Particle[]
+): void {
+    // Group particle indices by blur bucket
+    const buckets: number[][] = [[], [], [], [], []]
+    for (let i = 0; i < particles.length; i++) {
+        buckets[getBlurBucketIndex(particles[i])].push(i)
+    }
+
+    // Draw each bucket with a single shadowBlur state change
+    for (let b = 0; b < BLUR_BUCKETS.length; b++) {
+        const indices = buckets[b]
+        if (indices.length === 0) continue
+
+        const { blur, glow } = BLUR_BUCKETS[b]
+        ctx.shadowBlur = blur
+        ctx.shadowColor = `rgba(0, 255, 65, ${glow})`
+
+        for (let i = 0; i < indices.length; i++) {
+            const p = particles[indices[i]]
+            ctx.fillStyle = `rgba(0, 255, 65, ${p.opacity})`
+            ctx.beginPath()
+            ctx.arc(p.x, p.y, p.currentSize, 0, Math.PI * 2)
+            ctx.fill()
+        }
+    }
+
+    ctx.shadowBlur = 0
+}
+
+// Keep single-particle draw for external callers that need it
 export function drawParticle(
     ctx: CanvasRenderingContext2D,
     particle: Particle
 ): void {
-    let blurAmount: number
-    let glowIntensity: number
-
-    if (particle.baseSize < 1) {
-        blurAmount = 3
-        glowIntensity = 0.2
-    } else if (particle.baseSize < 2) {
-        blurAmount = 5
-        glowIntensity = 0.3
-    } else {
-        // Enhanced glow for hub particles
-        blurAmount = particle.isHub ? 15 : 7
-        glowIntensity = particle.isHub ? 0.7 : 0.4
-    }
-
-    // Fast particles have trail-like glow
-    if (particle.isFastParticle) {
-        blurAmount = 12
-        glowIntensity = 0.5
-    }
+    const bucket = BLUR_BUCKETS[getBlurBucketIndex(particle)]
 
     ctx.fillStyle = `rgba(0, 255, 65, ${particle.opacity})`
-    ctx.shadowBlur = blurAmount
-    ctx.shadowColor = `rgba(0, 255, 65, ${glowIntensity})`
+    ctx.shadowBlur = bucket.blur
+    ctx.shadowColor = `rgba(0, 255, 65, ${bucket.glow})`
     ctx.beginPath()
     ctx.arc(particle.x, particle.y, particle.currentSize, 0, Math.PI * 2)
     ctx.fill()
@@ -592,10 +629,14 @@ export function animateParticles(
 ): void {
     ctx.clearRect(0, 0, canvasWidth, canvasHeight)
 
+    // Update all particles first
     for (let i = 0; i < particles.length; i++) {
         updateParticle(particles[i], canvasWidth, canvasHeight, mouseX, mouseY, mouseClickEffect)
-        drawParticle(ctx, particles[i])
     }
+
+    // Draw all particles batched by shadow blur amount
+    // (~5 shadow state changes instead of ~200)
+    drawParticlesBatched(ctx, particles)
 
     connectParticles(ctx, particles, config)
 

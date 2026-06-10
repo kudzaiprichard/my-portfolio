@@ -1,39 +1,5 @@
 // types/index.ts
-
-/* ============================================
-   PARTICLE SYSTEM TYPES
-   ============================================ */
-
-export interface Particle {
-    x: number
-    y: number
-    baseSize: number
-    currentSize: number
-    speedX: number
-    speedY: number
-    opacity: number
-    isHub: boolean
-    pulsePhase: number
-    zone?: {           // NEW: Optional zone constraint for area-restricted particles
-        minX: number
-        maxX: number
-        minY: number
-        maxY: number
-    }
-}
-
-export interface MouseTrailPoint {
-    x: number
-    y: number
-}
-
-export interface ParticleSystemConfig {
-    numberOfParticles: number
-    maxTrailLength: number
-    connectionDistance: number
-    hubConnectionDistance: number
-    mouseConnectionDistance: number
-}
+// Particle and ParticleSystemConfig are defined in lib/particles.ts (canonical source).
 
 /* ============================================
    SKILLS & TECH STACK TYPES
@@ -201,7 +167,7 @@ export interface CodeSnippet {
    UTILITY TYPES
    ============================================ */
 
-export type SectionId = 'home' | 'about' | 'projects' | 'experience' | 'contact'
+export type SectionId = 'home' | 'about' | 'projects' | 'experience' | 'contact' | 'terminal'
 
 export interface ScrollSectionProps {
     id: SectionId
