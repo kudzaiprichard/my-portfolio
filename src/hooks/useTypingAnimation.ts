@@ -101,13 +101,28 @@ export function useTypingAnimation(
         delay *= getCharClassMultiplier(char)
 
         // ---- File extension slowdown (.txt, .sh, etc.) ----
+        // Full multiplier on the dot and first extension char, then
+        // linear ramp back toward 1.0 for subsequent characters so the
+        // typist "finishes" the known filename at near-normal speed.
         const hasExtension = /\.[a-z]{2,4}$/i.test(fullText)
         if (hasExtension) {
             const extensionStart = fullText.lastIndexOf('.')
-            const isInExtension = index >= extensionStart
+            const offset = index - extensionStart
 
-            if (isInExtension) {
-                delay *= pattern.extensionSpeedMultiplier
+            if (offset >= 0) {
+                const extMultiplier = pattern.extensionSpeedMultiplier
+
+                if (offset <= 1) {
+                    // Dot and first extension character: full slowdown
+                    delay *= extMultiplier
+                } else {
+                    // Remaining extension characters: ramp linearly toward 1.0
+                    const extensionLength = fullText.length - extensionStart
+                    const rampCount = extensionLength - 2 // chars after the first two
+                    const rampIndex = offset - 2           // 0-based within the ramp
+                    const t = (rampIndex + 1) / rampCount  // 1/n … n/n (reaches 1.0 at last char)
+                    delay *= extMultiplier + (1.0 - extMultiplier) * t
+                }
             }
         }
 
@@ -231,183 +246,3 @@ export function useTypingAnimation(
     }
 }
 
-/**
- * Hook for typing multiple texts sequentially
- */
-interface TypingSequenceItem {
-    text: string
-    baseSpeed?: number
-    onComplete?: () => void
-    onKeystroke?: (char: string, index: number, isLast: boolean) => void
-    delayAfter?: number
-}
-
-interface UseMultiTypingOptions {
-    baseSpeed?: number
-    humanPattern?: Partial<HumanTypingPattern>
-}
-
-export function useMultiTyping(options: UseMultiTypingOptions = {}) {
-    const [texts, setTexts] = useState<string[]>([])
-    const [currentIndex, setCurrentIndex] = useState(0)
-
-    const typing = useTypingAnimation({
-        baseSpeed: options.baseSpeed,
-        humanPattern: options.humanPattern,
-        autoReset: false,
-    })
-
-    const generateSequence = useCallback((
-        items: TypingSequenceItem[]
-    ): AnimationStep[] => {
-        const allSteps: AnimationStep[] = []
-
-        allSteps.push({
-            id: 'reset-sequence',
-            action: () => {
-                setTexts([])
-                setCurrentIndex(0)
-            },
-            duration: 0,
-        })
-
-        items.forEach((item, itemIndex) => {
-            const {
-                text,
-                baseSpeed: itemSpeed,
-                onComplete,
-                onKeystroke,
-                delayAfter = 350,
-            } = item
-
-            allSteps.push({
-                id: `init-text-${itemIndex}`,
-                action: () => {
-                    setTexts((prev) => [...prev, ''])
-                    setCurrentIndex(itemIndex)
-                },
-                duration: 0,
-            })
-
-            const typingSteps = typing.generateSteps(text, {
-                baseSpeed: itemSpeed,
-                onKeystroke,
-            })
-
-            typingSteps.forEach((step, stepIndex) => {
-                const originalAction = step.action
-                allSteps.push({
-                    ...step,
-                    id: `item-${itemIndex}-step-${stepIndex}`,
-                    action: () => {
-                        originalAction()
-                        setTexts((prev) => {
-                            const updated = [...prev]
-                            updated[itemIndex] = typing.text
-                            return updated
-                        })
-                    },
-                })
-            })
-
-            if (delayAfter > 0) {
-                allSteps.push({
-                    id: `delay-after-${itemIndex}`,
-                    action: () => {},
-                    duration: delayAfter,
-                })
-            }
-
-            if (onComplete) {
-                allSteps.push({
-                    id: `complete-${itemIndex}`,
-                    action: onComplete,
-                    duration: 0,
-                })
-            }
-        })
-
-        return allSteps
-    }, [typing])
-
-    const reset = useCallback(() => {
-        setTexts([])
-        setCurrentIndex(0)
-        typing.reset()
-    }, [typing])
-
-    return {
-        texts,
-        currentIndex,
-        generateSequence,
-        reset,
-    }
-}
-
-/**
- * Hook for typing with cursor
- */
-interface UseTypingWithCursorOptions extends UseTypingAnimationOptions {
-    cursorWhileTyping?: boolean
-    cursorAfterComplete?: boolean
-}
-
-export function useTypingWithCursor(
-    options: UseTypingWithCursorOptions = {}
-) {
-    const {
-        cursorWhileTyping = true,
-        cursorAfterComplete = true,
-        ...typingOptions
-    } = options
-
-    const typing = useTypingAnimation(typingOptions)
-    const [isTyping, setIsTyping] = useState(false)
-    const [isComplete, setIsComplete] = useState(false)
-
-    const generateSteps = useCallback((
-        fullText: string,
-        config: TypingAnimationConfig = {}
-    ): AnimationStep[] => {
-        const steps: AnimationStep[] = [{
-            id: 'start-typing',
-            action: () => {
-                setIsTyping(true)
-                setIsComplete(false)
-            },
-            duration: 0,
-        }]
-
-        steps.push(...typing.generateSteps(fullText, config))
-
-        steps.push({
-            id: 'complete-typing',
-            action: () => {
-                setIsTyping(false)
-                setIsComplete(true)
-            },
-            duration: 0,
-        })
-
-        return steps
-    }, [typing])
-
-    const reset = useCallback(() => {
-        typing.reset()
-        setIsTyping(false)
-        setIsComplete(false)
-    }, [typing])
-
-    const showCursor =
-        (isTyping && cursorWhileTyping) ||
-        (isComplete && cursorAfterComplete)
-
-    return {
-        ...typing,
-        generateSteps,
-        reset,
-        showCursor,
-        isTyping,
-        isComplete,
-    }
-}
