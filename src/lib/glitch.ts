@@ -200,8 +200,13 @@ export function smoothCharacterGlitch(
         // Vintage effects fade away after vintageDuration, but glitch char STAYS
         // Wait for glitchCharDisplayDuration before phase 2
         setTimeout(() => {
+            // Guard: element may have been removed from DOM between phases
+            if (!element.isConnected) return
+
             // ========== PHASE 2: Restore original character ==========
             requestAnimationFrame(() => {
+                if (!element.isConnected) return
+
                 // Apply vintage effects again
                 applyTextGlitch(element, vintageDuration)
                 chromaticAberration(element)
@@ -290,8 +295,13 @@ export function smoothMultiCharGlitch(
         // Vintage effects fade away after vintageDuration, but glitch chars STAY
         // Wait for glitchCharDisplayDuration before phase 2
         setTimeout(() => {
+            // Guard: element may have been removed from DOM between phases
+            if (!element.isConnected) return
+
             // ========== PHASE 2: Restore original characters ==========
             requestAnimationFrame(() => {
+                if (!element.isConnected) return
+
                 // Apply vintage effects again
                 applyTextGlitch(element, vintageDuration)
                 chromaticAberration(element)
