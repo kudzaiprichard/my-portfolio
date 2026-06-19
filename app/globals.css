@@ -128,7 +128,14 @@ body {
    CUSTOM CURSOR STYLES (Desktop Only)
    ============================================ */
 
-/* Hide custom cursor on touch devices */
+/* Hide system cursor on desktop — no exceptions */
+@media (hover: hover) and (pointer: fine) {
+  * {
+    cursor: none !important;
+  }
+}
+
+/* Restore system cursor on touch devices */
 @media (hover: none) and (pointer: coarse) {
   body {
     cursor: auto !important;
@@ -138,60 +145,132 @@ body {
     cursor: pointer !important;
   }
 
-  .cursor-dot,
-  .cursor-ring {
+  .custom-cursor {
     display: none !important;
   }
 }
 
-/* Show custom cursor only on desktop */
-@media (hover: hover) and (pointer: fine) {
-  body {
-    cursor: none;
-  }
+/* Cursor container — zero-size anchor driven by transform in JS */
+.custom-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: var(--z-cursor);
+  will-change: transform;
+  transition: opacity 0.2s ease;
+}
 
-  a, button, .cta-btn {
-    cursor: none;
-  }
+/* Dot — default: small, dim */
+.custom-cursor__dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  box-shadow: 0 0 8px rgba(0, 255, 65, 0.4), 0 0 15px rgba(0, 255, 65, 0.15);
+  transform: translate(-50%, -50%);
+  opacity: 0.7;
+  transition: transform 0.35s cubic-bezier(0.22, 1.2, 0.36, 1), opacity 0.12s ease;
+  will-change: transform, opacity;
+}
 
-  .cursor-dot {
-    width: 8px;
-    height: 8px;
-    background: var(--color-primary);
-    border-radius: 50%;
-    position: fixed;
-    pointer-events: none;
-    z-index: var(--z-cursor);
-    box-shadow: 0 0 15px var(--color-primary), 0 0 25px var(--color-primary);
-    transition: transform 0.1s ease;
-    transform: translate(-50%, -50%);
-  }
+/* Ring — hidden by default */
+.custom-cursor__ring {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid rgba(0, 255, 65, 0.55);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0.4);
+  opacity: 0;
+  transition: transform 0.25s cubic-bezier(0.22, 1.2, 0.36, 1), opacity 0.15s ease;
+  will-change: transform, opacity;
+}
 
-  .cursor-dot.clicked {
-    transform: translate(-50%, -50%) scale(1.3);
-  }
+/* Caret — hidden by default */
+.custom-cursor__caret {
+  position: absolute;
+  width: 2px;
+  height: 18px;
+  background: var(--color-primary);
+  box-shadow: 0 0 4px rgba(0, 255, 65, 0.4);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.1s ease;
+  will-change: opacity;
+}
 
-  .cursor-ring {
-    width: 30px;
-    height: 30px;
-    border: 2px solid rgba(0, 255, 65, 0.5);
-    border-radius: 50%;
-    position: fixed;
-    pointer-events: none;
-    z-index: calc(var(--z-cursor) - 1);
-    transition: all 0.15s ease;
-    transform: translate(-50%, -50%);
-  }
+/* ---- Section-aware default glow (Priority 8) ---- */
+/* 15–25% opacity shift per section energy level. Only default state —
+   link/input have their own fixed glow. Values derived from particle
+   depth tier vocabulary (close: 7px/0.4, hub: 15px/0.7). */
+.custom-cursor[data-state="default"][data-section="home"] .custom-cursor__dot {
+  box-shadow: 0 0 8px rgba(0, 255, 65, 0.48), 0 0 15px rgba(0, 255, 65, 0.18);
+}
 
-  .cursor-ring.clicked {
-    transform: translate(-50%, -50%) scale(0.8);
-  }
+.custom-cursor[data-state="default"][data-section="about"] .custom-cursor__dot,
+.custom-cursor[data-state="default"][data-section="experience"] .custom-cursor__dot {
+  box-shadow: 0 0 8px rgba(0, 255, 65, 0.32), 0 0 15px rgba(0, 255, 65, 0.12);
+}
 
-  .cursor-ring.hovering {
-    width: 50px;
-    height: 50px;
-    border-color: var(--color-primary);
-  }
+.custom-cursor[data-state="default"][data-section="terminal"] .custom-cursor__dot {
+  box-shadow: 0 0 8px rgba(0, 255, 65, 0.52), 0 0 15px rgba(0, 255, 65, 0.195);
+}
+
+/* ---- Link state: bright dot + visible ring ---- */
+.custom-cursor[data-state="link"] .custom-cursor__dot {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.25);
+  box-shadow: 0 0 12px rgba(0, 255, 65, 0.6), 0 0 22px rgba(0, 255, 65, 0.2);
+}
+
+.custom-cursor[data-state="link"] .custom-cursor__ring {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* ---- Input state: dot hidden, caret blinking ---- */
+.custom-cursor[data-state="input"] .custom-cursor__dot {
+  opacity: 0;
+}
+
+.custom-cursor[data-state="input"] .custom-cursor__caret {
+  animation: cursorCaretBlink var(--cursor-blink-rate, 1s) step-end infinite;
+}
+
+@keyframes cursorCaretBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* ---- Click: fast snap down, spring back on release ---- */
+.custom-cursor[data-pressed="true"] .custom-cursor__dot {
+  transform: translate(-50%, -50%) scale(0.4);
+  transition: transform 0.06s cubic-bezier(0.4, 0, 1, 1), opacity 0.12s ease;
+}
+
+.custom-cursor[data-state="link"][data-pressed="true"] .custom-cursor__dot {
+  transform: translate(-50%, -50%) scale(0.6);
+}
+
+.custom-cursor[data-state="link"][data-pressed="true"] .custom-cursor__ring {
+  transform: translate(-50%, -50%) scale(0.65);
+  transition: transform 0.06s cubic-bezier(0.4, 0, 1, 1), opacity 0.15s ease;
+}
+
+/* ---- Reduced motion: instant positioning, no ambient animations ---- */
+.custom-cursor--reduced-motion .custom-cursor__dot,
+.custom-cursor--reduced-motion .custom-cursor__ring,
+.custom-cursor--reduced-motion .custom-cursor__caret {
+  transition-duration: 0.01ms !important;
+}
+
+.custom-cursor--reduced-motion[data-state="input"] .custom-cursor__caret {
+  animation: none !important;
+  opacity: 1;
 }
 
 /* ============================================
@@ -257,7 +336,7 @@ section {
    ============================================ */
 
 .terminal-container {
-  background: transparent;
+  background: rgba(5, 15, 5, 0.65);
   backdrop-filter: blur(5px);
   border: var(--border-width) solid var(--color-primary-dimmer);
   border-radius: var(--border-radius);
@@ -268,6 +347,16 @@ section {
   overflow-y: auto;
   text-align: left;
   box-shadow: 0 0 1px var(--color-primary);
+}
+
+/* Disable backdrop-filter on mobile/touch — it forces compositor
+   work on every frame during scroll and particle animation */
+@media (hover: none) and (pointer: coarse) {
+  .terminal-container {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgba(5, 15, 5, 0.82);
+  }
 }
 
 .terminal-header {
@@ -527,6 +616,16 @@ section {
   margin-left: 4px;
   animation: blink 1s infinite;
   vertical-align: bottom;
+}
+
+@keyframes section-cursor-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.section-cursor-blink {
+  display: inline-block;
+  animation: section-cursor-blink 0.7s infinite;
 }
 
 @keyframes floatCode {
@@ -867,6 +966,59 @@ textarea:focus-visible,
 }
 
 /* ============================================
+   ACCESSIBILITY
+   ============================================ */
+
+/* Visually hidden but accessible to screen readers */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Skip-to-content link — hidden until focused */
+.skip-to-content {
+  position: fixed;
+  top: -100%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100000;
+  padding: 12px 24px;
+  background: rgba(0, 10, 0, 0.95);
+  border: 2px solid var(--color-primary);
+  color: var(--color-primary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+
+.skip-to-content:focus {
+  top: 16px;
+  outline: none;
+  box-shadow: 0 0 20px rgba(0, 255, 65, 0.4), 0 0 40px rgba(0, 255, 65, 0.15);
+}
+
+/* Visible focus indicator — terminal-themed green glow */
+*:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 12px rgba(0, 255, 65, 0.3);
+}
+
+/* Remove default focus for mouse users (focus-visible handles keyboard) */
+*:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
+/* ============================================
    PRINT STYLES
    ============================================ */
 
@@ -874,8 +1026,7 @@ textarea:focus-visible,
   .page-indicators,
   .floating-code,
   .cta-buttons,
-  .cursor-dot,
-  .cursor-ring,
+  .custom-cursor,
   .particle-canvas {
     display: none;
   }
