@@ -24,6 +24,14 @@ const bootSequence: BootLine[] = [
     { text: 'Ready.', delay: 400, type: 'ready' },
 ]
 
+const shutdownLines = [
+    '> Initializing portfolio environment...',
+    '> Loading components [████████████████] 100%',
+    '> Establishing connections...',
+    '> All services online.',
+    '> Launching interface...',
+]
+
 type ExitPhase = 'idle' | 'scrolling' | 'clearing' | 'scanline' | 'flash' | 'done'
 
 export default function BootScreen() {
@@ -33,16 +41,10 @@ export default function BootScreen() {
     const [dismissed, setDismissed] = useState(false)
     const [exitPhase, setExitPhase] = useState<ExitPhase>('idle')
     const [exitLines, setExitLines] = useState<string[]>([])
+    const [showSkip, setShowSkip] = useState(false)
     const timeoutsRef = useRef<NodeJS.Timeout[]>([])
     const hasBootedRef = useRef(false)
-
-    const shutdownLines = [
-        '> Initializing portfolio environment...',
-        '> Loading components [████████████████] 100%',
-        '> Establishing connections...',
-        '> All services online.',
-        '> Launching interface...',
-    ]
+    const isSkippingRef = useRef(false)
 
     // Check sessionStorage on mount
     useEffect(() => {
@@ -61,6 +63,10 @@ export default function BootScreen() {
         if (dismissed || hasBootedRef.current) return
 
         document.body.style.overflow = 'hidden'
+
+        // Show skip button after 1.5 seconds
+        const skipTimer = setTimeout(() => setShowSkip(true), 1500)
+        timeoutsRef.current.push(skipTimer)
 
         let cumulativeDelay = 500
 
@@ -83,6 +89,24 @@ export default function BootScreen() {
             timeoutsRef.current = []
         }
     }, [dismissed])
+
+    const skipBoot = useCallback(() => {
+        if (isSkippingRef.current || dismissed || hasBootedRef.current) return
+        if (exitPhase !== 'idle') return
+        isSkippingRef.current = true
+
+        // Clear all pending boot timeouts
+        timeoutsRef.current.forEach(clearTimeout)
+        timeoutsRef.current = []
+
+        // Complete immediately
+        document.body.style.overflow = ''
+        sessionStorage.setItem('portfolio-booted', 'true')
+        hasBootedRef.current = true
+        setExitPhase('done')
+        completeBoot()
+        setTimeout(() => setDismissed(true), 100)
+    }, [dismissed, exitPhase, completeBoot])
 
     const runExitSequence = useCallback(() => {
         // Phase 1: Scroll up — existing boot text scrolls away
@@ -126,7 +150,7 @@ export default function BootScreen() {
 
         }, 600) // Wait for scroll-up to finish
 
-    }, [completeBoot, shutdownLines])
+    }, [completeBoot])
 
     const handleStart = useCallback(() => {
         if (!bootComplete || exitPhase !== 'idle') return
@@ -139,6 +163,7 @@ export default function BootScreen() {
         <>
             <div
                 className={`boot-screen boot-screen-phase-${exitPhase}`}
+                onClick={exitPhase === 'idle' ? skipBoot : undefined}
                 aria-modal="true"
                 role="dialog"
                 aria-label="Portfolio boot sequence"
@@ -173,12 +198,30 @@ export default function BootScreen() {
                             {bootComplete && exitPhase === 'idle' && (
                                 <div className="boot-screen-prompt">
                                     <button
-                                        onClick={handleStart}
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleStart()
+                                        }}
                                         className="boot-screen-start-btn"
                                         autoFocus
                                     >
                                         <span className="boot-screen-prompt-symbol">&gt;</span>
                                         ./start_portfolio.sh
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Skip button — appears after 1.5s during boot sequence */}
+                            {showSkip && !bootComplete && exitPhase === 'idle' && (
+                                <div className="boot-screen-skip-container">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            skipBoot()
+                                        }}
+                                        className="boot-screen-skip-btn"
+                                    >
+                                        skip &gt;
                                     </button>
                                 </div>
                             )}
@@ -213,17 +256,26 @@ export default function BootScreen() {
                     font-family: var(--font-mono);
                     color: var(--color-primary);
                     overflow: hidden;
+                    cursor: pointer;
                 }
 
                 /* Phase: CRT power-off — compress then fade */
                 .boot-screen-phase-flash {
                     animation: boot-screen-crt-compress 0.6s cubic-bezier(0.4, 0, 1, 1) forwards;
+                    cursor: default;
                 }
 
                 .boot-screen-phase-done {
                     animation: boot-screen-crt-compress 0.6s cubic-bezier(0.4, 0, 1, 1) forwards;
                     opacity: 0;
                     visibility: hidden;
+                    cursor: default;
+                }
+
+                .boot-screen-phase-scrolling,
+                .boot-screen-phase-clearing,
+                .boot-screen-phase-scanline {
+                    cursor: default;
                 }
 
                 @keyframes boot-screen-crt-compress {
@@ -359,6 +411,47 @@ export default function BootScreen() {
 
                 .boot-screen-prompt-symbol {
                     color: var(--color-primary-dim);
+                }
+
+                /* ==================
+                   SKIP BUTTON
+                   ================== */
+
+                .boot-screen-skip-container {
+                    position: fixed;
+                    bottom: 24px;
+                    right: 24px;
+                    opacity: 0;
+                    animation: boot-screen-skip-appear 0.4s ease forwards;
+                }
+
+                @keyframes boot-screen-skip-appear {
+                    from { opacity: 0; transform: translateY(4px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+
+                .boot-screen-skip-btn {
+                    background: transparent;
+                    border: 1px solid var(--color-primary-dimmer);
+                    color: var(--color-primary-dim);
+                    font-family: var(--font-mono);
+                    font-size: var(--font-size-sm);
+                    padding: 6px 14px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    min-height: var(--min-touch-target);
+                }
+
+                .boot-screen-skip-btn:hover,
+                .boot-screen-skip-btn:focus {
+                    color: var(--color-primary);
+                    border-color: var(--color-primary);
+                    background: rgba(0, 255, 65, 0.05);
+                }
+
+                .boot-screen-skip-btn:focus-visible {
+                    outline: 2px solid var(--color-primary);
+                    outline-offset: 2px;
                 }
 
                 /* ==================
@@ -529,6 +622,16 @@ export default function BootScreen() {
                         width: 100%;
                         justify-content: center;
                     }
+
+                    .boot-screen-skip-container {
+                        bottom: 16px;
+                        right: 16px;
+                    }
+
+                    .boot-screen-skip-btn {
+                        font-size: var(--font-size-xs);
+                        padding: 5px 12px;
+                    }
                 }
 
                 @media (min-width: 768px) {
@@ -581,6 +684,11 @@ export default function BootScreen() {
 
                     .boot-screen-crt-off {
                         animation-duration: 0.01ms;
+                    }
+
+                    .boot-screen-skip-container {
+                        animation: none;
+                        opacity: 1;
                     }
                 }
             `}</style>

@@ -6,10 +6,12 @@ import { useEffect, useState } from 'react'
 export default function ScrollHint() {
     const [homeVisible, setHomeVisible] = useState(true)
     const [contactVisible, setContactVisible] = useState(false)
+    const [terminalVisible, setTerminalVisible] = useState(false)
 
     useEffect(() => {
         const homeEl = document.getElementById('home')
         const contactEl = document.getElementById('contact')
+        const terminalEl = document.getElementById('terminal')
 
         if (!homeEl || !contactEl) return
 
@@ -20,6 +22,8 @@ export default function ScrollHint() {
                         setHomeVisible(entry.isIntersecting)
                     } else if (entry.target.id === 'contact') {
                         setContactVisible(entry.isIntersecting)
+                    } else if (entry.target.id === 'terminal') {
+                        setTerminalVisible(entry.isIntersecting)
                     }
                 })
             },
@@ -28,12 +32,13 @@ export default function ScrollHint() {
 
         observer.observe(homeEl)
         observer.observe(contactEl)
+        if (terminalEl) observer.observe(terminalEl)
 
         return () => observer.disconnect()
     }, [])
 
     const showTop = !homeVisible
-    const showBottom = !contactVisible
+    const showBottom = !contactVisible && !terminalVisible
 
     return (
         <>

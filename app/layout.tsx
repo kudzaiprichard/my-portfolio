@@ -8,6 +8,8 @@ import BootScreen from '@/src/components/layout/BootScreen'
 import { BootProvider } from '@/src/components/layout/context/BootContext'
 import StructuredData from "@/src/components/layout/seo/StructuredData";
 import SEOContent from "@/src/components/layout/seo/SEOContent";
+import MuteToggle from "@/src/components/shared/MuteToggle";
+import AmbientHum from "@/src/components/shared/AmbientHum";
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 const twitterHandle = process.env.NEXT_PUBLIC_TWITTER_HANDLE || '@kudzaiprichard'
@@ -105,6 +107,11 @@ export default function RootLayout({
         </head>
         <body suppressHydrationWarning>
         <BootProvider>
+            {/* Skip-to-content link for keyboard users */}
+            <a href="#home" className="skip-to-content">
+                Skip to content
+            </a>
+
             {/* Hidden semantic content for crawlers */}
             <SEOContent />
 
@@ -116,6 +123,10 @@ export default function RootLayout({
 
             {/* Custom cursor */}
             <CustomCursor />
+
+            {/* Audio controls */}
+            <MuteToggle />
+            <AmbientHum />
 
             {/* Scroll hint indicator */}
             <ScrollHint />
