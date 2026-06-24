@@ -8,25 +8,40 @@ export default function TerminalContainer({
                                               title = 'developer@portfolio:~$',
                                               children,
                                               className = '',
-                                          }: TerminalContainerProps) {
+                                              ariaLabel,
+                                          }: TerminalContainerProps & { ariaLabel?: string }) {
     const terminalContentRef = useRef<HTMLDivElement>(null)
+    const scrollTimerRef = useRef<NodeJS.Timeout | null>(null)
 
     useEffect(() => {
-        const scrollToBottom = () => {
+        // Debounce scroll-to-bottom to fire at most once per 150ms.
+        // During typing animation, children changes on every character,
+        // which would trigger ~430 scrollTo calls in 2 seconds without this.
+        if (scrollTimerRef.current) return
+
+        scrollTimerRef.current = setTimeout(() => {
+            scrollTimerRef.current = null
             if (terminalContentRef.current) {
                 terminalContentRef.current.scrollTo({
                     top: terminalContentRef.current.scrollHeight,
                     behavior: 'smooth'
                 })
             }
-        }
-
-        scrollToBottom()
+        }, 150)
     }, [children])
+
+    // Cleanup timer on unmount
+    useEffect(() => {
+        return () => {
+            if (scrollTimerRef.current) {
+                clearTimeout(scrollTimerRef.current)
+            }
+        }
+    }, [])
 
     return (
         <>
-            <div className={`terminal-container ${className}`}>
+            <div className={`terminal-container ${className}`} role="log" aria-label={ariaLabel || title}>
                 <div className="terminal-header">
                     <div className="terminal-dot" />
                     <div className="terminal-dot" />

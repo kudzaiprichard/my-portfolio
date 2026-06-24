@@ -63,6 +63,8 @@ export default function ScrollSection({
             id={id}
             ref={sectionRef}
             className={className}
+            tabIndex={-1}
+            style={{ outline: 'none' }}
         >
             {children}
         </section>
