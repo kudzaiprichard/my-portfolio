@@ -10,76 +10,25 @@ import { useAnimationController } from '@/src/hooks/useAnimationController'
 import { useTypingAnimation } from '@/src/hooks/useTypingAnimation'
 import { AnimationController } from '@/src/lib/animationController'
 import { useBootContext } from "@/src/components/layout/context/BootContext"
+import { useReducedMotion } from '@/src/hooks/useReducedMotion'
+import { useTerminalInput } from '@/src/hooks/useTerminalInput'
+import TerminalInput from '@/src/components/shared/TerminalInput'
 import {
     getBaseSpeedForSection,
     getPatternForSection,
     audioConfig,
     sequenceTimings,
 } from '@/src/constants/typingConfig'
+import { projects, contact } from '@/src/content'
 
 const projectsPattern = getPatternForSection('projects')
 const projectsSpeed = getBaseSpeedForSection('projects')
 
-const githubUrl = process.env.NEXT_PUBLIC_GITHUB_URL || 'https://github.com/kudzaiprichard'
-
-interface Project {
-    id: string
-    name: string
-    status?: 'LIVE' | 'BETA' | 'WIP'
-    description: string
-    technologies: string[]
-    githubUrl: string
-    liveUrl?: string
-}
-
-const projects: Project[] = [
-    {
-        id: '1',
-        name: 'AI ChatBot Platform',
-        status: 'LIVE',
-        description: 'Enterprise conversational AI platform powered by GPT-4. Features context-aware responses, multi-language support, and custom training capabilities for enterprise clients. Handles complex queries with natural language processing.',
-        technologies: ['Python', 'FastAPI', 'OpenAI', 'PostgreSQL'],
-        githubUrl: 'https://github.com/yourusername/ai-chatbot',
-        liveUrl: 'https://demo.com',
-    },
-    {
-        id: '2',
-        name: 'ML Image Classifier',
-        status: 'LIVE',
-        description: 'Deep learning model for image classification with 96% accuracy. Built with transfer learning using ResNet50 and deployed with real-time inference API. Processes thousands of images per minute with high precision.',
-        technologies: ['TensorFlow', 'Flask', 'Docker', 'AWS'],
-        githubUrl: 'https://github.com/yourusername/ml-classifier',
-        liveUrl: 'https://demo.com',
-    },
-    {
-        id: '3',
-        name: 'E-Commerce Dashboard',
-        status: 'LIVE',
-        description: 'Full-stack admin dashboard for e-commerce platforms. Features real-time analytics, inventory management, and automated reporting with beautiful data visualizations. Supports multiple stores and currencies.',
-        technologies: ['Next.js', 'Node.js', 'MongoDB'],
-        githubUrl: 'https://github.com/yourusername/dashboard',
-        liveUrl: 'https://demo.com',
-    },
-    {
-        id: '4',
-        name: 'Real-Time Chat App',
-        status: 'BETA',
-        description: 'WebSocket-based real-time messaging application with end-to-end encryption. Supports group chats, file sharing, and message history with Redis caching for optimal performance.',
-        technologies: ['React', 'Socket.io', 'Redis'],
-        githubUrl: 'https://github.com/yourusername/chat',
-    },
-    {
-        id: '5',
-        name: 'Task Automation Bot',
-        status: 'LIVE',
-        description: 'Python automation bot for repetitive tasks. Integrates with Slack, Email, and Calendar APIs. Saves average of 10+ hours per week through intelligent scheduling and notifications.',
-        technologies: ['Python', 'Celery', 'RabbitMQ'],
-        githubUrl: 'https://github.com/yourusername/bot',
-    },
-]
+const githubUrl = contact.githubUrl
 
 export default function ProjectsSection() {
     const { isBooted } = useBootContext()
+    const prefersReducedMotion = useReducedMotion()
     const [showCommand, setShowCommand] = useState(false)
     const [showProjects, setShowProjects] = useState(false)
     const [showFooterCommand, setShowFooterCommand] = useState(false)
@@ -92,8 +41,12 @@ export default function ProjectsSection() {
         volumeRampEnabled: audioConfig.volumeRampEnabled,
     })
 
+    const hasCompletedOnceRef = useRef(false)
     const { onTypingKeystroke } = useTypingAudioCallback(audio)
-    const animation = useAnimationController({ debug: false })
+    const animation = useAnimationController({
+        onComplete: () => { hasCompletedOnceRef.current = true },
+        debug: false,
+    })
     const commandTyping = useTypingAnimation({ baseSpeed: projectsSpeed, humanPattern: projectsPattern })
     const footerCommandTyping = useTypingAnimation({ baseSpeed: projectsSpeed, humanPattern: projectsPattern })
     const projectNameRefs = useRef<(HTMLSpanElement | null)[]>([])
@@ -118,7 +71,7 @@ export default function ProjectsSection() {
                 audio.requestAudioControl()
             } else {
                 audio.releaseAudioControl()
-                if (animation.isRunning) {
+                if (animation.isRunning && !hasCompletedOnceRef.current) {
                     resetAnimationState()
                 }
             }
@@ -131,6 +84,11 @@ export default function ProjectsSection() {
         onInViewChange: (inView: boolean) => {
             onInViewChangeRef.current?.(inView)
         }
+    })
+
+    const terminalInput = useTerminalInput({
+        sectionId: 'projects',
+        isActive: animation.isCompleted && isInView,
     })
 
     const buildAnimationSequence = useCallback(() => {
@@ -155,16 +113,31 @@ export default function ProjectsSection() {
         return steps
     }, [command, footerCommand, commandTyping, footerCommandTyping, onTypingKeystroke, audio])
 
+    // Skip all animations when reduced motion is preferred
+    useEffect(() => {
+        if (prefersReducedMotion && isBooted && !animation.isCompleted) {
+            setShowCommand(true)
+            setShowProjects(true)
+            setShowFooterCommand(true)
+            setShowFooterContent(true)
+            animation.complete()
+            hasCompletedOnceRef.current = true
+        }
+    }, [prefersReducedMotion, isBooted, animation])
+
     useEffect(() => {
         if (!isBooted) return
+        if (prefersReducedMotion) return
+        if (hasCompletedOnceRef.current) return
         if (!isInView || !audio.isAudioReady || !audio.hasAudioControl) return
         if (animation.isCompleted || animation.isRunning) return
 
         const steps = buildAnimationSequence()
         animation.start(steps)
-    }, [isBooted, isInView, audio.isAudioReady, audio.hasAudioControl, animation.isCompleted, animation.isRunning, buildAnimationSequence, animation])
+    }, [isBooted, isInView, audio.isAudioReady, audio.hasAudioControl, animation.isCompleted, animation.isRunning, buildAnimationSequence, animation, prefersReducedMotion])
 
     useEffect(() => {
+        if (prefersReducedMotion) return
         if (!isInView || !showProjects) return
 
         const cleanups: (() => void)[] = []
@@ -182,14 +155,16 @@ export default function ProjectsSection() {
         })
 
         return () => cleanups.forEach(cleanup => cleanup())
-    }, [isInView, showProjects])
+    }, [isInView, showProjects, prefersReducedMotion])
 
+    // Unmount-only cleanup. audio.releaseAudioControl() dispatches through a
+    // stable sectionId ref; animation.cancel() dispatches through controllerRef.
+    // Neither captures mutable render-scope values, so the initial closure is safe.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         return () => {
             audio.releaseAudioControl()
-            if (animation && typeof animation.cancel === 'function') {
-                animation.cancel()
-            }
+            animation.cancel()
         }
     }, [])
 
@@ -285,7 +260,6 @@ export default function ProjectsSection() {
                 <div className="projects-section-command-line">
                     <span className="projects-section-prompt">$ </span>
                     <span>{footerCommand}</span>
-                    <span className="projects-section-cursor-blink">|</span>
                 </div>
 
                 <div className="projects-section-footer-content">
@@ -295,6 +269,13 @@ export default function ProjectsSection() {
                     </a>
                 </div>
             </div>
+
+            <TerminalInput
+                history={terminalInput.history}
+                inputText={terminalInput.inputText}
+                isTypingResponse={terminalInput.isTypingResponse}
+                responseText={terminalInput.responseText}
+            />
         </div>
     )
 
@@ -305,7 +286,7 @@ export default function ProjectsSection() {
                     <span className="projects-section-prompt">$ </span>
                     <span>{commandTyping.text}</span>
                     {commandTyping.text.length < command.length && (
-                        <span className="projects-section-cursor-blink">|</span>
+                        <span className="section-cursor-blink projects-section-cursor-blink">|</span>
                     )}
                 </div>
             )}
@@ -318,7 +299,7 @@ export default function ProjectsSection() {
                         <span className="projects-section-prompt">$ </span>
                         <span>{footerCommandTyping.text}</span>
                         {footerCommandTyping.text.length < footerCommand.length && (
-                            <span className="projects-section-cursor-blink">|</span>
+                            <span className="section-cursor-blink projects-section-cursor-blink">|</span>
                         )}
                     </div>
 
@@ -337,8 +318,25 @@ export default function ProjectsSection() {
 
     return (
         <>
-            <div ref={ref} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-                <TerminalContainer title="developer@portfolio:~/projects$">
+            {/* Screen reader accessible content */}
+            <div className="sr-only" aria-live="polite">
+                <h2>Projects</h2>
+                {projects.map((project) => (
+                    <article key={project.id}>
+                        <h3>{project.name} {project.status && `(${project.status})`}</h3>
+                        <p>{project.description}</p>
+                        <p>Technologies: {project.technologies.join(', ')}</p>
+                        <a href={project.githubUrl}>GitHub</a>
+                        {project.liveUrl && <a href={project.liveUrl}>Demo</a>}
+                    </article>
+                ))}
+                <p>
+                    <a href={githubUrl}>View all projects on GitHub</a>
+                </p>
+            </div>
+
+            <div ref={ref} style={{ width: '100%', display: 'flex', justifyContent: 'center' }} aria-hidden="true">
+                <TerminalContainer title="developer@portfolio:~/projects$" ariaLabel="Projects section terminal — portfolio projects">
                     {animation.isCompleted ? renderStaticContent() : renderAnimatingContent()}
                 </TerminalContainer>
             </div>
@@ -359,15 +357,8 @@ export default function ProjectsSection() {
                     color: var(--color-primary-dim);
                 }
 
-                .projects-section-cursor-blink {
-                    display: inline-block;
+                .section-cursor-blink projects-section-cursor-blink {
                     margin-left: 2px;
-                    animation: projects-section-blink 0.7s infinite;
-                }
-
-                @keyframes projects-section-blink {
-                    0%, 50% { opacity: 1; }
-                    51%, 100% { opacity: 0; }
                 }
 
                 .projects-section-container {
