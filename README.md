@@ -58,7 +58,7 @@ The terminal is also **conversational**. A built-in AI agent (Google Gemini, gro
 | CI               | **GitHub Actions** (`.github/workflows/ci.yml`): lint, typecheck, Vitest, Knip, build, Playwright, **Lighthouse CI** with budgets (`lighthouserc.json`) |
 | Dead-code check  | **Knip** (`npm run knip`) — unused files, exports and dependencies               |
 | Analytics        | **Vercel Analytics** + **Speed Insights**, plus custom events in `src/lib/analytics.ts` |
-| Node             | `20.x` (pinned in `package.json` `engines`)                                      |
+| Node             | `24.x` LTS (pinned in `package.json` `engines`)                               |
 
 There is **no Storybook**, **no state-management library** (the terminal store is a small `useSyncExternalStore` class), and **no UI kit**. Everything rendered on screen is hand-built from primitives in `src/`.
 
@@ -126,7 +126,7 @@ A documented template lives at **`.env.example`** — `cp .env.example .env.loca
 | Variable                       | Used by                                  | Notes |
 |--------------------------------|------------------------------------------|-------|
 | `NEXT_PUBLIC_SITE_URL`         | `app/layout.tsx`, `sitemap.ts`, `robots.ts`, `StructuredData` | Canonical URL for OG/Twitter cards, sitemap, JSON-LD (read through `src/lib/site.ts`). Defaults to `https://prichard.co.zw`. **Set this in production** — every link that references itself derives from it. |
-| `NEXT_PUBLIC_EMAIL`            | `app/api/contact/route.ts`, `src/lib/sendContactEmail.ts`, `src/content/personal.ts` | Owner email — recipient for contact-form notifications **and** the `replyTo` address, so replying in your mail client goes directly to the sender. Also required for the agent's `send_message` tool. |
+| `NEXT_PUBLIC_EMAIL`            | `app/api/contact/route.ts`, `src/lib/sendContactEmail.ts`, `src/content/personal.ts` | Owner email — recipient for contact-form notifications (falls back to the address in `src/content/personal.ts`). Notifications set `replyTo` to the sender, so replying in your mail client answers them directly; the sender's confirmation replies to you. Also used by the agent's `send_message` tool. |
 | `RESEND_API_KEY`               | `src/lib/sendContactEmail.ts` (via `/api/contact` and the agent) | **Server-only.** Without it, both the contact form and the agent's message tool report a friendly failure. |
 | `GEMINI_API_KEY`               | `app/api/chat/route.ts`                  | **Server-only.** Powers the terminal AI agent. Free key from [Google AI Studio](https://aistudio.google.com/app/apikey). If unset, the agent replies that it's offline — the terminal still works. **Never** prefix with `NEXT_PUBLIC_`. |
 | `GEMINI_MODEL`                 | `app/api/chat/route.ts`                  | Optional model override. Defaults to `gemini-2.5-flash-lite`. The route also keeps an internal fallback chain (see [Terminal AI agent](#terminal-ai-agent)). |
@@ -1013,7 +1013,7 @@ The recruiter's fast lane: the switch at the top right (or `--no-tty` / `plain` 
 ## Deployment & CI
 
 - **Configured for Vercel** (there is no `vercel.json`; the defaults work for a Next.js App Router project).
-- Node 20.x is pinned in `package.json` `engines`.
+- Node 24.x (LTS) is pinned in `package.json` `engines`.
 - All env vars in [Environment variables](#environment-variables) must be set in the Vercel dashboard. The server-only ones are `RESEND_API_KEY`, `GEMINI_API_KEY`, the Upstash Redis credentials and the optional `GITHUB_TOKEN` — keep these **un-prefixed** so they never reach the client bundle.
 - **Add Upstash Redis** from the Vercel Marketplace so rate limits hold across instances (without it they are per-instance memory).
 - **Set `NEXT_PUBLIC_SITE_URL`** to the canonical domain — every OG image URL, sitemap entry, JSON-LD `url`, `/llms.txt` link and Resend `replyTo` derives from it.

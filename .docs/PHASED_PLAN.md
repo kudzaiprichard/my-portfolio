@@ -195,7 +195,7 @@ When the review and this plan seem to disagree, the review wins. Where this plan
 - [x] A unit test computes WCAG contrast for every theme: `--text`, `--dim`, `--warn`, `--error`, `--agent` against `--bg` must be ≥ 4.5:1. Adjust a value only if it fails, and record the change in the completion notes.
 
 ### 3.4 Typography
-- [x] Load **JetBrains Mono** (400, 600) for everything and **VT323** for the hero name and boot banner only, via `next/font/google`. Remove `'Courier New'`.
+- [x] Load **JetBrains Mono** (400, 600) for everything and **VT323** for the hero name and boot banner only, via `next/font/google`. Remove `'Courier New'`. *(2026-10-26: switched to `next/font/local` with the files in `app/fonts`; `next/font/google` broke the CI/Vercel build when Google served `/l/font?kit=` URLs.)*
 
 **Completion notes:**
 
@@ -216,7 +216,7 @@ When the review and this plan seem to disagree, the review wins. Where this plan
   - `ThemePicker` sits beside the mute toggle. It's a menu of radio items with Arrow/Home/End/Escape support, and focus returns to its button.
   - The choice is stored in `localStorage['portfolio-theme']`. The `<head>` script applies it (or `p1`) before first paint; verified with all five themes that `data-theme` is set at first paint. Other tabs follow via the `storage` event.
 - **Contrast:** all five themes pass ≥ 4.5:1 for `--text`, `--dim`, `--warn`, `--error`, `--agent` (and `--bright`) on `--bg`. **No value needed adjusting.** 44 theme tests; 71 unit tests in total.
-- **Typography:** JetBrains Mono 400/600 and VT323 via `next/font/google` (CSS variables on `<html>`). The hero name and the boot banner (BIOS line) use VT323, scaled 1.4× and 1.8× because VT323 renders small. `'Courier New'` is gone from the site; it remains only as a fallback in the emails and the OG rasteriser, where JetBrains Mono may not be installed.
+- **Typography:** JetBrains Mono 400/600 and VT323 via `next/font/local` (`app/fonts`, switched from `next/font/google` on 2026-10-26 so the build needs no network) (CSS variables on `<html>`). The hero name and the boot banner (BIOS line) use VT323, scaled 1.4× and 1.8× because VT323 renders small. `'Courier New'` is gone from the site; it remains only as a fallback in the emails and the OG rasteriser, where JetBrains Mono may not be installed.
 - **Checks:** types, lint, unit tests, Knip, build and the smoke test pass. Browser checks covered all five themes (hero and projects screenshots), reduced motion, phone width, the picker by keyboard and `theme night` / `theme` from the terminal. No console errors.
 
 ---
