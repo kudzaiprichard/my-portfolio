@@ -1,376 +1,147 @@
 // components/sections/ProjectsSection.tsx
-"use client"
+// Server component: every project card ships in the HTML; SectionReveal
+// types the commands and reveals the cards and footer.
 
-import { useCallback, useEffect, useRef, useState } from 'react'
-import TerminalContainer from '@/src/components/shared/TerminalContainer'
-import { useInView } from '@/src/hooks/useInView'
-import { startCharacterGlitch } from '@/src/lib/glitch'
-import { useKeystrokeAudio, useTypingAudioCallback } from '@/src/hooks/useKeystrokeAudio'
-import { useAnimationController } from '@/src/hooks/useAnimationController'
-import { useTypingAnimation } from '@/src/hooks/useTypingAnimation'
-import { AnimationController } from '@/src/lib/animationController'
-import { useBootContext } from "@/src/components/layout/context/BootContext"
-import { useReducedMotion } from '@/src/hooks/useReducedMotion'
-import { useTerminalInput } from '@/src/hooks/useTerminalInput'
-import TerminalInput from '@/src/components/shared/TerminalInput'
-import { useVoiceContext } from '@/src/components/shared/VoiceProvider'
-import {
-    getBaseSpeedForSection,
-    getPatternForSection,
-    audioConfig,
-    sequenceTimings,
-} from '@/src/constants/typingConfig'
+import SectionReveal from '@/src/components/shared/reveal/SectionReveal'
+import SectionShell from '@/src/components/shared/reveal/SectionShell'
+import TypedLine from '@/src/components/shared/reveal/TypedLine'
 import { projects, contact } from '@/src/content'
-
-const projectsPattern = getPatternForSection('projects')
-const projectsSpeed = getBaseSpeedForSection('projects')
+import type { Project } from '@/src/content/projects'
+import GlitchText from '@/src/components/shared/GlitchText'
 
 const githubUrl = contact.githubUrl
 
-export default function ProjectsSection() {
-    const { isBooted } = useBootContext()
-    const prefersReducedMotion = useReducedMotion()
-    const [showCommand, setShowCommand] = useState(false)
-    const [showProjects, setShowProjects] = useState(false)
-    const [showFooterCommand, setShowFooterCommand] = useState(false)
-    const [showFooterContent, setShowFooterContent] = useState(false)
-
-    const audio = useKeystrokeAudio({
-        sectionId: 'projects',
-        enabled: true,
-        volume: audioConfig.baseVolume,
-        volumeRampEnabled: audioConfig.volumeRampEnabled,
-    })
-
-    const hasCompletedOnceRef = useRef(false)
-    const { onTypingKeystroke } = useTypingAudioCallback(audio)
-    const animation = useAnimationController({
-        onComplete: () => { hasCompletedOnceRef.current = true },
-        debug: false,
-    })
-    const commandTyping = useTypingAnimation({ baseSpeed: projectsSpeed, humanPattern: projectsPattern })
-    const footerCommandTyping = useTypingAnimation({ baseSpeed: projectsSpeed, humanPattern: projectsPattern })
-    const projectNameRefs = useRef<(HTMLSpanElement | null)[]>([])
-    const command = 'ls -la ./repositories/'
-    const footerCommand = 'cat more_projects.txt'
-
-    const resetAnimationState = useCallback(() => {
-        commandTyping.reset()
-        footerCommandTyping.reset()
-        setShowCommand(false)
-        setShowProjects(false)
-        setShowFooterCommand(false)
-        setShowFooterContent(false)
-        animation.reset()
-    }, [animation, commandTyping, footerCommandTyping])
-
-    const onInViewChangeRef = useRef<((inView: boolean) => void) | undefined>(undefined)
-
-    useEffect(() => {
-        onInViewChangeRef.current = (inView: boolean) => {
-            if (inView) {
-                audio.requestAudioControl()
-            } else {
-                audio.releaseAudioControl()
-                if (animation.isRunning && !hasCompletedOnceRef.current) {
-                    resetAnimationState()
-                }
-            }
-        }
-    }, [audio, animation.isRunning, resetAnimationState])
-
-    const { ref, isInView } = useInView({
-        threshold: 0.3,
-        triggerOnce: false,
-        onInViewChange: (inView: boolean) => {
-            onInViewChangeRef.current?.(inView)
-        }
-    })
-
-    const voice = useVoiceContext()
-
-    const terminalInput = useTerminalInput({
-        sectionId: 'projects',
-        isActive: animation.isCompleted && isInView,
-        onAgentReply: voice.speak,
-        onAgentInterrupt: voice.cancelSpeak,
-    })
-
-    const buildAnimationSequence = useCallback(() => {
-        const steps = []
-
-        steps.push(AnimationController.createDelayStep(sequenceTimings.initialDelay))
-        steps.push(AnimationController.createActionStep(() => audio.resetVolumeRamp()))
-        steps.push(AnimationController.createActionStep(() => setShowCommand(true)))
-        steps.push(...commandTyping.generateSteps(command, { onKeystroke: onTypingKeystroke }))
-        steps.push(AnimationController.createDelayStep(sequenceTimings.postCommandDelay))
-        steps.push(AnimationController.createActionStep(() => setShowProjects(true)))
-        steps.push(AnimationController.createDelayStep(600))
-
-        steps.push(AnimationController.createActionStep(() => {
-            audio.resetVolumeRamp()
-            setShowFooterCommand(true)
-        }))
-        steps.push(...footerCommandTyping.generateSteps(footerCommand, { onKeystroke: onTypingKeystroke }))
-        steps.push(AnimationController.createDelayStep(300))
-        steps.push(AnimationController.createActionStep(() => setShowFooterContent(true)))
-
-        return steps
-    }, [command, footerCommand, commandTyping, footerCommandTyping, onTypingKeystroke, audio])
-
-    // Skip all animations when reduced motion is preferred
-    useEffect(() => {
-        if (prefersReducedMotion && isBooted && !animation.isCompleted) {
-            setShowCommand(true)
-            setShowProjects(true)
-            setShowFooterCommand(true)
-            setShowFooterContent(true)
-            animation.complete()
-            hasCompletedOnceRef.current = true
-        }
-    }, [prefersReducedMotion, isBooted, animation])
-
-    useEffect(() => {
-        if (!isBooted) return
-        if (prefersReducedMotion) return
-        if (hasCompletedOnceRef.current) return
-        if (!isInView || !audio.isAudioReady || !audio.hasAudioControl) return
-        if (animation.isCompleted || animation.isRunning) return
-
-        const steps = buildAnimationSequence()
-        animation.start(steps)
-    }, [isBooted, isInView, audio.isAudioReady, audio.hasAudioControl, animation.isCompleted, animation.isRunning, buildAnimationSequence, animation, prefersReducedMotion])
-
-    useEffect(() => {
-        if (prefersReducedMotion) return
-        if (!isInView || !showProjects) return
-
-        const cleanups: (() => void)[] = []
-        projectNameRefs.current.forEach((ref, index) => {
-            if (ref) {
-                cleanups.push(
-                    startCharacterGlitch(ref, {
-                        intensity: 'low',
-                        singleCharInterval: 15000 + (index * 2000),
-                        multiCharInterval: 20000 + (index * 3000),
-                        glitchCharDisplayDuration: 2500,
-                    })
-                )
-            }
-        })
-
-        return () => cleanups.forEach(cleanup => cleanup())
-    }, [isInView, showProjects, prefersReducedMotion])
-
-    // Unmount-only cleanup. audio.releaseAudioControl() dispatches through a
-    // stable sectionId ref; animation.cancel() dispatches through controllerRef.
-    // Neither captures mutable render-scope values, so the initial closure is safe.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(() => {
-        return () => {
-            audio.releaseAudioControl()
-            animation.cancel()
-        }
-    }, [])
-
-    const getStatusColor = (status?: string) => {
-        switch (status) {
-            case 'LIVE': return '#00ff41'
-            case 'BETA': return '#00d4ff'
-            case 'WIP': return '#ffa500'
-            default: return '#00ff41'
-        }
+function getStatusColor(status?: string) {
+    switch (status) {
+        case 'LIVE': return 'var(--bright)'
+        case 'BETA': return 'var(--agent)'
+        case 'WIP': return 'var(--warn)'
+        default: return 'var(--bright)'
     }
+}
 
-    const renderProjectCards = () => (
-        <div className="projects-section-container">
-            <div className="projects-section-featured-row">
-                {projects.slice(0, 2).map((project, idx) => (
-                    <div key={project.id} className="projects-section-card projects-section-card-featured">
-                        <div className="projects-section-header">
-                            <span ref={el => { projectNameRefs.current[idx] = el }} className="projects-section-name">
-                                {project.name}
-                            </span>
-                            {project.status && (
-                                <span className="projects-section-status-badge" style={{ borderColor: getStatusColor(project.status), color: getStatusColor(project.status) }}>
-                                    {project.status}
-                                </span>
-                            )}
-                        </div>
-                        <p className="projects-section-description">{project.description}</p>
-                        <div className="projects-section-tech-tags">
-                            {project.technologies.map((tech) => (
-                                <span key={tech} className="projects-section-tech-tag">{tech}</span>
-                            ))}
-                        </div>
-                        <div className="projects-section-links">
-                            <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" className="projects-section-link">
-                                → GitHub
-                            </a>
-                            {project.liveUrl && (
-                                <a href={project.liveUrl} target="_blank" rel="noopener noreferrer" className="projects-section-link">
-                                    → Demo
-                                </a>
-                            )}
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            <div className="projects-section-other-row">
-                {projects.slice(2, 5).map((project, idx) => (
-                    <div key={project.id} className="projects-section-card">
-                        <div className="projects-section-header">
-                            <span ref={el => { projectNameRefs.current[idx + 2] = el }} className="projects-section-name projects-section-name-small">
-                                {project.name}
-                            </span>
-                            {project.status && (
-                                <span className="projects-section-status-badge" style={{ borderColor: getStatusColor(project.status), color: getStatusColor(project.status) }}>
-                                    {project.status}
-                                </span>
-                            )}
-                        </div>
-                        <p className="projects-section-description projects-section-description-small">{project.description}</p>
-                        <div className="projects-section-tech-tags">
-                            {project.technologies.map((tech) => (
-                                <span key={tech} className="projects-section-tech-tag projects-section-tech-tag-small">{tech}</span>
-                            ))}
-                        </div>
-                        <div className="projects-section-links">
-                            <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" className="projects-section-link projects-section-link-small">
-                                → GitHub
-                            </a>
-                            {project.liveUrl && (
-                                <a href={project.liveUrl} target="_blank" rel="noopener noreferrer" className="projects-section-link projects-section-link-small">
-                                    → Demo
-                                </a>
-                            )}
-                        </div>
-                    </div>
-                ))}
-            </div>
+// On hover the card turns into a long-format listing line: ls -l
+function LongListing({ project }: { project: Project }) {
+    return (
+        <div className="projects-section-ls">
+            <span className="projects-section-ls-perm" aria-hidden="true">drwxr-xr-x</span>
+            <span className="projects-section-ls-owner" aria-hidden="true">kudzai</span>
+            <span className="projects-section-ls-year">{project.year ?? '----'}</span>
+            <span className="projects-section-ls-status">{project.status ?? 'DONE'}</span>
+            <span className="projects-section-ls-stack">{project.technologies.slice(0, 4).join(',').toLowerCase()}</span>
         </div>
     )
+}
 
-    const renderStaticContent = () => (
-        <div className="projects-section-content">
-            <div className="projects-section-command-line">
-                <span className="projects-section-prompt">$ </span>
-                <span>{command}</span>
-            </div>
-
-            {renderProjectCards()}
-
-            <div className="projects-section-footer">
-                <div className="projects-section-command-line">
-                    <span className="projects-section-prompt">$ </span>
-                    <span>{footerCommand}</span>
-                </div>
-
-                <div className="projects-section-footer-content">
-                    → View all projects on{' '}
-                    <a href={githubUrl} target="_blank" rel="noopener noreferrer" className="projects-section-footer-link">
-                        GitHub
-                    </a>
-                </div>
-            </div>
-
-            <TerminalInput
-                history={terminalInput.history}
-                inputText={terminalInput.inputText}
-                isTypingResponse={terminalInput.isTypingResponse}
-                responseText={terminalInput.responseText}
-                suggestion={terminalInput.suggestion}
-                responseVariant={terminalInput.responseVariant}
-                showChips={terminalInput.mode === 'normal'}
-                suggestions={terminalInput.agentSuggestions}
-                onChip={terminalInput.submitCommand}
-                onVoiceSubmit={terminalInput.submitVoiceCommand}
-            />
-        </div>
-    )
-
-    const renderAnimatingContent = () => (
-        <div className="projects-section-content">
-            {showCommand && (
-                <div className="projects-section-command-line">
-                    <span className="projects-section-prompt">$ </span>
-                    <span>{commandTyping.text}</span>
-                    {commandTyping.text.length < command.length && (
-                        <span className="section-cursor-blink projects-section-cursor-blink">|</span>
-                    )}
-                </div>
+// Details, then code, website and installers: whichever the project has
+function ProjectLinks({ project, small }: { project: Project; small?: boolean }) {
+    const cls = `projects-section-link${small ? ' projects-section-link-small' : ''}`
+    return (
+        <div className="projects-section-links">
+            <a href={`/projects/${project.slug}`} className={cls}>→ Details</a>
+            {project.githubUrl && (
+                <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" className={cls}>→ GitHub</a>
             )}
+            {project.liveUrl && (
+                <a href={project.liveUrl} target="_blank" rel="noopener noreferrer" className={cls}>→ Website</a>
+            )}
+            {project.downloads?.map(d => (
+                <a key={d.url} href={d.url} target="_blank" rel="noopener noreferrer" className={cls} aria-label={`Download ${project.name}: ${d.label}`}>↓ {d.label}</a>
+            ))}
+        </div>
+    )
+}
 
-            {showProjects && renderProjectCards()}
+function Badges({ project }: { project: Project }) {
+    return (
+        <span className="projects-section-badges">
+            {project.event && (
+                <span className="projects-section-status-badge" style={{ borderColor: 'var(--warn)', color: 'var(--warn)' }}>{project.event}</span>
+            )}
+            {project.status && (
+                <span className="projects-section-status-badge" style={{ borderColor: getStatusColor(project.status), color: getStatusColor(project.status) }}>{project.status}</span>
+            )}
+        </span>
+    )
+}
 
-            {showFooterCommand && (
-                <div className="projects-section-footer">
-                    <div className="projects-section-command-line">
-                        <span className="projects-section-prompt">$ </span>
-                        <span>{footerCommandTyping.text}</span>
-                        {footerCommandTyping.text.length < footerCommand.length && (
-                            <span className="section-cursor-blink projects-section-cursor-blink">|</span>
-                        )}
+const commandLine = {
+    className: 'projects-section-command-line',
+    prompt: '$ ',
+    promptClassName: 'projects-section-prompt',
+}
+
+export default async function ProjectsSection() {
+    'use cache'
+    return (
+        <>
+            <SectionReveal
+                sectionId="projects"
+                title="developer@portfolio:~/projects$"
+                ariaLabel="Projects section terminal — portfolio projects"
+                afterComplete={<SectionShell sectionId="projects" />}
+            >
+                <div className="projects-section-content">
+                    <TypedLine text="ls -la ./repositories/" {...commandLine} />
+
+                    <div className="projects-section-container" data-reveal="show">
+                        <div className="projects-section-featured-row">
+                            {projects.slice(0, 2).map((project) => (
+                                <div key={project.id} className="projects-section-card projects-section-card-featured">
+                                    <div className="projects-section-header">
+                                        <span className="projects-section-name">
+                                            <GlitchText text={project.name} />
+                                        </span>
+                                        <Badges project={project} />
+                                    </div>
+                                    <LongListing project={project} />
+                                    <p className="projects-section-description">{project.description}</p>
+                                    <div className="projects-section-tech-tags">
+                                        {project.technologies.map((tech) => (
+                                            <span key={tech} className="projects-section-tech-tag">{tech}</span>
+                                        ))}
+                                    </div>
+                                    <ProjectLinks project={project} />
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="projects-section-other-row">
+                            {projects.slice(2).map((project) => (
+                                <div key={project.id} className="projects-section-card">
+                                    <div className="projects-section-header">
+                                        <span className="projects-section-name projects-section-name-small">
+                                            <GlitchText text={project.name} />
+                                        </span>
+                                        <Badges project={project} />
+                                    </div>
+                                    <LongListing project={project} />
+                                    <p className="projects-section-description projects-section-description-small">{project.description}</p>
+                                    <div className="projects-section-tech-tags">
+                                        {project.technologies.map((tech) => (
+                                            <span key={tech} className="projects-section-tech-tag projects-section-tech-tag-small">{tech}</span>
+                                        ))}
+                                    </div>
+                                    <ProjectLinks project={project} small />
+                                </div>
+                            ))}
+                        </div>
                     </div>
 
-                    {showFooterContent && (
-                        <div className="projects-section-footer-content">
+                    <div className="projects-section-footer" data-reveal="show" data-delay="dramaticPause">
+                        <TypedLine text="cat more_projects.txt" {...commandLine} delay="0" />
+
+                        <div className="projects-section-footer-content" data-reveal="show" data-delay="postCommandDelay">
                             → View all projects on{' '}
                             <a href={githubUrl} target="_blank" rel="noopener noreferrer" className="projects-section-footer-link">
                                 GitHub
                             </a>
                         </div>
-                    )}
+                    </div>
                 </div>
-            )}
-        </div>
-    )
-
-    return (
-        <>
-            {/* Screen reader accessible content */}
-            <div className="sr-only" aria-live="polite">
-                <h2>Projects</h2>
-                {projects.map((project) => (
-                    <article key={project.id}>
-                        <h3>{project.name} {project.status && `(${project.status})`}</h3>
-                        <p>{project.description}</p>
-                        <p>Technologies: {project.technologies.join(', ')}</p>
-                        <a href={project.githubUrl}>GitHub</a>
-                        {project.liveUrl && <a href={project.liveUrl}>Demo</a>}
-                    </article>
-                ))}
-                <p>
-                    <a href={githubUrl}>View all projects on GitHub</a>
-                </p>
-            </div>
-
-            <div ref={ref} style={{ width: '100%', display: 'flex', justifyContent: 'center' }} aria-hidden="true">
-                <TerminalContainer title="developer@portfolio:~/projects$" ariaLabel="Projects section terminal — portfolio projects">
-                    {animation.isCompleted ? renderStaticContent() : renderAnimatingContent()}
-                </TerminalContainer>
-            </div>
+            </SectionReveal>
 
             <style>{`
-                .projects-section-content {
-                    color: var(--color-primary);
-                    font-family: var(--font-mono);
-                }
-
-                .projects-section-command-line {
-                    font-size: var(--font-size-md);
-                    margin-bottom: var(--spacing-lg);
-                    line-height: var(--line-height-normal);
-                }
-
-                .projects-section-prompt {
-                    color: var(--color-primary-dim);
-                }
-
-                .section-cursor-blink projects-section-cursor-blink {
-                    margin-left: 2px;
-                }
 
                 .projects-section-container {
                     display: flex;
@@ -391,10 +162,10 @@ export default function ProjectsSection() {
                 }
 
                 .projects-section-card {
-                    border: 1px solid var(--color-primary-dimmer);
+                    border: 1px solid rgb(var(--glow) / 0.4);
                     padding: var(--spacing-md);
-                    background: rgba(0, 20, 0, 0.2);
-                    transition: all var(--transition-fast);
+                    background: rgb(var(--surface-rgb) / 0.35);
+                    transition: all var(--dur-quick) var(--ease-out);
                     display: flex;
                     flex-direction: column;
                     min-height: 180px;
@@ -405,8 +176,8 @@ export default function ProjectsSection() {
                 }
 
                 .projects-section-card:hover {
-                    border-color: var(--color-primary);
-                    background: rgba(0, 30, 0, 0.3);
+                    border-color: var(--bright);
+                    background: rgb(var(--surface-rgb) / 0.6);
                 }
 
                 .projects-section-header {
@@ -420,12 +191,19 @@ export default function ProjectsSection() {
                 .projects-section-name {
                     font-size: var(--font-size-md);
                     font-weight: bold;
-                    color: var(--color-primary);
+                    color: var(--text);
                     line-height: var(--line-height-tight);
                 }
 
                 .projects-section-name-small {
                     font-size: var(--font-size-sm);
+                }
+
+                .projects-section-badges {
+                    display: inline-flex;
+                    flex-wrap: wrap;
+                    gap: 6px;
+                    justify-content: flex-end;
                 }
 
                 .projects-section-status-badge {
@@ -436,10 +214,48 @@ export default function ProjectsSection() {
                     line-height: 1;
                 }
 
+                /* ls -l: hovering (or focusing into) a card prints its long-format columns */
+                .projects-section-ls {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 0 1.2ch;
+                    font-size: var(--font-size-sm);
+                    color: var(--dim);
+                    max-height: 0;
+                    opacity: 0;
+                    overflow: hidden;
+                    transition: max-height var(--dur-base) var(--ease-out), opacity var(--dur-quick) var(--ease-out), margin var(--dur-base) var(--ease-out);
+                }
+
+                .projects-section-card:hover .projects-section-ls,
+                .projects-section-card:focus-within .projects-section-ls {
+                    max-height: 4em;
+                    opacity: 1;
+                    margin: 2px 0 var(--spacing-xs);
+                }
+
+                .projects-section-card:hover .projects-section-ls > *,
+                .projects-section-card:focus-within .projects-section-ls > * {
+                    animation: lnin var(--dur-lnin) var(--ease-out) both;
+                }
+
+                .projects-section-ls-year,
+                .projects-section-ls-status { color: var(--text); }
+                .projects-section-ls-stack { color: var(--dim); }
+
+                /* Touch screens have no hover: always long format */
+                @media (hover: none) {
+                    .projects-section-ls {
+                        max-height: none;
+                        opacity: 1;
+                        margin: 2px 0 var(--spacing-xs);
+                    }
+                }
+
                 .projects-section-description {
                     font-size: var(--font-size-sm);
                     line-height: var(--line-height-relaxed);
-                    color: var(--color-primary-dim);
+                    color: var(--text);
                     margin: 0 0 var(--spacing-sm) 0;
                     flex-grow: 1;
                 }
@@ -458,8 +274,8 @@ export default function ProjectsSection() {
                 .projects-section-tech-tag {
                     font-size: 10px;
                     padding: 3px 8px;
-                    border: 1px solid var(--color-primary-dimmer);
-                    color: var(--color-primary-dim);
+                    border: 1px solid rgb(var(--glow) / 0.4);
+                    color: var(--dim);
                     line-height: 1;
                 }
 
@@ -470,20 +286,23 @@ export default function ProjectsSection() {
 
                 .projects-section-links {
                     display: flex;
-                    gap: var(--spacing-sm);
+                    flex-wrap: wrap;
+                    column-gap: var(--spacing-sm);
+                    row-gap: var(--spacing-xs);
                     padding-top: var(--spacing-xs);
-                    border-top: 1px solid var(--color-primary-dimmest);
+                    border-top: 1px solid rgb(var(--glow) / 0.2);
                 }
 
                 .projects-section-link {
                     font-size: var(--font-size-xs);
-                    color: var(--color-primary);
+                    color: var(--bright);
                     text-decoration: none;
-                    transition: color var(--transition-fast);
+                    white-space: nowrap;
+                    transition: color var(--dur-quick) var(--ease-out);
                 }
 
                 .projects-section-link:hover {
-                    color: var(--color-primary-dim);
+                    color: var(--dim);
                 }
 
                 .projects-section-link-small {
@@ -496,24 +315,19 @@ export default function ProjectsSection() {
 
                 .projects-section-footer-content {
                     font-size: var(--font-size-sm);
-                    color: var(--color-primary-dim);
-                    animation: projects-section-fadeIn 0.5s ease forwards;
+                    color: var(--dim);
+                    animation: lnin var(--dur-lnin) var(--ease-out) both;
                     padding-left: 4px;
                 }
 
-                @keyframes projects-section-fadeIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-
                 .projects-section-footer-link {
-                    color: var(--color-primary);
+                    color: var(--bright);
                     text-decoration: none;
-                    border-bottom: 1px solid var(--color-primary-dimmer);
+                    border-bottom: 1px solid rgb(var(--glow) / 0.4);
                 }
 
                 .projects-section-footer-link:hover {
-                    border-bottom-color: var(--color-primary);
+                    border-bottom-color: var(--bright);
                 }
 
                 @media (min-width: 768px) {

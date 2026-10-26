@@ -3,14 +3,14 @@
  * Core type definitions for the animation system
  * Centralized types ensure consistency across all animation components
  *
- * NOTE: Default typing pattern values have moved to constants/typingConfig.ts
+ * NOTE: Default typing pattern values live in constants/typingConfig.ts
  * This file only defines the interfaces/types.
  */
 
 /**
  * Animation lifecycle states
  */
-export type AnimationState = 'idle' | 'running' | 'paused' | 'completed' | 'cancelled'
+export type AnimationState = 'idle' | 'running' | 'completed' | 'cancelled'
 
 /**
  * Single step in an animation sequence
@@ -24,9 +24,6 @@ export interface AnimationStep {
 
     /** Duration in milliseconds before moving to next step */
     duration: number
-
-    /** Optional metadata for debugging/tracking */
-    metadata?: Record<string, unknown>
 }
 
 /**
@@ -41,38 +38,12 @@ export interface AnimationControllerConfig {
 
     /** Called when animation state changes */
     onStateChange?: (state: AnimationState) => void
-
-    /** Called before each step executes */
-    onStepStart?: (step: AnimationStep, index: number) => void
-
-    /** Called after each step completes */
-    onStepComplete?: (step: AnimationStep, index: number) => void
-
-    /** Enable debug logging */
-    debug?: boolean
-}
-
-/**
- * Typing animation configuration
- */
-export interface TypingAnimationConfig {
-    /** Base typing speed in milliseconds per character */
-    baseSpeed?: number
-
-    /** Called on each keystroke */
-    onKeystroke?: (char: string, index: number, isLast: boolean) => void
-
-    /** Custom delay calculation function */
-    getDelay?: (char: string, index: number, text: string) => number
-
-    /** Whether to play enter sound at the end */
-    playEnterSound?: boolean
 }
 
 /**
  * Key type for audio playback
  */
-export type KeyType = 'regular' | 'space' | 'enter'
+export type KeyType = 'regular' | 'space' | 'enter' | 'backspace'
 
 /**
  * Audio keystroke configuration
@@ -89,13 +60,6 @@ export interface KeystrokeAudioConfig {
 
     /** Enable volume ramping effect */
     volumeRampEnabled?: boolean
-
-    /** Sound files for different key types */
-    soundFiles?: {
-        regular: string[]
-        space?: string[]
-        enter?: string[]
-    }
 }
 
 /**
@@ -108,125 +72,8 @@ export interface InViewConfig {
     /** Root margin for intersection observer */
     rootMargin?: string
 
-    /** Only trigger once */
-    triggerOnce?: boolean
-
     /** Callback when view state changes */
     onInViewChange?: (isInView: boolean) => void
-}
-
-/**
- * Animation sequence builder helper type
- */
-export type AnimationSequence = AnimationStep[]
-
-/**
- * Result of typing animation generation
- */
-export interface TypingAnimationResult {
-    /** Generated animation steps */
-    steps: AnimationStep[]
-
-    /** Total duration in milliseconds */
-    totalDuration: number
-
-    /** Number of characters */
-    characterCount: number
-}
-
-/**
- * Animation controller status
- */
-export interface AnimationStatus {
-    /** Current state */
-    state: AnimationState
-
-    /** Current step index */
-    currentStep: number
-
-    /** Total number of steps */
-    totalSteps: number
-
-    /** Elapsed time in milliseconds */
-    elapsedTime: number
-
-    /** Whether animation is completed */
-    isCompleted: boolean
-
-    /** Whether animation is running */
-    isRunning: boolean
-
-    /** Whether animation is idle */
-    isIdle: boolean
-}
-
-/**
- * Section animation configuration
- */
-export interface SectionAnimationConfig {
-    /** Unique section identifier */
-    sectionId: string
-
-    /** Whether to reset on scroll away */
-    resetOnLeave?: boolean
-
-    /** Whether to restart if interrupted */
-    restartIfInterrupted?: boolean
-
-    /** Minimum time in view before starting (ms) */
-    delayBeforeStart?: number
-
-    /** Audio configuration */
-    audioConfig?: KeystrokeAudioConfig
-
-    /** View configuration */
-    viewConfig?: InViewConfig
-}
-
-/**
- * Human typing pattern configuration
- * Default values are defined in constants/typingConfig.ts
- */
-export interface HumanTypingPattern {
-    /** Speed multiplier for start of text */
-    startSpeedMultiplier?: number
-
-    /** Speed multiplier for middle of text */
-    middleSpeedMultiplier?: number
-
-    /** Speed multiplier for end of text */
-    endSpeedMultiplier?: number
-
-    /** Speed multiplier for file extensions (.txt, .sh) */
-    extensionSpeedMultiplier?: number
-
-    /** Probability of random pause (0.0 to 1.0) */
-    randomPauseProbability?: number
-
-    /** Random pause multiplier */
-    randomPauseMultiplier?: number
-
-    /** Speed multiplier for repeated characters */
-    repeatedCharMultiplier?: number
-
-    /** Characters that trigger slower typing */
-    slowCharacters?: string[]
-
-    /** Speed multiplier for slow characters */
-    slowCharMultiplier?: number
-}
-
-/**
- * Animation event types for tracking
- */
-export enum AnimationEvent {
-    START = 'animation:start',
-    STEP = 'animation:step',
-    COMPLETE = 'animation:complete',
-    CANCEL = 'animation:cancel',
-    RESET = 'animation:reset',
-    PAUSE = 'animation:pause',
-    RESUME = 'animation:resume',
 }
 
 /**
@@ -241,25 +88,4 @@ export class AnimationError extends Error {
         super(message)
         this.name = 'AnimationError'
     }
-}
-
-/**
- * Type guard for checking if state is terminal
- */
-export function isTerminalState(state: AnimationState): boolean {
-    return state === 'completed' || state === 'cancelled'
-}
-
-/**
- * Type guard for checking if state allows starting
- */
-export function canStart(state: AnimationState): boolean {
-    return state === 'idle' || state === 'cancelled'
-}
-
-/**
- * Type guard for checking if animation is active
- */
-export function isActive(state: AnimationState): boolean {
-    return state === 'running' || state === 'paused'
 }

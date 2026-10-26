@@ -1,369 +1,66 @@
 // components/sections/HeroSection.tsx
-"use client"
+// Server component: the hero's final text ships in the HTML; SectionReveal
+// types the commands and reveals each output.
 
-import { useCallback, useEffect, useRef, useState } from 'react'
-import TerminalContainer from '@/src/components/shared/TerminalContainer'
-import { useInView } from '@/src/hooks/useInView'
-import { startCharacterGlitch } from '@/src/lib/glitch'
-import { useKeystrokeAudio, useTypingAudioCallback } from '@/src/hooks/useKeystrokeAudio'
-import { useAnimationController } from '@/src/hooks/useAnimationController'
-import { useTypingAnimation } from '@/src/hooks/useTypingAnimation'
-import { AnimationController } from '@/src/lib/animationController'
-import { useBootContext } from "@/src/components/layout/context/BootContext"
-import { useReducedMotion } from '@/src/hooks/useReducedMotion'
-import { useTerminalInput } from '@/src/hooks/useTerminalInput'
-import TerminalInput from '@/src/components/shared/TerminalInput'
-import { useVoiceContext } from '@/src/components/shared/VoiceProvider'
-import {
-    getBaseSpeedForSection,
-    getPatternForSection,
-    audioConfig,
-    sequenceTimings,
-} from '@/src/constants/typingConfig'
+import SectionReveal from '@/src/components/shared/reveal/SectionReveal'
+import SectionShell from '@/src/components/shared/reveal/SectionShell'
+import TypedLine from '@/src/components/shared/reveal/TypedLine'
+import GlitchText from '@/src/components/shared/GlitchText'
+import CvLink from '@/src/components/shared/CvLink'
 import { owner } from '@/src/content'
 
-const heroPattern = getPatternForSection('hero')
-const heroSpeed = getBaseSpeedForSection('hero')
+const commandLine = {
+    className: 'hero-section-command-line hero-section-fade-in',
+    prompt: '$ ',
+    promptClassName: 'hero-section-prompt',
+}
 
-export default function HeroSection() {
-    const { isBooted } = useBootContext()
-    const prefersReducedMotion = useReducedMotion()
-    const [showNameOutput, setShowNameOutput] = useState(false)
-    const [showRoleOutput, setShowRoleOutput] = useState(false)
-    const [showDescriptionOutput, setShowDescriptionOutput] = useState(false)
-
-    const audio = useKeystrokeAudio({
-        sectionId: 'hero',
-        enabled: true,
-        volume: audioConfig.baseVolume,
-        volumeRampEnabled: audioConfig.volumeRampEnabled,
-    })
-
-    const { onTypingKeystroke } = useTypingAudioCallback(audio)
-
-    const animation = useAnimationController({
-        onComplete: () => {
-            hasCompletedOnceRef.current = true
-        },
-        debug: false,
-    })
-
-    const command1Typing = useTypingAnimation({ baseSpeed: heroSpeed, humanPattern: heroPattern })
-    const command2Typing = useTypingAnimation({ baseSpeed: heroSpeed, humanPattern: heroPattern })
-    const command3Typing = useTypingAnimation({ baseSpeed: heroSpeed, humanPattern: heroPattern })
-
-    const nameRef = useRef<HTMLHeadingElement>(null)
-    const hasCompletedOnceRef = useRef(false)
-
-    const command1 = 'whoami'
-    const command2 = 'cat role.txt'
-    const command3 = 'cat description.txt'
-
-    const resetAnimationState = useCallback(() => {
-        command1Typing.reset()
-        command2Typing.reset()
-        command3Typing.reset()
-        setShowNameOutput(false)
-        setShowRoleOutput(false)
-        setShowDescriptionOutput(false)
-        animation.reset()
-    }, [animation, command1Typing, command2Typing, command3Typing])
-
-    const onInViewChangeRef = useRef<((inView: boolean) => void) | undefined>(undefined)
-
-    useEffect(() => {
-        onInViewChangeRef.current = (inView: boolean) => {
-            if (inView) {
-                audio.requestAudioControl()
-            } else {
-                audio.releaseAudioControl()
-                if (animation.isRunning && !hasCompletedOnceRef.current) {
-                    resetAnimationState()
-                }
-            }
-        }
-    }, [audio, animation.isRunning, resetAnimationState])
-
-    const { ref, isInView } = useInView({
-        threshold: 0.3,
-        triggerOnce: false,
-        onInViewChange: (inView: boolean) => {
-            onInViewChangeRef.current?.(inView)
-        }
-    })
-
-    const voice = useVoiceContext()
-
-    const terminalInput = useTerminalInput({
-        sectionId: 'hero',
-        isActive: animation.isCompleted && isInView,
-        onAgentReply: voice.speak,
-        onAgentInterrupt: voice.cancelSpeak,
-    })
-
-    const buildAnimationSequence = useCallback(() => {
-        const steps = []
-        steps.push(AnimationController.createDelayStep(sequenceTimings.initialDelay))
-        steps.push(
-            AnimationController.createActionStep(() => {
-                audio.resetVolumeRamp()
-            })
-        )
-        steps.push(...command1Typing.generateSteps(command1, {
-            onKeystroke: onTypingKeystroke
-        }))
-        steps.push(
-            AnimationController.createDelayStep(sequenceTimings.postCommandDelay),
-            AnimationController.createActionStep(() => {
-                setShowNameOutput(true)
-            })
-        )
-        steps.push(AnimationController.createDelayStep(800))
-        steps.push(
-            AnimationController.createActionStep(() => {
-                audio.resetVolumeRamp()
-            })
-        )
-        steps.push(...command2Typing.generateSteps(command2, {
-            onKeystroke: onTypingKeystroke
-        }))
-        steps.push(
-            AnimationController.createDelayStep(sequenceTimings.postCommandDelay),
-            AnimationController.createActionStep(() => {
-                setShowRoleOutput(true)
-            })
-        )
-        steps.push(AnimationController.createDelayStep(sequenceTimings.betweenCommandsDelay))
-        steps.push(
-            AnimationController.createActionStep(() => {
-                audio.resetVolumeRamp()
-            })
-        )
-        steps.push(AnimationController.createDelayStep(400))
-        steps.push(...command3Typing.generateSteps(command3, {
-            onKeystroke: onTypingKeystroke
-        }))
-        steps.push(
-            AnimationController.createDelayStep(sequenceTimings.postCommandDelay),
-            AnimationController.createActionStep(() => {
-                setShowDescriptionOutput(true)
-            })
-        )
-        return steps
-    }, [
-        command1, command2, command3,
-        command1Typing, command2Typing, command3Typing,
-        onTypingKeystroke,
-        audio
-    ])
-
-    // Skip all animations when reduced motion is preferred
-    useEffect(() => {
-        if (prefersReducedMotion && isBooted && !animation.isCompleted) {
-            setShowNameOutput(true)
-            setShowRoleOutput(true)
-            setShowDescriptionOutput(true)
-            animation.complete()
-            hasCompletedOnceRef.current = true
-        }
-    }, [prefersReducedMotion, isBooted, animation])
-
-    useEffect(() => {
-        if (!isBooted) return
-        if (prefersReducedMotion) return
-        if (hasCompletedOnceRef.current) return
-        if (!isInView || !audio.isAudioReady || !audio.hasAudioControl) {
-            return
-        }
-        if (animation.isCompleted) {
-            return
-        }
-        if (animation.isRunning) {
-            return
-        }
-        const steps = buildAnimationSequence()
-        animation.start(steps)
-    }, [
-        isBooted,
-        isInView,
-        audio.isAudioReady,
-        audio.hasAudioControl,
-        animation.isCompleted,
-        animation.isRunning,
-        buildAnimationSequence,
-        animation,
-        prefersReducedMotion,
-    ])
-
-    useEffect(() => {
-        if (prefersReducedMotion) return
-        if (!nameRef.current || !showNameOutput || !isInView) return
-        return startCharacterGlitch(nameRef.current, {
-            intensity: 'low',
-            singleCharInterval: 10000,
-            multiCharInterval: 15000,
-            glitchCharDisplayDuration: 3000,
-        })
-    }, [isInView, showNameOutput, prefersReducedMotion])
-
-    // Unmount-only cleanup. audio.releaseAudioControl() dispatches through a
-    // stable sectionId ref; animation.cancel() dispatches through controllerRef.
-    // Neither captures mutable render-scope values, so the initial closure is safe.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(() => {
-        return () => {
-            audio.releaseAudioControl()
-            animation.cancel()
-        }
-    }, [])
-
-    const renderStaticContent = () => (
-        <div className="hero-section-content">
-            <div className="hero-section-command-line">
-                <span className="hero-section-prompt">$ </span>
-                <span>{command1}</span>
-            </div>
-
-            <div className="hero-section-output-block">
-                <h1 ref={nameRef} className="hero-section-name">
-                    {owner.name}
-                </h1>
-            </div>
-
-            <div className="hero-section-command-line">
-                <span className="hero-section-prompt">$ </span>
-                <span>{command2}</span>
-            </div>
-
-            <div className="hero-section-output-block">
-                <h2 className="hero-section-role">
-                    {owner.title}
-                </h2>
-            </div>
-
-            <div className="hero-section-command-line">
-                <span className="hero-section-prompt">$ </span>
-                <span>{command3}</span>
-            </div>
-
-            <div className="hero-section-description-section">
-                <p className="hero-section-description-text">
-                    {owner.description.join(' ')}
-                </p>
-                <div className="hero-section-tech-pills">
-                    {['Python', 'Java', 'C#', 'AWS', 'Docker', 'CI/CD', 'Spring Boot', 'TypeScript'].map(tech => (
-                        <span key={tech} className="hero-section-tech-pill">{tech}</span>
-                    ))}
-                </div>
-            </div>
-
-            <TerminalInput
-                history={terminalInput.history}
-                inputText={terminalInput.inputText}
-                isTypingResponse={terminalInput.isTypingResponse}
-                responseText={terminalInput.responseText}
-                suggestion={terminalInput.suggestion}
-                responseVariant={terminalInput.responseVariant}
-                showChips={terminalInput.mode === 'normal'}
-                suggestions={terminalInput.agentSuggestions}
-                onChip={terminalInput.submitCommand}
-                onVoiceSubmit={terminalInput.submitVoiceCommand}
-            />
-        </div>
-    )
-
-    const showWaitingCursor = isBooted && !animation.isRunning && !animation.isCompleted && !command1Typing.text
-
-    const renderAnimatingContent = () => (
-        <div className="hero-section-content">
-            {showWaitingCursor && (
-                <div className="hero-section-command-line">
-                    <span className="hero-section-prompt">$ </span>
-                    <span className="section-cursor-blink hero-section-cursor-blink">|</span>
-                </div>
-            )}
-
-            {command1Typing.text && (
-                <div className="hero-section-command-line hero-section-fade-in">
-                    <span className="hero-section-prompt">$ </span>
-                    <span>{command1Typing.text}</span>
-                    {command1Typing.text.length < command1.length && (
-                        <span className="section-cursor-blink hero-section-cursor-blink">|</span>
-                    )}
-                </div>
-            )}
-
-            {showNameOutput && (
-                <div className="hero-section-output-block hero-section-fade-in-smooth">
-                    <h1 ref={nameRef} className="hero-section-name">
-                        {owner.name}
-                    </h1>
-                </div>
-            )}
-
-            {command2Typing.text && (
-                <div className="hero-section-command-line hero-section-fade-in">
-                    <span className="hero-section-prompt">$ </span>
-                    <span>{command2Typing.text}</span>
-                    {command2Typing.text.length < command2.length && (
-                        <span className="section-cursor-blink hero-section-cursor-blink">|</span>
-                    )}
-                </div>
-            )}
-
-            {showRoleOutput && (
-                <div className="hero-section-output-block hero-section-fade-in-smooth">
-                    <h2 className="hero-section-role">
-                        {owner.title}
-                    </h2>
-                </div>
-            )}
-
-            {command3Typing.text && (
-                <div className="hero-section-command-line hero-section-fade-in">
-                    <span className="hero-section-prompt">$ </span>
-                    <span>{command3Typing.text}</span>
-                    <span className="section-cursor-blink hero-section-cursor-blink">|</span>
-                </div>
-            )}
-
-            {showDescriptionOutput && (
-                <div className="hero-section-description-section hero-section-fade-in-smooth-delayed">
-                    <p className="hero-section-description-text">
-                        {owner.description.join(' ')}
-                    </p>
-                    <div className="hero-section-tech-pills">
-                        {['Python', 'Java', 'C#', 'AWS', 'Docker', 'CI/CD', 'Spring Boot', 'TypeScript'].map(tech => (
-                            <span key={tech} className="hero-section-tech-pill">{tech}</span>
-                        ))}
-                    </div>
-                </div>
-            )}
-        </div>
-    )
-
+export default async function HeroSection() {
+    'use cache'
     return (
         <>
-            {/* Screen reader accessible content — always present, visually hidden */}
-            <div className="sr-only" aria-live="polite">
-                <h1>{owner.name}</h1>
-                <h2>{owner.title}</h2>
-                <p>
-                    {owner.description.join(' ')}
-                </p>
-            </div>
+            <SectionReveal
+                sectionId="hero"
+                title="developer@portfolio:~$"
+                ariaLabel="Hero section terminal — introduction"
+                afterComplete={<SectionShell sectionId="hero" />}
+            >
+                <div className="hero-section-content">
+                    <TypedLine text="whoami" {...commandLine} />
 
-            <div ref={ref} style={{ width: '100%', display: 'flex', justifyContent: 'center' }} aria-hidden="true">
-                <TerminalContainer title="developer@portfolio:~$" ariaLabel="Hero section terminal — introduction">
-                    {animation.isCompleted ? renderStaticContent() : renderAnimatingContent()}
-                </TerminalContainer>
-            </div>
+                    <div className="hero-section-output-block hero-section-fade-in-smooth" data-reveal="show">
+                        <h1 className="hero-section-name">
+                            <GlitchText text={owner.name} />
+                        </h1>
+                    </div>
+
+                    <TypedLine text="cat role.txt" {...commandLine} />
+
+                    <div className="hero-section-output-block hero-section-fade-in-smooth" data-reveal="show">
+                        <h2 className="hero-section-role">
+                            <GlitchText text={owner.title} />
+                        </h2>
+                    </div>
+
+                    <TypedLine text="cat description.txt" {...commandLine} />
+
+                    <div className="hero-section-description-section hero-section-fade-in-smooth-delayed" data-reveal="show">
+                        <p className="hero-section-description-text">
+                            <GlitchText text={owner.description.join(' ')} />
+                        </p>
+                        <div className="hero-section-tech-pills">
+                            {owner.stack.map(tech => (
+                                <span key={tech} className="hero-section-tech-pill">{tech}</span>
+                            ))}
+                        </div>
+                        <div className="hero-section-cta">
+                            <CvLink className="hero-section-cv" />
+                        </div>
+                    </div>
+                </div>
+            </SectionReveal>
 
             <style>{`
-                .hero-section-content {
-                    color: var(--color-primary);
-                    font-family: var(--font-mono);
-                }
 
                 .hero-section-command-line {
                     font-size: var(--font-size-md);
@@ -371,22 +68,30 @@ export default function HeroSection() {
                     line-height: var(--line-height-normal);
                 }
 
-                .hero-section-prompt {
-                    color: var(--color-primary-dim);
+                .hero-section-cta {
+                    margin-top: var(--spacing-md);
                 }
 
-                .section-cursor-blink hero-section-cursor-blink {
-                    margin-left: 4px;
+                .hero-section-cv {
+                    display: inline-block;
+                    padding: 6px 14px;
+                    border: 1px solid var(--bright);
+                    color: var(--bright);
+                    text-decoration: none;
+                    font-size: var(--font-size-sm);
                 }
 
-                .hero-section-output-block {
-                    margin-bottom: var(--spacing-lg);
+                .hero-section-cv:hover,
+                .hero-section-cv:focus-visible {
+                    background: rgb(var(--glow) / 0.12);
                 }
 
                 .hero-section-name {
-                    font-size: var(--font-size-2xl);
+                    font-family: var(--font-display);
+                    letter-spacing: 0.02em;
+                    font-size: calc(var(--font-size-2xl) * 1.4);
                     font-weight: normal;
-                    color: var(--color-primary);
+                    color: var(--bright);
                     display: inline;
                     margin: 0;
                     line-height: var(--line-height-tight);
@@ -395,7 +100,7 @@ export default function HeroSection() {
                 .hero-section-role {
                     font-size: var(--font-size-lg);
                     font-weight: normal;
-                    color: var(--color-primary);
+                    color: var(--text);
                     margin: 0;
                     display: inline;
                     line-height: var(--line-height-tight);
@@ -404,12 +109,12 @@ export default function HeroSection() {
                 .hero-section-description-section {
                     margin-top: var(--spacing-md);
                     padding-top: var(--spacing-md);
-                    border-top: 1px solid var(--color-primary-dimmest);
+                    border-top: 1px solid rgb(var(--glow) / 0.2);
                 }
 
                 .hero-section-description-text {
                     font-size: var(--font-size-md);
-                    color: var(--color-primary);
+                    color: var(--text);
                     line-height: var(--line-height-relaxed);
                     margin: 0 0 var(--spacing-md) 0;
                     text-align: justify;
@@ -424,55 +129,27 @@ export default function HeroSection() {
                 .hero-section-tech-pill {
                     font-size: var(--font-size-sm);
                     font-family: var(--font-mono);
-                    color: var(--color-primary-dim);
-                    border: 1px solid var(--color-primary-dimmest);
+                    color: var(--dim);
+                    border: 1px solid rgb(var(--glow) / 0.2);
                     padding: 2px var(--spacing-xs);
                     border-radius: 2px;
                 }
 
                 .hero-section-fade-in {
-                    animation: hero-section-fadeIn 0.6s ease forwards;
+                    animation: lnin var(--dur-lnin) var(--ease-out) both;
                 }
 
                 .hero-section-fade-in-smooth {
-                    opacity: 0;
-                    animation: hero-section-fadeInSuperSmooth 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+                    animation: lnin var(--dur-lnin) var(--ease-out) both;
                 }
 
                 .hero-section-fade-in-smooth-delayed {
-                    opacity: 0;
-                    animation: hero-section-fadeInSuperSmooth 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-                }
-
-                @keyframes hero-section-fadeIn {
-                    from {
-                        opacity: 0;
-                        transform: translateY(10px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
-                }
-
-                @keyframes hero-section-fadeInSuperSmooth {
-                    0% {
-                        opacity: 0;
-                        transform: translateY(8px);
-                    }
-                    50% {
-                        opacity: 0.5;
-                        transform: translateY(4px);
-                    }
-                    100% {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
+                    animation: lnin var(--dur-lnin) var(--ease-out) both;
                 }
 
                 @media (min-width: 768px) {
                     .hero-section-name {
-                        font-size: var(--font-size-3xl);
+                        font-size: calc(var(--font-size-3xl) * 1.4);
                     }
 
                     .hero-section-role {

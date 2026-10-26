@@ -1,471 +1,111 @@
 // components/sections/AboutSection.tsx
-"use client"
+// Server component: bio, skills and specializations ship in the HTML;
+// SectionReveal types the commands and reveals each output.
 
-import { useCallback, useEffect, useRef, useState } from 'react'
-import TerminalContainer from '@/src/components/shared/TerminalContainer'
-import { useInView } from '@/src/hooks/useInView'
-import { startCharacterGlitch } from '@/src/lib/glitch'
-import { useKeystrokeAudio, useTypingAudioCallback } from '@/src/hooks/useKeystrokeAudio'
-import { useAnimationController } from '@/src/hooks/useAnimationController'
-import { useTypingAnimation } from '@/src/hooks/useTypingAnimation'
-import { AnimationController } from '@/src/lib/animationController'
-import { useBootContext } from "@/src/components/layout/context/BootContext"
-import { useReducedMotion } from '@/src/hooks/useReducedMotion'
-import { useTerminalInput } from '@/src/hooks/useTerminalInput'
-import TerminalInput from '@/src/components/shared/TerminalInput'
-import { useVoiceContext } from '@/src/components/shared/VoiceProvider'
-import {
-    getBaseSpeedForSection,
-    getPatternForSection,
-    audioConfig,
-    sequenceTimings,
-} from '@/src/constants/typingConfig'
-import { skillCategories, specializations } from '@/src/content'
+import SectionReveal from '@/src/components/shared/reveal/SectionReveal'
+import SectionShell from '@/src/components/shared/reveal/SectionShell'
+import TypedLine from '@/src/components/shared/reveal/TypedLine'
+import { owner, skillCategories, specializations } from '@/src/content'
+import GlitchText from '@/src/components/shared/GlitchText'
 
-const aboutPattern = getPatternForSection('about')
-const aboutSpeed = getBaseSpeedForSection('about')
+const commandLine = {
+    className: 'about-section-command-line about-section-fade-in',
+    prompt: '$ ',
+    promptClassName: 'about-section-prompt',
+}
 
-export default function AboutSection() {
-    const { isBooted } = useBootContext()
-    const prefersReducedMotion = useReducedMotion()
-    const [showOutput1, setShowOutput1] = useState(false)
-    const [showOutput2, setShowOutput2] = useState(false)
-    const [showOutput3, setShowOutput3] = useState(false)
-
-    const audio = useKeystrokeAudio({
-        sectionId: 'about',
-        enabled: true,
-        volume: audioConfig.baseVolume,
-        volumeRampEnabled: audioConfig.volumeRampEnabled,
-    })
-
-    const hasCompletedOnceRef = useRef(false)
-    const { onTypingKeystroke } = useTypingAudioCallback(audio)
-    const animation = useAnimationController({
-        onComplete: () => {
-            hasCompletedOnceRef.current = true
-        },
-        debug: false,
-    })
-
-    const command1Typing = useTypingAnimation({ baseSpeed: aboutSpeed, humanPattern: aboutPattern })
-    const command2Typing = useTypingAnimation({ baseSpeed: aboutSpeed, humanPattern: aboutPattern })
-    const command3Typing = useTypingAnimation({ baseSpeed: aboutSpeed, humanPattern: aboutPattern })
-
-    const word1Ref = useRef<HTMLSpanElement>(null)
-    const word2Ref = useRef<HTMLSpanElement>(null)
-    const word3Ref = useRef<HTMLSpanElement>(null)
-    const word4Ref = useRef<HTMLSpanElement>(null)
-
-    const command1 = 'cat about.txt'
-    const command2 = 'ls -la ./tech_stack/'
-    const command3 = './list_specializations.sh'
-
-    const resetAnimationState = useCallback(() => {
-        command1Typing.reset()
-        command2Typing.reset()
-        command3Typing.reset()
-        setShowOutput1(false)
-        setShowOutput2(false)
-        setShowOutput3(false)
-        animation.reset()
-    }, [animation, command1Typing, command2Typing, command3Typing])
-
-    const onInViewChangeRef = useRef<((inView: boolean) => void) | undefined>(undefined)
-
-    useEffect(() => {
-        onInViewChangeRef.current = (inView: boolean) => {
-            if (inView) {
-                audio.requestAudioControl()
-            } else {
-                audio.releaseAudioControl()
-                if (animation.isRunning && !hasCompletedOnceRef.current) {
-                    resetAnimationState()
-                }
-            }
-        }
-    }, [audio, animation.isRunning, resetAnimationState])
-
-    const { ref, isInView } = useInView({
-        threshold: 0.3,
-        triggerOnce: false,
-        onInViewChange: (inView: boolean) => {
-            onInViewChangeRef.current?.(inView)
-        }
-    })
-
-    const voice = useVoiceContext()
-
-    const terminalInput = useTerminalInput({
-        sectionId: 'about',
-        isActive: animation.isCompleted && isInView,
-        onAgentReply: voice.speak,
-        onAgentInterrupt: voice.cancelSpeak,
-    })
-
-    const buildAnimationSequence = useCallback(() => {
-        const steps = []
-        steps.push(AnimationController.createDelayStep(sequenceTimings.initialDelay))
-        steps.push(AnimationController.createActionStep(() => audio.resetVolumeRamp()))
-        steps.push(...command1Typing.generateSteps(command1, { onKeystroke: onTypingKeystroke }))
-        steps.push(
-            AnimationController.createDelayStep(sequenceTimings.postCommandDelay),
-            AnimationController.createActionStep(() => setShowOutput1(true))
-        )
-        steps.push(AnimationController.createDelayStep(sequenceTimings.betweenCommandsDelay))
-        steps.push(AnimationController.createActionStep(() => audio.resetVolumeRamp()))
-        steps.push(...command2Typing.generateSteps(command2, { onKeystroke: onTypingKeystroke }))
-        steps.push(
-            AnimationController.createDelayStep(sequenceTimings.postCommandDelay),
-            AnimationController.createActionStep(() => setShowOutput2(true))
-        )
-        steps.push(AnimationController.createDelayStep(sequenceTimings.betweenCommandsDelay))
-        steps.push(AnimationController.createActionStep(() => audio.resetVolumeRamp()))
-        steps.push(...command3Typing.generateSteps(command3, { onKeystroke: onTypingKeystroke }))
-        steps.push(
-            AnimationController.createDelayStep(sequenceTimings.postCommandDelay),
-            AnimationController.createActionStep(() => setShowOutput3(true))
-        )
-        return steps
-    }, [command1, command2, command3, command1Typing, command2Typing, command3Typing, onTypingKeystroke, audio])
-
-    // Skip all animations when reduced motion is preferred
-    useEffect(() => {
-        if (prefersReducedMotion && isBooted && !animation.isCompleted) {
-            setShowOutput1(true)
-            setShowOutput2(true)
-            setShowOutput3(true)
-            animation.complete()
-            hasCompletedOnceRef.current = true
-        }
-    }, [prefersReducedMotion, isBooted, animation])
-
-    useEffect(() => {
-        if (!isBooted) return
-        if (prefersReducedMotion) return
-        if (hasCompletedOnceRef.current) return
-        if (!isInView || !audio.isAudioReady || !audio.hasAudioControl) return
-        if (animation.isCompleted || animation.isRunning) return
-        const steps = buildAnimationSequence()
-        animation.start(steps)
-    }, [isBooted, isInView, audio.isAudioReady, audio.hasAudioControl, animation.isCompleted, animation.isRunning, buildAnimationSequence, animation, prefersReducedMotion])
-
-    useEffect(() => {
-        if (prefersReducedMotion) return
-        if (!showOutput1 || !isInView) return
-
-        const cleanups: (() => void)[] = []
-
-        if (word1Ref.current) {
-            cleanups.push(
-                startCharacterGlitch(word1Ref.current, {
-                    intensity: 'low',
-                    singleCharInterval: 10000,
-                    multiCharInterval: 15000,
-                    glitchCharDisplayDuration: 2500,
-                })
-            )
-        }
-
-        if (word2Ref.current) {
-            cleanups.push(
-                startCharacterGlitch(word2Ref.current, {
-                    intensity: 'low',
-                    singleCharInterval: 15000,
-                    multiCharInterval: 10000,
-                    glitchCharDisplayDuration: 2000,
-                })
-            )
-        }
-
-        if (word3Ref.current) {
-            cleanups.push(
-                startCharacterGlitch(word3Ref.current, {
-                    intensity: 'low',
-                    singleCharInterval: 5000,
-                    multiCharInterval: 10000,
-                    glitchCharDisplayDuration: 3000,
-                })
-            )
-        }
-
-        if (word4Ref.current) {
-            cleanups.push(
-                startCharacterGlitch(word4Ref.current, {
-                    intensity: 'low',
-                    singleCharInterval: 18000,
-                    multiCharInterval: 15000,
-                    glitchCharDisplayDuration: 2800,
-                })
-            )
-        }
-
-        return () => {
-            cleanups.forEach(cleanup => cleanup())
-        }
-    }, [isInView, showOutput1, prefersReducedMotion])
-
-    // Unmount-only cleanup. audio.releaseAudioControl() dispatches through a
-    // stable sectionId ref; animation.cancel() dispatches through controllerRef.
-    // Neither captures mutable render-scope values, so the initial closure is safe.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(() => {
-        return () => {
-            audio.releaseAudioControl()
-            animation.cancel()
-        }
-    }, [])
-
-    const renderStaticContent = () => (
-        <div className="about-section-content">
-            <div className="about-section-command-line">
-                <span className="about-section-prompt">$ </span>
-                <span>{command1}</span>
-            </div>
-
-            <div className="about-section-output-block">
-                <p className="about-section-bio-text">
-                    Engineer who builds <span ref={word1Ref}>distributed backend systems</span> and ships them. ML pipelines
-                    processing high volumes of data, models deployed with <span ref={word2Ref}>high accuracy</span> in
-                    production, full-stack apps serving a multitude of users. Fluent in Python, C#, TypeScript, and <span ref={word3Ref}>making
-                    machines do useful things</span>. Always: <span ref={word4Ref}>building the next thing</span>.
-                </p>
-            </div>
-
-            <div className="about-section-command-line">
-                <span className="about-section-prompt">$ </span>
-                <span>{command2}</span>
-            </div>
-
-            <div className="about-section-output-block">
-                <div className="about-section-skills-grid">
-                    {skillCategories.map((category) => (
-                        <div key={category.title} className="about-section-skill-category">
-                            <div className="about-section-category-title">
-                                <span className="about-section-category-icon">{category.icon}</span>
-                                <span>{category.title}</span>
-                            </div>
-                            <div className="about-section-tech-stack">
-                                {category.technologies.map((tech) => (
-                                    <span key={tech} className="about-section-tech-badge">
-                                        {tech}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            <div className="about-section-command-line">
-                <span className="about-section-prompt">$ </span>
-                <span>{command3}</span>
-            </div>
-
-            <div className="about-section-output-block about-section-output-block-compact">
-                <div className="about-section-spec-grid">
-                    {specializations.map((spec) => (
-                        <span key={spec} className="about-section-spec-item">
-                            {spec}
-                        </span>
-                    ))}
-                </div>
-            </div>
-
-            <TerminalInput
-                history={terminalInput.history}
-                inputText={terminalInput.inputText}
-                isTypingResponse={terminalInput.isTypingResponse}
-                responseText={terminalInput.responseText}
-                suggestion={terminalInput.suggestion}
-                responseVariant={terminalInput.responseVariant}
-                showChips={terminalInput.mode === 'normal'}
-                suggestions={terminalInput.agentSuggestions}
-                onChip={terminalInput.submitCommand}
-                onVoiceSubmit={terminalInput.submitVoiceCommand}
-            />
-        </div>
-    )
-
-    const renderAnimatingContent = () => (
-        <div className="about-section-content">
-            {command1Typing.text && (
-                <div className="about-section-command-line about-section-fade-in">
-                    <span className="about-section-prompt">$ </span>
-                    <span>{command1Typing.text}</span>
-                    {command1Typing.text.length < command1.length && (
-                        <span className="section-cursor-blink about-section-cursor-blink">|</span>
-                    )}
-                </div>
-            )}
-
-            {showOutput1 && (
-                <div className="about-section-output-block about-section-fade-in-smooth">
-                    <p className="about-section-bio-text">
-                        Engineer who builds <span ref={word1Ref}>distributed backend systems</span> and ships them. ML pipelines
-                        processing high volumes of data, models deployed with <span ref={word2Ref}>high accuracy</span> in
-                        production, full-stack apps serving a multitude of users. Fluent in Python, C#, TypeScript, and <span ref={word3Ref}>making
-                        machines do useful things</span>. Always: <span ref={word4Ref}>building the next thing</span>.
-                    </p>
-                </div>
-            )}
-
-            {command2Typing.text && (
-                <div className="about-section-command-line about-section-fade-in">
-                    <span className="about-section-prompt">$ </span>
-                    <span>{command2Typing.text}</span>
-                    {command2Typing.text.length < command2.length && (
-                        <span className="section-cursor-blink about-section-cursor-blink">|</span>
-                    )}
-                </div>
-            )}
-
-            {showOutput2 && (
-                <div className="about-section-output-block about-section-fade-in-smooth">
-                    <div className="about-section-skills-grid">
-                        {skillCategories.map((category) => (
-                            <div key={category.title} className="about-section-skill-category">
-                                <div className="about-section-category-title">
-                                    <span className="about-section-category-icon">{category.icon}</span>
-                                    <span>{category.title}</span>
-                                </div>
-                                <div className="about-section-tech-stack">
-                                    {category.technologies.map((tech) => (
-                                        <span key={tech} className="about-section-tech-badge">
-                                            {tech}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {command3Typing.text && (
-                <div className="about-section-command-line about-section-fade-in">
-                    <span className="about-section-prompt">$ </span>
-                    <span>{command3Typing.text}</span>
-                    <span className="section-cursor-blink about-section-cursor-blink">|</span>
-                </div>
-            )}
-
-            {showOutput3 && (
-                <div className="about-section-output-block about-section-output-block-compact about-section-fade-in-smooth">
-                    <div className="about-section-spec-grid">
-                        {specializations.map((spec) => (
-                            <span key={spec} className="about-section-spec-item">
-                                {spec}
-                            </span>
-                        ))}
-                    </div>
-                </div>
-            )}
-        </div>
-    )
-
+export default async function AboutSection() {
+    'use cache'
     return (
         <>
-            {/* Screen reader accessible content */}
-            <div className="sr-only" aria-live="polite">
-                <h2>About</h2>
-                <p>
-                    Engineer who builds distributed backend systems and ships them. ML pipelines processing
-                    high volumes of data, models deployed with high accuracy in production, full-stack apps
-                    serving a multitude of users. Fluent in Python, C#, TypeScript, and making machines do useful things.
-                    Always: building the next thing.
-                </p>
-                <h3>Tech Stack</h3>
-                <ul>
-                    {skillCategories.map((category) => (
-                        <li key={category.title}>
-                            {category.title}: {category.technologies.join(', ')}
-                        </li>
-                    ))}
-                </ul>
-                <h3>Specializations</h3>
-                <ul>
-                    {specializations.map((spec) => (
-                        <li key={spec}>{spec}</li>
-                    ))}
-                </ul>
-            </div>
+            <SectionReveal
+                sectionId="about"
+                title="developer@portfolio:~/skills$"
+                ariaLabel="About section terminal — skills and technologies"
+                afterComplete={<SectionShell sectionId="about" />}
+            >
+                <div className="about-section-content">
+                    <TypedLine text="cat about.txt" {...commandLine} />
 
-            <div ref={ref} style={{ width: '100%', display: 'flex', justifyContent: 'center' }} aria-hidden="true">
-                <TerminalContainer title="developer@portfolio:~/skills$" ariaLabel="About section terminal — skills and technologies">
-                    {animation.isCompleted ? renderStaticContent() : renderAnimatingContent()}
-                </TerminalContainer>
-            </div>
+                    <div className="about-section-output-block about-section-fade-in-smooth" data-reveal="show">
+                        <p className="about-section-bio-text">
+                            {owner.about.map((part, i) => part.highlight
+                                ? <span key={i} className="about-section-highlight"><GlitchText text={part.text} /></span>
+                                : part.text)}
+                        </p>
+                    </div>
+
+                    <TypedLine text="ls -la ./tech_stack/" {...commandLine} />
+
+                    <div className="about-section-output-block about-section-fade-in-smooth" data-reveal="show">
+                        <div className="about-section-skills-grid">
+                            {skillCategories.map((category) => (
+                                <div key={category.title} className="about-section-skill-category">
+                                    <div className="about-section-category-title">
+                                        <span className="about-section-category-icon">{category.icon}</span>
+                                        <GlitchText text={category.title} />
+                                    </div>
+                                    <div className="about-section-tech-stack">
+                                        {category.technologies.map((tech) => (
+                                            <span key={tech} className="about-section-tech-badge">
+                                                {tech}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <TypedLine text="./list_specializations.sh" {...commandLine} />
+
+                    <div className="about-section-output-block about-section-output-block-compact about-section-fade-in-smooth" data-reveal="show">
+                        <div className="about-section-spec-grid">
+                            {specializations.map((spec) => (
+                                <span key={spec} className="about-section-spec-item">
+                                    {spec}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </SectionReveal>
 
             <style>{`
                 .about-section-content {
-                    color: var(--color-primary);
+                    color: var(--text);
                 }
 
                 .about-section-command-line {
-                    color: var(--color-primary);
+                    color: var(--text);
                     font-size: var(--font-size-md);
                     font-family: var(--font-mono);
                     margin-bottom: var(--spacing-xs);
                     line-height: var(--line-height-normal);
                 }
 
-                .about-section-prompt {
-                    color: var(--color-primary-dim);
-                }
-
-                .section-cursor-blink about-section-cursor-blink {
-                    margin-left: 4px;
-                }
-
-                .about-section-output-block {
-                    margin-bottom: var(--spacing-lg);
-                }
-
                 .about-section-output-block-compact {
                     margin-bottom: var(--spacing-md);
                 }
 
+                .about-section-highlight {
+                    color: var(--text);
+                    font-weight: 600;
+                }
+
                 .about-section-bio-text {
                     font-size: var(--font-size-md);
-                    color: var(--color-primary);
+                    color: var(--text);
                     line-height: var(--line-height-relaxed);
                     margin: 0;
                 }
 
                 .about-section-fade-in {
-                    animation: about-section-fadeIn 0.6s ease forwards;
+                    animation: lnin var(--dur-lnin) var(--ease-out) both;
                 }
 
                 .about-section-fade-in-smooth {
-                    opacity: 0;
-                    animation: about-section-fadeInSuperSmooth 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-                }
-
-                @keyframes about-section-fadeIn {
-                    from {
-                        opacity: 0;
-                        transform: translateY(10px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
-                }
-
-                @keyframes about-section-fadeInSuperSmooth {
-                    0% {
-                        opacity: 0;
-                        transform: translateY(8px);
-                    }
-                    50% {
-                        opacity: 0.5;
-                        transform: translateY(4px);
-                    }
-                    100% {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
+                    animation: lnin var(--dur-lnin) var(--ease-out) both;
                 }
 
                 .about-section-skills-grid {
@@ -475,16 +115,16 @@ export default function AboutSection() {
                 }
 
                 .about-section-skill-category {
-                    background: rgba(0, 255, 65, 0.05);
-                    border: 1px solid rgba(0, 255, 65, 0.2);
+                    background: rgb(var(--glow) / 0.05);
+                    border: 1px solid rgb(var(--glow) / 0.2);
                     padding: var(--spacing-md);
                     border-radius: 4px;
-                    transition: all var(--transition-fast);
+                    transition: all var(--dur-quick) var(--ease-out);
                 }
 
                 .about-section-skill-category:hover {
-                    background: rgba(0, 255, 65, 0.08);
-                    border-color: rgba(0, 255, 65, 0.4);
+                    background: rgb(var(--glow) / 0.08);
+                    border-color: rgb(var(--glow) / 0.4);
                     transform: translateY(-2px);
                 }
 
@@ -509,17 +149,17 @@ export default function AboutSection() {
                 }
 
                 .about-section-tech-badge {
-                    background: rgba(0, 255, 65, 0.1);
-                    border: 1px solid rgba(0, 255, 65, 0.3);
+                    background: rgb(var(--glow) / 0.1);
+                    border: 1px solid rgb(var(--glow) / 0.3);
                     padding: 4px 10px;
                     border-radius: 3px;
                     font-size: var(--font-size-xs);
                     line-height: var(--line-height-tight);
-                    transition: all var(--transition-fast);
+                    transition: all var(--dur-quick) var(--ease-out);
                 }
 
                 .about-section-tech-badge:hover {
-                    background: rgba(0, 255, 65, 0.15);
+                    background: rgb(var(--glow) / 0.15);
                     transform: translateY(-1px);
                 }
 
@@ -531,16 +171,16 @@ export default function AboutSection() {
 
                 .about-section-spec-item {
                     padding: 6px 10px;
-                    background: rgba(0, 255, 65, 0.05);
-                    border-left: 2px solid var(--color-primary-dimmer);
+                    background: rgb(var(--glow) / 0.05);
+                    border-left: 2px solid rgb(var(--glow) / 0.4);
                     font-size: var(--font-size-xs);
                     line-height: var(--line-height-tight);
-                    transition: all var(--transition-fast);
+                    transition: all var(--dur-quick) var(--ease-out);
                 }
 
                 .about-section-spec-item:hover {
-                    background: rgba(0, 255, 65, 0.08);
-                    border-left-color: var(--color-primary);
+                    background: rgb(var(--glow) / 0.08);
+                    border-left-color: var(--bright);
                 }
 
                 @media (min-width: 480px) {
