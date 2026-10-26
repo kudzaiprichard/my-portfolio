@@ -15,7 +15,8 @@
  * speaker off the instant they pause mid-sentence.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { audioEngine } from '@/src/lib/audioEngine'
 
 /* ── Minimal Web Speech typings (the DOM lib ships partial/none for these) ── */
 interface SpeechRecognitionAlt { transcript: string }
@@ -104,11 +105,11 @@ export function useVoice(): UseVoiceReturn {
         return () => { window.speechSynthesis.onvoiceschanged = null }
     }, [canSpeak])
 
-    const cancelSpeak = useCallback(() => {
+    const cancelSpeak = () => {
         if (canSpeak) window.speechSynthesis.cancel()
-    }, [canSpeak])
+    }
 
-    const speak = useCallback((text: string) => {
+    const speak = (text: string) => {
         if (!canSpeak || !text.trim()) return
         window.speechSynthesis.cancel()
         // Strip characters that read badly aloud (ascii art, prompts, separators).
@@ -124,13 +125,13 @@ export function useVoice(): UseVoiceReturn {
         utter.pitch = 1.0
         if (voiceRef.current) utter.voice = voiceRef.current
         window.speechSynthesis.speak(utter)
-    }, [canSpeak])
+    }
 
-    const stopListening = useCallback(() => {
+    const stopListening = () => {
         finalizeRef.current?.()
-    }, [])
+    }
 
-    const startListening = useCallback((onResult: (transcript: string) => void) => {
+    const startListening = (onResult: (transcript: string) => void) => {
         const Ctor = getRecognitionCtor()
         if (!Ctor) return
         // Tear down any prior session.
@@ -162,6 +163,7 @@ export function useVoice(): UseVoiceReturn {
             finalizeRef.current = null
             setListening(false)
             setInterim('')
+            audioEngine.stopMicMeter()
             const out = finalText.trim()
             if (out) onResult(out)
         }
@@ -198,19 +200,22 @@ export function useVoice(): UseVoiceReturn {
         setInterim('')
         try {
             rec.start()
+            // Real mic level for the agent orb's bars (analysed only, never played)
+            void audioEngine.startMicMeter()
         } catch {
             setListening(false)
             recognitionRef.current = null
             finalizeRef.current = null
         }
-    }, [])
+    }
 
     // Clean up on unmount.
     useEffect(() => {
         return () => {
             if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current)
             recognitionRef.current?.abort()
-            if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+            audioEngine.stopMicMeter()
+                if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
                 window.speechSynthesis.cancel()
             }
         }

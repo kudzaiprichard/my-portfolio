@@ -26,10 +26,10 @@ import {
    ============================================ */
 
 /** A section the agent can navigate to or render inline. */
-export type AgentSection = 'home' | 'about' | 'projects' | 'experience' | 'contact'
+type AgentSection = 'home' | 'about' | 'projects' | 'experience' | 'contact'
 
 /** External destinations the agent may open. */
-export type AgentLinkTarget = 'github' | 'linkedin' | 'twitter' | 'email'
+type AgentLinkTarget = 'github' | 'linkedin' | 'twitter' | 'email'
 
 /**
  * A structured action the model asked the terminal to perform. The client maps
@@ -49,6 +49,8 @@ export interface AgentReply {
     text: string
     /** Side-effects to execute (navigate, download, etc). May be empty. */
     actions: AgentAction[]
+    /** Up to three follow-up questions, rendered as chips. */
+    suggestions: string[]
 }
 
 /** One turn of conversation, as sent from the client. */
@@ -68,7 +70,7 @@ export interface ChatMessage {
  */
 export const AGENT_RUNNABLE_COMMANDS: readonly string[] = [
     'whoami', 'neofetch', 'help', 'ls', 'cat', 'cd', 'pwd',
-    'date', 'history', 'man', 'ascii', 'git log', 'git blame',
+    'date', 'history', 'man', 'ascii', 'git log', 'git blame', 'theme', 'crt', 'games', 'achievements',
 ]
 
 /**
@@ -176,7 +178,7 @@ export const TOOL_DECLARATIONS = [
             properties: {
                 project: {
                     type: 'string',
-                    description: 'The project name, e.g. "AURA", "SENTRY", "Coin Compass".',
+                    description: 'The project name, e.g. "Anvil", "METIS", "Sentinel".',
                 },
             },
             required: ['project'],
@@ -194,9 +196,6 @@ export const SERVER_TOOL_NAMES: ReadonlySet<string> = new Set([
     'send_message',
     'get_repo_stats',
 ])
-
-/** Client action emitted by start_tour (kicks off the scripted tour in the terminal). */
-export type StartTourAction = { type: 'startTour' }
 
 /**
  * Translate a raw Gemini functionCall into our internal AgentAction union.
@@ -285,12 +284,15 @@ function buildKnowledgeBase(): string {
     const projs = projects
         .map(p => {
             const lines = [
-                `### ${p.name}${p.status ? ` [${p.status}]` : ''}`,
+                `### ${p.name}${p.status ? ` [${p.status}]` : ''}${p.event ? ` [${p.event}]` : ''}`,
                 p.description,
                 `Stack: ${p.technologies.join(', ')}`,
-                `GitHub: ${p.githubUrl}`,
+                p.githubUrl ? `GitHub: ${p.githubUrl}` : 'Source: private',
             ]
             if (p.liveUrl) lines.push(`Live: ${p.liveUrl}`)
+            for (const d of p.downloads ?? []) lines.push(`Download (${d.label}): ${d.url}`)
+            if (p.result) lines.push(`Result: ${p.result.text}${p.result.source ? ` (${p.result.source})` : ''}`)
+            lines.push(`Page: /projects/${p.slug}`)
             return lines.join('\n')
         })
         .join('\n\n')
@@ -306,6 +308,13 @@ function buildKnowledgeBase(): string {
         `GitHub: ${contact.githubUrl}`,
         `LinkedIn: ${contact.linkedinUrl}`,
         `Twitter/X: ${contact.twitterUrl}`,
+        `Hugging Face: ${contact.huggingfaceUrl}`,
+        '',
+        '## EDUCATION',
+        ...owner.education.map(e => `- ${e.degree}, ${e.school} (${e.period})${e.detail ? ` — ${e.detail}` : ''}`),
+        '',
+        '## HONORS & AWARDS',
+        ...owner.honors.map(h => `- ${h}`),
         '',
         '## SKILLS',
         skills,
@@ -347,6 +356,8 @@ export function buildSystemInstruction(): string {
         'TOOLS / ACTIONS: You can DO things, not just talk. When it genuinely helps the visitor, call a tool — scroll to a section, render a section inline, download the resume, open a profile/email, run a safe read-only command, launch the guided tour, fetch live GitHub stats for a project, or send a message to my inbox. When you take an action, also say one short sentence confirming it (e.g. "Pulling up my projects now."). Prefer answering in text first; use tools when the visitor wants to go somewhere, get the resume, reach out, see live output, or be shown around.',
         '',
         'GUIDING NEW VISITORS: Many visitors have never used a terminal and feel lost. Be a warm guide. If someone seems unsure or asks "what is this / what can you do", briefly explain they can ask anything in plain English, and offer the guided tour (start_tour). Keep them moving forward.',
+        '',
+        'GAMES: This terminal also has games, all built by me: snake; wpm (a 30-second typing race); train (watch a small neural network learn the two-moons dataset live in the browser); quiz (three "which pattern solves it?" interview questions that end with my Anvil app); adventure ("Founder’s Journey", my real path as a short text adventure). There are achievements to find too. If a visitor wants something fun, asks what else is here, or seems bored, mention them briefly and run the games command to show the list. Never start a game without being asked.',
         '',
         'SENDING A MESSAGE: If a visitor wants to hire me, work with me, or get in touch, offer to pass a message along. Collect their NAME, EMAIL, and MESSAGE conversationally — ask for whatever is missing, one friendly question at a time. Only call send_message once you have all three and the email looks valid. After it sends, confirm warmly. Never fabricate any field.',
         '',

@@ -9,6 +9,15 @@
 
 import { projects } from '@/src/content'
 import { sendContactEmail } from '@/src/lib/sendContactEmail'
+import { checkGuard } from '@/src/lib/spamGuard'
+import { allow } from '@/src/lib/rateLimit'
+
+/** Who is asking: used to protect send_message (lib/spamGuard). */
+export interface ToolContext {
+    ip: string
+    /** The `guard` object the browser sent with the request. */
+    guard?: unknown
+}
 
 /** Result object handed back to the model. Shape is intentionally model-friendly. */
 type ToolResult = Record<string, unknown>
@@ -17,7 +26,16 @@ type ToolResult = Record<string, unknown>
    send_message
    ============================================ */
 
-async function runSendMessage(args: Record<string, unknown>): Promise<ToolResult> {
+async function runSendMessage(args: Record<string, unknown>, ctx: ToolContext): Promise<ToolResult> {
+    // Spam path to the inbox: require the real UI's guard, then rate limit
+    const verdict = checkGuard(ctx.guard)
+    if (verdict !== 'ok') {
+        return { status: 'error', reason: 'Messages can only be sent from the site itself. Ask the visitor to use the contact form or the `email` command.' }
+    }
+    if (!(await allow('message', ctx.ip))) {
+        return { status: 'error', reason: 'Too many messages from this visitor in the last hour. Ask them to try again later.' }
+    }
+
     const name = typeof args.name === 'string' ? args.name : ''
     const email = typeof args.email === 'string' ? args.email : ''
     const message = typeof args.message === 'string' ? args.message : ''
@@ -36,7 +54,7 @@ async function runSendMessage(args: Record<string, unknown>): Promise<ToolResult
 // derived from the canonical githubUrl in content/projects.ts.
 const repoIndex: Array<{ key: string; slug: string; name: string }> = projects
     .map(p => {
-        const m = p.githubUrl.match(/github\.com\/([^/]+\/[^/]+?)(?:\.git)?\/?$/i)
+        const m = p.githubUrl?.match(/github\.com\/([^/]+\/[^/]+?)(?:\.git)?\/?$/i)
         return m ? { key: p.name.toLowerCase(), slug: m[1], name: p.name } : null
     })
     .filter((x): x is { key: string; slug: string; name: string } => x !== null)
@@ -140,11 +158,12 @@ async function runGetRepoStats(args: Record<string, unknown>): Promise<ToolResul
 export async function executeServerTool(
     name: string,
     args: Record<string, unknown> | undefined,
+    ctx: ToolContext = { ip: 'unknown' },
 ): Promise<ToolResult> {
     const a = args ?? {}
     switch (name) {
         case 'send_message':
-            return runSendMessage(a)
+            return runSendMessage(a, ctx)
         case 'get_repo_stats':
             return runGetRepoStats(a)
         default:

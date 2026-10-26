@@ -1,10 +1,13 @@
 // components/shared/AgentOrb.tsx
 "use client"
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useSyncExternalStore } from 'react'
+import { DEFAULT_THEME } from '@/src/lib/themes'
+import { getTheme, subscribeTheme } from '@/src/lib/themeStore'
 import { useReducedMotion } from '@/src/hooks/useReducedMotion'
+import { audioEngine } from '@/src/lib/audioEngine'
 
-export type AgentOrbState = 'idle' | 'thinking' | 'speaking' | 'listening'
+type AgentOrbState = 'idle' | 'thinking' | 'speaking' | 'listening'
 
 interface AgentOrbProps {
     /** Drives the animation: idle breathes, thinking pulses, speaking/listening react. */
@@ -24,14 +27,17 @@ const PROFILE: Record<AgentOrbState, { base: number; amp: number; speed: number 
 /**
  * A small canvas "voice bars" visualizer that gives the agent a living presence.
  * Hand-built with requestAnimationFrame (no library), matching the codebase's
- * imperative-animation style. Colour follows the surrounding text colour
- * (currentColor), so it inherits the terminal theme. Honours reduced-motion.
+ * imperative-animation style. Colour is the --agent theme token (via
+ * currentColor), re-read on theme change. While listening, the bars follow
+ * the real microphone level (audioEngine's analyser). Honours reduced-motion.
  */
 export default function AgentOrb({ state }: AgentOrbProps) {
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
     const stateRef = useRef(state)
     const rafRef = useRef<number | null>(null)
     const prefersReducedMotion = useReducedMotion()
+    // Re-read the colour when the theme changes
+    const theme = useSyncExternalStore(subscribeTheme, getTheme, () => DEFAULT_THEME)
 
     useEffect(() => { stateRef.current = state }, [state])
 
@@ -48,7 +54,7 @@ export default function AgentOrb({ state }: AgentOrbProps) {
         canvas.height = cssH * dpr
         ctx.scale(dpr, dpr)
 
-        const color = getComputedStyle(canvas).color || '#7CFC9B'
+        const color = getComputedStyle(canvas).color
         const gap = 3
         const barW = (cssW - gap * (BARS - 1)) / BARS
 
@@ -74,13 +80,23 @@ export default function AgentOrb({ state }: AgentOrbProps) {
             return
         }
 
+        let micLevel = 0
         const draw = (t: number) => {
             const p = PROFILE[stateRef.current] ?? PROFILE.idle
+            const mic = stateRef.current === 'listening' ? audioEngine.getMicLevel() : null
+            // Fast attack, slower release, so speech reads as a meter rather than flicker
+            if (mic !== null) micLevel = mic > micLevel ? mic : micLevel * 0.85 + mic * 0.15
             const heights: number[] = []
             for (let i = 0; i < BARS; i++) {
                 // Each bar a sine wave with a phase offset → a travelling ripple.
                 const wave = Math.sin(t * p.speed + i * 0.9) * 0.5 + 0.5
-                heights.push(Math.min(1, p.base + p.amp * wave))
+                if (mic !== null) {
+                    // Live mic: centre bars tallest, a little ripple so it stays alive
+                    const centre = 1 - Math.abs(i - (BARS - 1) / 2) / ((BARS - 1) / 2) * 0.55
+                    heights.push(Math.min(1, 0.12 + micLevel * centre * (0.75 + 0.25 * wave)))
+                } else {
+                    heights.push(Math.min(1, p.base + p.amp * wave))
+                }
             }
             drawBars(heights)
             rafRef.current = requestAnimationFrame(draw)
@@ -90,13 +106,13 @@ export default function AgentOrb({ state }: AgentOrbProps) {
         return () => {
             if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
         }
-    }, [prefersReducedMotion])
+    }, [prefersReducedMotion, theme])
 
     return (
         <span
             className="agent-orb"
             aria-hidden="true"
-            style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--color-primary)' }}
+            style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--agent)' }}
         >
             <canvas ref={canvasRef} style={{ width: 58, height: 18, display: 'block' }} />
         </span>

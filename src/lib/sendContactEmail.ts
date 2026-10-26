@@ -57,7 +57,7 @@ export async function sendContactEmail(payload: ContactPayload): Promise<SendRes
                 react: ContactNotification({ name, email, message }),
             }),
             resend.emails.send({
-                from: 'Kudzai Prichard <noreply@prichard.co.zw>',
+                from: 'Kudzai Prichard Matizirofa <noreply@prichard.co.zw>',
                 to: email,
                 subject: 'Message received — kudzai@portfolio',
                 react: ContactConfirmation({ name, email, message }),
