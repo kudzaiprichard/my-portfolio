@@ -1,0 +1,1635 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Phosphor Portfolio Review</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;600&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:opsz,wght@8..60,400;600&family=VT323&display=swap">
+<style>
+/* Layout: one reading column (~68ch) with wide "bench" figures that break out to 1080px.
+   Prose is paper-and-ink; every live demo sits on a dark CRT "screen" so it looks like the site. */
+:root {
+  --paper: #F1F3EE;
+  --card: #FAFBF8;
+  --ink: #16201A;
+  --muted: #56645B;
+  --rule: #D3DAD2;
+  --accent: #0A7447;
+  --accent-soft: #DCEDE2;
+  --warn: #9C5300;
+  --warn-soft: #F6E7D3;
+  --bad: #AE2A1F;
+  --bad-soft: #F6DEDA;
+
+  /* CRT screens are always dark, in both page themes */
+  --scr-bg: #07110B;
+  --scr-edge: #1C3326;
+  --scr-text: #A8F5C0;
+  --scr-bright: #4DFF8F;
+  --scr-dim: #5E9C76;
+  --scr-warn: #FFB454;
+  --scr-err: #FF6E61;
+  --scr-info: #6FD3FF;
+
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+
+  --step--1: 0.84rem;
+  --step-0: 1.06rem;
+  --step-1: 1.3rem;
+  --step-2: 1.7rem;
+  --step-3: 2.4rem;
+  --step-4: clamp(2.4rem, 6vw, 4.2rem);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0E1311; --card: #131A16; --ink: #E0E8E2; --muted: #95A59B; --rule: #27322C;
+    --accent: #56E09E; --accent-soft: #15281E; --warn: #F2B04C; --warn-soft: #2A2112;
+    --bad: #FF8A7E; --bad-soft: #2E1715; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0E1311; --card: #131A16; --ink: #E0E8E2; --muted: #95A59B; --rule: #27322C;
+  --accent: #56E09E; --accent-soft: #15281E; --warn: #F2B04C; --warn-soft: #2A2112;
+  --bad: #FF8A7E; --bad-soft: #2E1715; color-scheme: dark;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: var(--step-0);
+  line-height: 1.62;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 96px;
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+.col { max-width: 68ch; margin: 0 auto; }
+h1, h2, h3, h4 { font-family: var(--f-display); text-wrap: balance; line-height: 1.12; margin: 0; }
+h2 { font-size: var(--step-3); font-stretch: 112%; font-weight: 750; letter-spacing: -0.01em; }
+h3 { font-size: var(--step-2); font-stretch: 100%; font-weight: 700; margin-top: 2.6rem; }
+h4 { font-size: var(--step-1); font-weight: 650; margin-top: 1.8rem; }
+p { margin: 0.9rem 0 0; }
+a { color: var(--accent); text-underline-offset: 3px; }
+code, kbd, .mono { font-family: var(--f-mono); font-size: 0.86em; }
+:not(pre) > code { background: var(--accent-soft); padding: 0.08em 0.35em; border-radius: 3px; overflow-wrap: anywhere; }
+.muted { color: var(--muted); }
+.eyebrow { font-family: var(--f-mono); font-size: var(--step--1); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- Masthead ---------- */
+.mast { padding-block: 64px 32px; border-bottom: 1px solid var(--rule); }
+.mast h1 { font-size: var(--step-4); font-stretch: 125%; font-weight: 800; letter-spacing: -0.02em; margin-top: 12px; }
+.mast h1 .ph { color: var(--accent); }
+.lede { font-size: var(--step-1); line-height: 1.5; margin-top: 18px; max-width: 60ch; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 22px; font-family: var(--f-mono); font-size: var(--step--1); color: var(--muted); }
+.meta b { color: var(--ink); font-weight: 600; }
+
+/* ---------- TOC ---------- */
+.toc { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin-top: 28px; }
+.toc a { display: grid; gap: 4px; padding: 14px 16px; border: 1px solid var(--rule); background: var(--card); border-radius: 6px; text-decoration: none; color: var(--ink); }
+.toc a:hover { border-color: var(--accent); }
+.toc .n { font-family: var(--f-mono); font-size: var(--step--1); color: var(--accent); }
+.toc .t { font-family: var(--f-display); font-weight: 700; font-size: 1.05rem; }
+.toc .d { font-size: 0.9rem; color: var(--muted); line-height: 1.4; }
+
+/* ---------- Part headers ---------- */
+.part { padding-top: 72px; }
+.part-head { display: grid; gap: 10px; padding-bottom: 18px; border-bottom: 2px solid var(--ink); margin-bottom: 8px; }
+
+/* ---------- Verdict ---------- */
+.verdict { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 24px; }
+.verdict > div { min-width: 0; padding: 16px 18px; border-left: 3px solid var(--accent); background: var(--card); }
+.verdict > div.w { border-left-color: var(--warn); }
+.verdict h4 { margin: 0 0 6px; font-size: 1.02rem; }
+.verdict ul { margin: 0; padding-left: 1.1em; font-size: 0.95rem; }
+.verdict li + li { margin-top: 4px; }
+
+/* ---------- Tables ---------- */
+.tbl-wrap { overflow-x: auto; margin-top: 18px; border: 1px solid var(--rule); border-radius: 6px; background: var(--card); }
+table { border-collapse: collapse; width: 100%; font-size: 0.93rem; min-width: 640px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-family: var(--f-mono); font-size: 0.74rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+tr:last-child td { border-bottom: 0; }
+td code { white-space: nowrap; }
+.chip { display: inline-block; font-family: var(--f-mono); font-size: 0.72rem; padding: 2px 7px; border-radius: 99px; white-space: nowrap; font-weight: 600; }
+.chip.bug { background: var(--bad-soft); color: var(--bad); }
+.chip.speed { background: var(--accent-soft); color: var(--accent); }
+.chip.ux { background: var(--warn-soft); color: var(--warn); }
+.chip.arch { background: transparent; color: var(--ink); border: 1px solid var(--rule); }
+.eff { font-family: var(--f-mono); font-size: 0.8rem; white-space: nowrap; }
+
+/* ---------- Findings ---------- */
+.finding { margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--rule); }
+.finding h4 { margin-top: 0; display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: baseline; }
+.where { display: block; font-family: var(--f-mono); font-size: 0.8rem; color: var(--muted); margin-top: 6px; overflow-wrap: anywhere; }
+
+/* ---------- Code ---------- */
+pre.code { margin: 14px 0 0; padding: 14px 16px; background: var(--card); border: 1px solid var(--rule); border-radius: 6px; overflow-x: auto; font-family: var(--f-mono); font-size: 0.82rem; line-height: 1.55; color: var(--ink); }
+pre.code .c { color: var(--muted); }
+pre.code .k { color: var(--accent); }
+
+/* ---------- Figures / bench ---------- */
+figure { margin: 28px 0 0; }
+figcaption { font-size: 0.88rem; color: var(--muted); margin-top: 10px; line-height: 1.45; }
+.bench { margin-top: 28px; padding: 20px; background: var(--card); border: 1px solid var(--rule); border-radius: 8px; }
+.bench-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px 16px; }
+.bench-head h4 { margin: 0; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 14px; }
+.grid2 > * { min-width: 0; }
+button.btn { font-family: var(--f-mono); font-size: 0.8rem; padding: 7px 12px; border-radius: 5px; border: 1px solid var(--rule); background: var(--paper); color: var(--ink); cursor: pointer; }
+button.btn:hover { border-color: var(--accent); color: var(--accent); }
+button.btn[aria-pressed="true"] { background: var(--accent); color: var(--paper); border-color: var(--accent); }
+.mermaid-wrap { overflow-x: auto; margin-top: 18px; padding: 16px; border: 1px solid var(--rule); border-radius: 8px; background: var(--card); }
+pre.mermaid { margin: 0; background: transparent; font-size: 14px; min-width: 560px; }
+
+/* ---------- CRT screen ---------- */
+.screen {
+  position: relative; background: var(--scr-bg); color: var(--scr-text);
+  border: 1px solid var(--scr-edge); border-radius: 6px; overflow: hidden;
+  font-family: var(--f-mono); font-size: 0.82rem; line-height: 1.6;
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.55);
+}
+.screen-bar { display: flex; gap: 6px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--scr-edge); color: var(--scr-dim); font-size: 0.72rem; }
+.screen-bar i { width: 8px; height: 8px; border-radius: 50%; background: var(--scr-edge); display: inline-block; }
+.screen-bar span { margin-left: 8px; }
+.screen-bar .t { margin-left: auto; color: var(--scr-bright); font-variant-numeric: tabular-nums; }
+.screen-body { padding: 12px 14px 14px; min-height: 210px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.screen .p { color: var(--scr-bright); }
+.screen .d { color: var(--scr-dim); }
+.screen .w { color: var(--scr-warn); }
+.screen .e { color: var(--scr-err); }
+.screen .i { color: var(--scr-info); }
+.caret { display: inline-block; width: 0.6em; height: 1.1em; vertical-align: -0.2em; background: var(--scr-bright); animation: blink 1.05s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.screen-foot { padding: 8px 12px; border-top: 1px solid var(--scr-edge); color: var(--scr-dim); font-size: 0.72rem; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+
+/* phosphor afterglow on fresh glyphs */
+.k { animation: phos 520ms ease-out both; }
+@keyframes phos {
+  0% { color: #F2FFF6; text-shadow: 0 0 8px var(--scr-bright), 0 0 2px #fff; }
+  100% { color: inherit; text-shadow: 0 0 0 transparent; }
+}
+.ln-in { animation: lnin 360ms ease-out both; }
+@keyframes lnin {
+  0% { opacity: 0.2; color: #F2FFF6; text-shadow: 0 0 10px var(--scr-bright); }
+  100% { opacity: 1; text-shadow: 0 0 0 transparent; }
+}
+
+/* ---------- Timeline chart ---------- */
+.tl { display: grid; gap: 14px; margin-top: 16px; }
+.tl-row { display: grid; grid-template-columns: 150px 1fr; gap: 12px; align-items: center; }
+.tl-row > * { min-width: 0; }
+.tl-label { font-size: 0.88rem; line-height: 1.25; }
+.tl-label b { display: block; font-family: var(--f-mono); font-size: 0.8rem; color: var(--muted); font-weight: 400; }
+.tl-bar { position: relative; height: 30px; display: flex; border-radius: 3px; overflow: hidden; background: var(--paper); border: 1px solid var(--rule); }
+.tl-seg { height: 100%; display: flex; align-items: center; padding: 0 6px; font-family: var(--f-mono); font-size: 0.68rem; white-space: nowrap; overflow: hidden; color: var(--paper); }
+.tl-seg.boot { background: var(--muted); }
+.tl-seg.wait { background: var(--rule); color: var(--ink); }
+.tl-seg.exit { background: var(--warn); }
+.tl-seg.type { background: var(--accent); }
+.tl-axis { display: grid; grid-template-columns: 150px 1fr; gap: 12px; }
+.tl-ticks { position: relative; height: 18px; font-family: var(--f-mono); font-size: 0.68rem; color: var(--muted); border-top: 1px solid var(--rule); }
+.tl-ticks span { position: absolute; top: 2px; transform: translateX(-50%); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 12px; font-size: 0.82rem; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+/* ---------- Theme lab ---------- */
+.themes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.theme-btn { display: flex; align-items: center; gap: 8px; }
+.theme-btn .sw { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--rule); }
+.tokens { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; margin-top: 14px; }
+.tok { border: 1px solid var(--rule); border-radius: 5px; overflow: hidden; background: var(--paper); }
+.tok .s { height: 34px; }
+.tok .l { padding: 6px 8px; font-family: var(--f-mono); font-size: 0.7rem; line-height: 1.35; }
+.tok .l b { display: block; font-weight: 600; }
+.contrast { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin-top: 12px; }
+.ctr { padding: 10px 12px; border: 1px solid var(--rule); border-radius: 5px; font-size: 0.85rem; background: var(--paper); }
+.ctr .v { font-family: var(--f-mono); font-size: 1.15rem; font-variant-numeric: tabular-nums; font-weight: 600; }
+.pass { color: var(--accent); font-family: var(--f-mono); font-size: 0.75rem; font-weight: 600; }
+.fail { color: var(--bad); font-family: var(--f-mono); font-size: 0.75rem; font-weight: 600; }
+
+/* ---------- Specimens ---------- */
+.spec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 16px; }
+.spec { display: grid; gap: 8px; align-content: start; min-width: 0; }
+.spec .screen-body { min-height: 150px; display: grid; place-items: center; text-align: center; }
+.spec h5 { margin: 0; font-family: var(--f-display); font-size: 1rem; font-weight: 700; }
+.spec p { margin: 0; font-size: 0.88rem; color: var(--muted); line-height: 1.45; }
+
+.crt-on { animation: crton 900ms cubic-bezier(.7,0,.3,1) both; transform-origin: center; }
+@keyframes crton {
+  0% { transform: scale(0.02, 0.004); filter: brightness(6); opacity: 1; }
+  30% { transform: scale(1, 0.006); filter: brightness(4); }
+  60% { transform: scale(1, 1); filter: brightness(1.8); }
+  100% { transform: scale(1, 1); filter: brightness(1); }
+}
+.scan::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(to bottom, rgba(0,0,0,0.28) 0 1px, transparent 1px 3px);
+  animation: flick 4s steps(40) infinite;
+}
+@keyframes flick { 0%, 100% { opacity: 0.85; } 50% { opacity: 1; } 51% { opacity: 0.7; } 52% { opacity: 1; } }
+.chan { animation: chan 420ms cubic-bezier(.7,0,.3,1) both; }
+@keyframes chan {
+  0% { transform: scaleY(1); filter: brightness(1); }
+  35% { transform: scaleY(0.02); filter: brightness(3); }
+  36% { transform: scaleY(0.02); }
+  100% { transform: scaleY(1); filter: brightness(1); }
+}
+.rgb { animation: rgb 160ms steps(4) both; }
+@keyframes rgb {
+  0% { text-shadow: -2px 0 rgba(255,60,60,.8), 2px 0 rgba(60,220,255,.8); transform: translateX(1px); }
+  50% { text-shadow: 2px 0 rgba(255,60,60,.8), -2px 0 rgba(60,220,255,.8); transform: translateX(-1px); }
+  100% { text-shadow: none; transform: none; }
+}
+.big-glyph { font-family: "VT323", var(--f-mono); font-size: 2.2rem; color: var(--scr-bright); line-height: 1; }
+
+/* tmux bar demo */
+.tmux { display: flex; flex-wrap: wrap; gap: 0; font-family: var(--f-mono); font-size: 0.78rem; background: #0C1A12; border-top: 1px solid var(--scr-edge); }
+.tmux button { background: transparent; border: 0; color: var(--scr-dim); font: inherit; padding: 6px 10px; cursor: pointer; }
+.tmux button[aria-current="true"] { background: var(--scr-bright); color: var(--scr-bg); font-weight: 600; }
+.tmux .r { margin-left: auto; padding: 6px 10px; color: var(--scr-dim); }
+
+/* fonts specimen */
+.fonts { display: grid; gap: 10px; margin-top: 14px; }
+.font-row { display: grid; grid-template-columns: 170px 1fr; gap: 12px; align-items: baseline; padding: 10px 0; border-bottom: 1px dashed var(--scr-edge); }
+.font-row:last-child { border-bottom: 0; }
+.font-row > * { min-width: 0; }
+.font-row .nm { color: var(--scr-dim); font-size: 0.72rem; }
+.font-row .sample { color: var(--scr-text); font-size: 1.05rem; overflow-wrap: anywhere; }
+
+/* particles */
+.pcv-wrap { position: relative; }
+#pcv { display: block; width: 100%; height: 280px; background: var(--scr-bg); border-radius: 6px; border: 1px solid var(--scr-edge); }
+.readout { position: absolute; top: 10px; left: 12px; font-family: var(--f-mono); font-size: 0.75rem; color: var(--scr-bright); background: rgba(7,17,11,0.75); padding: 4px 8px; border-radius: 4px; font-variant-numeric: tabular-nums; }
+
+/* roadmap */
+.road { display: grid; gap: 14px; margin-top: 18px; }
+.phase { display: grid; grid-template-columns: 120px 1fr; gap: 16px; padding: 16px 18px; background: var(--card); border: 1px solid var(--rule); border-radius: 6px; }
+.phase > * { min-width: 0; }
+.phase .when { font-family: var(--f-mono); font-size: 0.8rem; color: var(--accent); font-weight: 600; }
+.phase h4 { margin: 0 0 6px; font-size: 1.05rem; }
+.phase ul { margin: 0; padding-left: 1.1em; font-size: 0.95rem; }
+
+ul.tight { padding-left: 1.2em; margin: 10px 0 0; }
+ul.tight li + li { margin-top: 6px; }
+
+.sound-pill {
+  position: fixed; z-index: 20;
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  font-family: var(--f-mono); font-size: 0.8rem; padding: 9px 14px; border-radius: 99px;
+  background: var(--ink); color: var(--paper); border: 0; cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+}
+.sound-pill[aria-pressed="true"] { background: var(--accent); }
+
+@media (max-width: 560px) {
+  .tl-row, .tl-axis { grid-template-columns: 1fr; gap: 4px; }
+  .tl-axis > :first-child { display: none; }
+  .phase { grid-template-columns: 1fr; gap: 6px; }
+  .font-row { grid-template-columns: 1fr; gap: 2px; }
+  .bench { padding: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .caret, .scan::after { animation: none; }
+}
+</style>
+
+<button class="sound-pill" id="soundPill" aria-pressed="false">Demo sound: off</button>
+
+<div class="wrap">
+  <header class="mast">
+    <div class="col">
+      <div class="eyebrow">Review of kudzai's terminal portfolio · 24 Oct 2026</div>
+      <h1>Phosphor <span class="ph">Portfolio</span> Review</h1>
+      <p class="lede">I read the portfolio's code from end to end. The idea is strong and the craft is real. Below is what slows it down, what feels rough, and a concrete plan to make it feel smooth and expensive. Every demo on this page runs live, so you can see and hear each suggestion before you build it.</p>
+      <div class="meta">
+        <span><b>80</b> files</span>
+        <span><b>~18,000</b> lines read</span>
+        <span>Next.js <b>16</b> · React <b>19</b></span>
+        <span>commit <b>a864e02</b></span>
+      </div>
+      <nav class="toc" aria-label="Contents">
+        <a href="#verdict"><span class="n">00</span><span class="t">Verdict and priorities</span><span class="d">What's great, what to fix first</span></a>
+        <a href="#part1"><span class="n">01</span><span class="t">Architecture and speed</span><span class="d">Rendering, bundle, canvas, bugs</span></a>
+        <a href="#part2"><span class="n">02</span><span class="t">UI/UX: typing, motion, audio, colour</span><span class="d">The most important part, with live demos</span></a>
+        <a href="#cleanup"><span class="n">03</span><span class="t">Code cleanup</span><span class="d">What to delete or merge, same behaviour</span></a>
+        <a href="#part4"><span class="n">04</span><span class="t">Research</span><span class="d">Tools, platform features, ideas to borrow</span></a>
+        <a href="#part3"><span class="n">05</span><span class="t">Other suggestions and roadmap</span><span class="d">Recruiters, content, testing, agent</span></a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ======================= VERDICT ======================= -->
+  <section class="part" id="verdict">
+    <div class="col">
+      <div class="part-head"><span class="eyebrow">00 · Verdict</span><h2>A great concept held back by its own ceremony</h2></div>
+      <p>The site is a pseudo-OS: it boots, types out every section, plays keystroke audio, ships games, and has an AI agent that can act on the page and listen to your voice. That is far more ambitious than most portfolios, and the engineering underneath it is careful. The animation controller cancels cleanly, the audio has a section arbiter, reduced motion is respected everywhere, and the README is excellent.</p>
+      <p>The problems come from the same ambition. The visitor waits about <b>21 seconds</b> on a first visit before the hero is fully readable. The whole page renders on the client, so the real content arrives late. Five copies of a 3,300-line hook run at once. The audio system can't control volume on iPhones at all. And a few real bugs break the experience on common hardware.</p>
+      <div class="verdict">
+        <div>
+          <h4>Keep and build on</h4>
+          <ul>
+            <li>Typing engine tuned in one config file</li>
+            <li>Cancellation-safe animation controller</li>
+            <li>Audio ownership per section</li>
+            <li>Reduced-motion paths everywhere</li>
+            <li>Agent split server/client, grounded on content</li>
+          </ul>
+        </div>
+        <div class="w">
+          <h4>Fix first</h4>
+          <ul>
+            <li>No cursor at all on touchscreen laptops</li>
+            <li>Two ripples on every click</li>
+            <li>Ambient hum at full volume on iOS</li>
+            <li>882 KB WAV loaded before the boot screen ends</li>
+            <li>~21 s until the first section is readable</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Priority list</h3>
+      <p class="muted">Effort: XS is under an hour, S is half a day, M is one to three days, L is a week or more.</p>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Change</th><th>Type</th><th>Where</th><th>Effort</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Show the custom cursor on touchscreen laptops (currently no cursor at all)</td><td><span class="chip bug">bug</span></td><td><code>CustomCursor.tsx:66</code></td><td class="eff">S</td></tr>
+          <tr><td>2</td><td>Spawn one click ripple, not two</td><td><span class="chip bug">bug</span></td><td><code>Background.tsx:95</code></td><td class="eff">XS</td></tr>
+          <tr><td>3</td><td>Re-encode the hum to a ~40 KB Opus loop, or synthesise it; load after boot</td><td><span class="chip speed">speed</span></td><td><code>AmbientHum.tsx:22</code></td><td class="eff">XS</td></tr>
+          <tr><td>4</td><td>Shorten the boot, let any key continue, and skip it for returning visitors</td><td><span class="chip ux">ux</span></td><td><code>BootScreen.tsx</code></td><td class="eff">S</td></tr>
+          <tr><td>5</td><td>Load a real terminal font with <code>next/font</code></td><td><span class="chip ux">ux</span></td><td><code>globals.css:48</code></td><td class="eff">XS</td></tr>
+          <tr><td>6</td><td>Use <code>100dvh</code> for sections on mobile; make the cursor smoothing frame-rate independent</td><td><span class="chip ux">ux</span></td><td><code>globals.css:374</code></td><td class="eff">XS</td></tr>
+          <tr><td>7</td><td>Move keystrokes and hum to one Web Audio engine (fixes iOS volume, adds real pitch and stereo)</td><td><span class="chip ux">ux</span></td><td><code>useKeystrokeAudio.ts</code></td><td class="eff">M</td></tr>
+          <tr><td>8</td><td>Typing v2: word bursts, rare typo corrections, line-streamed output, skip on any key</td><td><span class="chip ux">ux</span></td><td><code>useTypingAnimation.ts</code></td><td class="eff">M</td></tr>
+          <tr><td>9</td><td>Theme tokens read by CSS, canvas and cursor, plus a <code>theme</code> command</td><td><span class="chip ux">ux</span></td><td><code>globals.css</code>, <code>particles.ts</code></td><td class="eff">M</td></tr>
+          <tr><td>10</td><td>Particles: glow sprite instead of <code>shadowBlur</code>, spatial grid, DPR-aware canvas</td><td><span class="chip speed">speed</span></td><td><code>particles.ts:472</code></td><td class="eff">M</td></tr>
+          <tr><td>11</td><td>Stream AI replies so the first words appear in under half a second</td><td><span class="chip speed">speed</span></td><td><code>app/api/chat/route.ts</code></td><td class="eff">M</td></tr>
+          <tr><td>12</td><td>Server-render the section content; animate it with small client islands</td><td><span class="chip arch">arch</span></td><td><code>app/page.tsx:1</code></td><td class="eff">L</td></tr>
+          <tr><td>13</td><td>Split <code>useTerminalInput</code> into modules with one shared store; lazy-load games</td><td><span class="chip arch">arch</span></td><td><code>useTerminalInput.ts</code></td><td class="eff">L</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ======================= PART 1 ======================= -->
+  <section class="part" id="part1">
+    <div class="col">
+      <div class="part-head"><span class="eyebrow">01 · Architecture, speed, smoothness</span><h2>Make the content arrive first and the effects arrive second</h2></div>
+      <p>The guiding rule for this part: the HTML that reaches the browser should already contain the finished text of every section. Animation then becomes a way of <em>revealing</em> content that already exists, instead of the only way content ever appears. That one shift fixes load speed, SEO, and screen-reader support at the same time, and it lets you delete the hidden duplicate copy in <code>SEOContent.tsx</code>.</p>
+
+      <h3>How it works today</h3>
+      <p><code>app/page.tsx</code> starts with <code>"use client"</code>, so every section is a client component. Each section begins with empty strings and builds its text one <code>setState</code> per character. Five sections each create their own <code>useTerminalInput</code> instance, and six sections each create their own pool of audio elements.</p>
+    </div>
+    <div class="mermaid-wrap"><pre class="mermaid">
+flowchart TB
+  B["Browser loads page"] --> L["layout.tsx&lt;br/&gt;BootScreen, Background, Cursor, Hum, MuteToggle"]
+  L --> P["page.tsx is 'use client'&lt;br/&gt;the whole page hydrates"]
+  P --> H["Hero"] & A["About"] & PR["Projects"] & E["Experience"] & C["Contact"] & T["Terminal"]
+  H & A & PR & E & T --> TI["useTerminalInput x5&lt;br/&gt;3,300-line hook, 5 keydown listeners"]
+  H & A & PR & E & C & T --> KA["useKeystrokeAudio x6&lt;br/&gt;72 audio elements"]
+  T --> G["Snake, Adventure, Matrix, Vim&lt;br/&gt;all in the first bundle"]
+  L --> BG["Particle canvas&lt;br/&gt;200 points, all pairs, shadowBlur"]
+  L --> HUM["ambient_hum.wav 882 KB&lt;br/&gt;downloaded on mount"]
+</pre></div>
+    <div class="col">
+      <h3>Where it should go</h3>
+      <p>Sections become Server Components that print their final text into the HTML. A small client island adds the reveal animation on top. All terminals share one engine and one keyboard listener. Games load only when someone types <code>snake</code>. Every moving effect shares one animation-frame loop, and audio goes through one engine.</p>
+    </div>
+    <div class="mermaid-wrap"><pre class="mermaid">
+flowchart TB
+  S["Server Components&lt;br/&gt;sections rendered to HTML with final text"] --> HY["Small client islands&lt;br/&gt;reveal, terminal, cursor"]
+  TH["Theme tokens&lt;br/&gt;CSS variables read by CSS, canvas, cursor"] --> HY
+  HY --> ST["One terminal store&lt;br/&gt;one engine, one key listener"]
+  ST --> CMD["Command registry&lt;br/&gt;commands/*.ts"]
+  ST --> AG["Agent client&lt;br/&gt;streams /api/chat"]
+  CMD -. "import() on demand" .-> GM["games: snake, adventure, matrix, vim"]
+  HY --> FX["FX scheduler&lt;br/&gt;one rAF loop: particles, cursor, glitch"]
+  FX --> WK["Particles in an OffscreenCanvas worker"]
+  HY --> AE["AudioEngine singleton&lt;br/&gt;Web Audio, decoded buffers"]
+  AE --> HUM2["Synth hum (0 KB) or 40 KB Opus loop"]
+</pre></div>
+
+    <div class="col">
+      <h3>The time it takes to read the hero</h3>
+      <p>I added up the delays in <code>BootScreen.tsx</code> and <code>typingConfig.ts</code>. The boot log takes 5.8 s before the Start button appears, the exit sequence takes 4.3 s, and the hero's three typed commands take about 10 s with their pauses. With a one-second reaction to click Start, a first-time visitor waits around 21 s. Recruiters often decide in under ten.</p>
+    </div>
+    <figure class="bench">
+      <div class="bench-head"><h4>Seconds from landing to a fully readable hero</h4><span class="eyebrow">estimated from config</span></div>
+      <div class="tl" id="timeline"></div>
+      <div class="tl-axis"><div></div><div class="tl-ticks" id="ticks"></div></div>
+      <div class="legend">
+        <span><i style="background:var(--muted)"></i>Boot log</span>
+        <span><i style="background:var(--rule)"></i>Waiting for a click</span>
+        <span><i style="background:var(--warn)"></i>Exit animation</span>
+        <span><i style="background:var(--accent)"></i>Hero typing</span>
+      </div>
+      <figcaption>Proposed: the boot log auto-continues after 1.6 s (any key skips it), the exit is a 0.6 s CRT power-on, and the hero types only the commands while output prints line by line. Returning visitors skip the boot (store it in <code>localStorage</code>, not <code>sessionStorage</code>, which forgets on every new tab).</figcaption>
+    </figure>
+
+    <div class="col">
+      <h3>Findings</h3>
+
+      <div class="finding">
+        <h4><span class="chip bug">bug</span> Touchscreen laptops get no cursor at all</h4>
+        <p>The CSS hides the system cursor whenever the main pointer is a mouse (<code>hover: hover</code> and <code>pointer: fine</code>). The JS then removes the custom cursor whenever <code>navigator.maxTouchPoints &gt; 0</code>. A Surface, a Dell XPS with touch, or any Windows laptop with a touchscreen matches both. The result is a page with no cursor. The particle field also treats these laptops as phones and drops to 70 particles at 30 fps.</p>
+        <span class="where">src/components/layout/CustomCursor.tsx:66 · app/globals.css:184 · src/components/layout/Background.tsx:30</span>
+<pre class="code"><span class="c">// Decide per pointer event, not per device. A laptop can have both.</span>
+<span class="k">const</span> onPointerMove = (e: PointerEvent) =&gt; {
+  <span class="k">const</span> isMouse = e.pointerType === <span class="k">'mouse'</span>
+  document.documentElement.classList.toggle(<span class="k">'has-custom-cursor'</span>, isMouse)
+}
+<span class="c">/* CSS: only hide the system cursor once JS has shown ours */</span>
+html.has-custom-cursor * { cursor: none !important; }</pre>
+      </div>
+
+      <div class="finding">
+        <h4><span class="chip bug">bug</span> Every click spawns two ripples</h4>
+        <p><code>Background.tsx</code> adds a <code>.mouse-ripple</code> on <code>click</code> and <code>CustomCursor.tsx</code> adds another on <code>mousedown</code>. They start about 100 ms apart, so the ring visibly doubles. Delete the one in Background and keep the cursor's, because it is placed at the smoothed cursor position.</p>
+        <span class="where">src/components/layout/Background.tsx:95 · src/components/layout/CustomCursor.tsx:181</span>
+      </div>
+
+      <div class="finding">
+        <h4><span class="chip speed">speed</span> The ambient hum is an 882 KB WAV, fetched before anyone hears it</h4>
+        <p><code>new Audio('/sounds/ambient_hum.wav')</code> with <code>preload = 'auto'</code> runs on mount, during the boot screen. That one file is about fifteen times the size of all the keystroke clips together. Encode it as a seamless Opus or AAC loop (around 40 KB) and create it only after boot, or synthesise it with oscillators for zero bytes (the Sound Lab below does exactly that).</p>
+        <span class="where">src/components/shared/AmbientHum.tsx:22 · public/sounds/ambient_hum.wav</span>
+      </div>
+
+      <div class="finding">
+        <h4><span class="chip arch">arch</span> Five terminals, five engines</h4>
+        <p><code>useTerminalInput</code> holds the shell, a fake filesystem, the games, the tour and the agent client. Hero, About, Projects, Experience and Terminal each call it, so the page runs five copies with about twenty pieces of state each and five <code>document</code> keydown listeners. Split it into modules (<code>commands/</code>, <code>fs.ts</code>, <code>agent.ts</code>, <code>games/</code>), keep the state in one small store such as Zustand or <code>useSyncExternalStore</code>, and give each section a view onto it. Load games with <code>import()</code> the first time they run.</p>
+        <span class="where">src/hooks/useTerminalInput.ts:2091 · :3216</span>
+<pre class="code"><span class="c">// commands/registry.ts</span>
+<span class="k">export const</span> commands: Record&lt;string, Command&gt; = {
+  whoami: { run: whoami },
+  snake:  { run: <span class="k">async</span> (ctx) =&gt; (<span class="k">await import</span>(<span class="k">'../games/snake'</span>)).start(ctx) },
+  matrix: { run: <span class="k">async</span> (ctx) =&gt; (<span class="k">await import</span>(<span class="k">'../games/matrix'</span>)).start(ctx) },
+}</pre>
+      </div>
+
+      <div class="finding">
+        <h4><span class="chip speed">speed</span> Typing re-renders whole sections, and AI replies queue one timer per character</h4>
+        <p>Each typed character calls <code>setText</code>, which re-renders the section component and everything in it. For AI replies, <code>useTerminalInput.ts:2224</code> schedules one <code>setTimeout</code> per character up front, so a 900-character answer creates 900 timers and copies the string 900 times. Use one animation-frame loop that writes straight into a text node, and let React own only the finished line.</p>
+        <span class="where">src/hooks/useTypingAnimation.ts:206 · src/hooks/useTerminalInput.ts:2224</span>
+<pre class="code"><span class="k">function</span> typeInto(node: Text, text: string, msPerChar: number, signal: AbortSignal) {
+  <span class="k">return new</span> Promise&lt;void&gt;((done) =&gt; {
+    <span class="k">const</span> start = performance.now()
+    <span class="k">const</span> tick = (now: number) =&gt; {
+      <span class="k">if</span> (signal.aborted) { node.data = text; <span class="k">return</span> done() }   <span class="c">// skip = finish instantly</span>
+      <span class="k">const</span> n = Math.min(text.length, Math.floor((now - start) / msPerChar))
+      <span class="k">if</span> (n !== node.data.length) node.data = text.slice(0, n)    <span class="c">// no React render</span>
+      n &lt; text.length ? requestAnimationFrame(tick) : done()
+    }
+    requestAnimationFrame(tick)
+  })
+}</pre>
+      </div>
+
+      <div class="finding">
+        <h4><span class="chip speed">speed</span> The particle field pays for glow on every frame</h4>
+        <p>200 particles are compared in all pairs (19,900 checks with a square root each), each line sets its own stroke style, and glow uses <code>shadowBlur</code>, which is one of the slowest operations in Canvas 2D. The canvas also ignores <code>devicePixelRatio</code>, so it looks soft on Retina and 4K screens. Draw a glow sprite once and stamp it with <code>drawImage</code>, bucket particles into a grid, batch lines into three paths by opacity, and size the canvas for the screen's pixel density (capped at 2). The bench below runs both versions side by side so you can see the cost on your own machine.</p>
+        <span class="where">src/lib/particles.ts:472 · :512 · :664</span>
+      </div>
+    </div>
+
+    <figure class="bench">
+      <div class="bench-head">
+        <h4>Particle bench</h4>
+        <div class="row">
+          <button class="btn" id="pOld" aria-pressed="true">Current: shadowBlur + all pairs</button>
+          <button class="btn" id="pNew" aria-pressed="false">Proposed: sprite + grid</button>
+          <button class="btn" id="pRun">Pause</button>
+        </div>
+      </div>
+      <div class="pcv-wrap" style="margin-top:14px">
+        <canvas id="pcv" aria-label="Particle network benchmark"></canvas>
+        <div class="readout" id="pRead">measuring…</div>
+      </div>
+      <figcaption>200 particles, same motion in both modes. The number is the average CPU time spent drawing one frame over the last 60 frames. At 60 fps a frame has 16.7 ms in total, shared with typing, React and the cursor.</figcaption>
+    </figure>
+
+    <div class="col">
+      <div class="finding">
+        <h4><span class="chip ux">smoothness</span> The cursor moves faster on 120 Hz and 144 Hz screens</h4>
+        <p>The cursor eases toward the mouse by a fixed fraction each frame. On a 144 Hz monitor there are 2.4 times as many frames per second, so it catches up 2.4 times faster and the "weight" you tuned disappears. Scale the fraction by the time since the last frame.</p>
+        <span class="where">src/components/layout/CustomCursor.tsx:223</span>
+<pre class="code"><span class="k">const</span> base = 0.12 + Math.min(dist / 300, 1) * 0.23
+<span class="k">const</span> k = 1 - Math.pow(1 - base, deltaTime / 16.67)   <span class="c">// same feel at 60, 120 or 144 Hz</span>
+cursorX += dx * k
+cursorY += dy * k</pre>
+      </div>
+
+      <div class="finding">
+        <h4><span class="chip ux">smoothness</span> Mobile height and nested scrolling</h4>
+        <p>Sections use <code>height: 100vh</code>. On iOS Safari and Chrome for Android, <code>100vh</code> is the height with the address bar hidden, so the bottom of each section sits under the toolbar and snapping lands a little off. Use <code>100dvh</code> with a <code>100vh</code> fallback. The terminal box also scrolls inside a section that itself snaps, which feels sticky on phones; on small screens let long sections grow and use <code>scroll-snap-type: y proximity</code> there.</p>
+        <span class="where">app/globals.css:155 · :171 · :374</span>
+      </div>
+
+      <div class="finding">
+        <h4><span class="chip bug">risk</span> The glitch effect rewrites DOM that React owns</h4>
+        <p><code>startCharacterGlitch</code> sets <code>element.innerHTML = ''</code> and rebuilds the text as spans on an element React rendered. If React re-renders that node (a theme change, a content edit, a Fast Refresh), it can throw "Failed to execute removeChild" or show stale text. Give the glitch its own child element that React never touches, or render the per-letter spans in JSX and let the glitch only toggle classes.</p>
+        <span class="where">src/lib/glitch.ts:146</span>
+      </div>
+
+      <div class="finding">
+        <h4><span class="chip speed">speed</span> Stream the agent's replies</h4>
+        <p>The chat route waits for Gemini's full answer, returns JSON, and the client then types it out. The visitor stares at a spinner for the whole generation time and then watches it type. Gemini supports <code>streamGenerateContent?alt=sse</code>; pipe that through the route as <code>text/event-stream</code> and feed tokens into the typewriter as they arrive. First words appear in a few hundred milliseconds. Tool calls still work, because they arrive as their own parts in the stream.</p>
+        <span class="where">app/api/chat/route.ts:315</span>
+      </div>
+
+      <div class="finding">
+        <h4><span class="chip arch">arch</span> Smaller cleanups</h4>
+        <ul class="tight">
+          <li>Remove Tailwind (installed, never used) or start using it; today it is only build time.</li>
+          <li>Pause the particle loop while the boot screen covers it and while a game or the Matrix mode is on.</li>
+          <li>When a visitor scrolls away mid-typing, the section resets and retypes from the start next time. Finish it instantly instead; they have already seen the start.</li>
+          <li>Add <code>@next/bundle-analyzer</code> and a Lighthouse CI check, so the speed you win stays won. I did not run a production build for this review (no <code>node_modules</code> locally), so bundle sizes here are not measured.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= PART 2 ======================= -->
+  <section class="part" id="part2">
+    <div class="col">
+      <div class="part-head"><span class="eyebrow">02 · UI/UX · the most important part</span><h2>Make it feel like a real machine, not a slideshow of one</h2></div>
+      <p>A terminal feels real because of rhythm, light and sound. Real typists type in bursts, real phosphor glows and fades, real speakers sit in stereo, and real machines answer fast. The current site gets the look right; the improvements below are about the <em>feel</em>. Turn on demo sound with the button in the corner to hear the audio parts.</p>
+
+      <h3>1. Typing that feels human and never blocks</h3>
+      <p>The current engine is thoughtful: positional speed, character classes, file-extension slowdowns and jitter. But it types every character on its own clock, so long commands drift into a steady patter, and outputs pop in all at once. Real typing has three features it lacks:</p>
+      <ul class="tight">
+        <li><b>Word bursts.</b> Common letter pairs (<code>th</code>, <code>er</code>, <code>ca</code>) come out fast, and the pause lives at the start of each word.</li>
+        <li><b>Rare corrections.</b> A wrong neighbouring key, a beat, a backspace. Use it at 2 to 4 percent and never on names. The demo forces one per run so you can see it.</li>
+        <li><b>Machine-speed output.</b> The human types the command; the computer prints the answer line by line at about 30 ms a line, with a short phosphor flare on each new line.</li>
+      </ul>
+      <p>Add one rule on top: <b>any key or click finishes the current animation instantly.</b> Show a dim hint (<code>press any key to skip</code>) the first time.</p>
+    </div>
+
+    <figure class="bench">
+      <div class="bench-head">
+        <h4>Typing: current engine vs proposed</h4>
+        <div class="row"><button class="btn" id="runBoth">Run both</button></div>
+      </div>
+      <div class="grid2">
+        <div class="screen" id="tOld" tabindex="0" aria-label="Current typing demo">
+          <div class="screen-bar"><i></i><i></i><i></i><span>current · hero pattern</span><span class="t" id="tOldT">0.0 s</span></div>
+          <div class="screen-body" id="tOldB"></div>
+          <div class="screen-foot"><span>90 ms/char base, output pops in whole</span><button class="btn" data-run="old">Run</button></div>
+        </div>
+        <div class="screen" id="tNew" tabindex="0" aria-label="Proposed typing demo">
+          <div class="screen-bar"><i></i><i></i><i></i><span>proposed · bursts + afterglow</span><span class="t" id="tNewT">0.0 s</span></div>
+          <div class="screen-body" id="tNewB"></div>
+          <div class="screen-foot"><span>click or press a key to skip</span><button class="btn" data-run="new">Run</button></div>
+        </div>
+      </div>
+      <figcaption>Both panels show the same three commands. The left uses the real hero values from <code>typingConfig.ts</code>. The right uses burst timing, one forced correction and line-streamed output. With demo sound on, the right panel's clicks are panned left or right by the hand that would press each key.</figcaption>
+    </figure>
+
+    <div class="col">
+      <h3>2. Motion: one vocabulary, borrowed from the CRT</h3>
+      <p>Right now motion comes from many sources with their own numbers: the boot screen, glitch presets, the cursor spring, section fades. Give them one shared set of tokens and one physical metaphor, the cathode-ray tube. A CRT powers on as a dot, then a line, then a picture. Phosphor glows hot when struck and fades. Changing channel collapses the picture and rebuilds it. These are the only "special" motions you need; everything else should be quick and quiet.</p>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Token</th><th>Value</th><th>Use it for</th></tr></thead>
+        <tbody>
+          <tr><td><code>--dur-key</code></td><td class="eff">80 ms</td><td>Key press feedback, caret jump</td></tr>
+          <tr><td><code>--dur-quick</code></td><td class="eff">160 ms</td><td>Hover, button press, chip appear</td></tr>
+          <tr><td><code>--dur-base</code></td><td class="eff">280 ms</td><td>Panel open, project card expand</td></tr>
+          <tr><td><code>--dur-phosphor</code></td><td class="eff">520 ms</td><td>Afterglow fade on new text</td></tr>
+          <tr><td><code>--dur-crt</code></td><td class="eff">900 ms</td><td>Power-on and section change, at most once per screen</td></tr>
+          <tr><td><code>--ease-out</code></td><td class="eff">cubic-bezier(.16, 1, .3, 1)</td><td>Anything entering</td></tr>
+          <tr><td><code>--ease-crt</code></td><td class="eff">cubic-bezier(.7, 0, .3, 1)</td><td>Power-on, power-off, channel change</td></tr>
+          <tr><td><code>--ease-spring</code></td><td class="eff">cubic-bezier(.22, 1.2, .36, 1)</td><td>Cursor ring (already in the site; keep it)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <figure class="bench">
+      <div class="bench-head"><h4>Motion specimens</h4><span class="eyebrow">click replay on each</span></div>
+      <div class="spec-grid">
+        <div class="spec">
+          <div class="screen"><div class="screen-body" id="spOn"><div><div class="big-glyph">KUDZAI</div><div class="d">system online</div></div></div></div>
+          <div class="row"><button class="btn" data-spec="on">Replay</button></div>
+          <h5>CRT power-on</h5>
+          <p>Replaces the 4.3 s exit sequence. Dot, line, picture, in 0.9 s. Your site already has the power-off; this is its pair.</p>
+        </div>
+        <div class="spec">
+          <div class="screen"><div class="screen-body" id="spGlow"><div class="p" id="spGlowT"></div></div></div>
+          <div class="row"><button class="btn" data-spec="glow">Replay</button></div>
+          <h5>Phosphor afterglow</h5>
+          <p>Each new glyph lands white-hot and cools to green in half a second. Cheap: one CSS animation per character.</p>
+        </div>
+        <div class="spec">
+          <div class="screen scan" id="spScanBox"><div class="screen-body"><div><div class="big-glyph">~/projects</div><div class="d">scanlines + slow flicker</div></div></div></div>
+          <div class="row"><button class="btn" data-spec="scan" aria-pressed="true">Scanlines on</button></div>
+          <h5>Scanlines, opt-in</h5>
+          <p>Keep it subtle and let the visitor switch it off with a <code>crt off</code> command. Off by default under reduced motion.</p>
+        </div>
+        <div class="spec">
+          <div class="screen" style="padding-bottom:0"><div class="screen-body" id="spChan"><div><div class="big-glyph" id="spChanT">cd about</div><div class="d" id="spChanS">section 1 of 6</div></div></div>
+            <div class="tmux" id="tmux">
+              <button data-i="0" aria-current="true">0:home</button><button data-i="1">1:about</button><button data-i="2">2:projects</button><button data-i="3">3:exp</button><button data-i="4">4:contact</button><span class="r">kudzai@portfolio</span>
+            </div>
+          </div>
+          <h5>Channel change + tmux status bar</h5>
+          <p>Click a tab. A 420 ms collapse-and-rebuild when you change section, and a tmux-style bar as the page indicator. Use the View Transitions API so it is one line of code per change.</p>
+        </div>
+        <div class="spec">
+          <div class="screen"><div class="screen-body"><div class="big-glyph" id="spRgb">Matizirofa</div></div></div>
+          <div class="row"><button class="btn" data-spec="rgb">Replay</button></div>
+          <h5>Restrained glitch</h5>
+          <p>One 160 ms RGB split every 8 to 12 s, only on the name. Today several elements glitch every 1.5 to 3 s each, which reads as noise.</p>
+        </div>
+        <div class="spec">
+          <div class="screen"><div class="screen-body" style="align-content:center"><div style="display:grid;gap:10px;justify-items:center">
+            <button class="btn" id="keycap" style="background:transparent;color:var(--scr-bright);border-color:var(--scr-dim)">[ Enter ] download CV</button>
+            <div class="d">press it</div></div></div></div>
+          <h5>Keycap buttons</h5>
+          <p>Buttons that press down 1 px with a key sound and a short flash, so every click matches the typing audio.</p>
+        </div>
+      </div>
+    </figure>
+
+    <div class="col">
+      <h4>More motion ideas that fit the subject</h4>
+      <ul class="tight">
+        <li><b>Standby dimming.</b> Sections that are not in focus drop to 55 percent brightness, like a monitor in standby. The active one powers up when it snaps in.</li>
+        <li><b>Cursor ring that hugs buttons.</b> On hover the ring morphs into the button's rectangle instead of a circle. Use the element's bounding box and the existing spring easing.</li>
+        <li><b>Project cards as <code>ls -l</code>.</b> On hover the card prints extra columns (stack, year, status) as if the listing became long-format.</li>
+        <li><b>The orb listens.</b> When the mic is on, the agent orb bars should follow the real microphone level through an <code>AnalyserNode</code> rather than a canned animation.</li>
+      </ul>
+
+      <h3>3. Audio: one engine, real pitch, real stereo</h3>
+      <p>The audio design is the most unusual thing on the site, and it has the most room to grow. Three facts about the current implementation matter:</p>
+      <ul class="tight">
+        <li><b>iPhones and iPads ignore it.</b> On iOS, <code>HTMLMediaElement.volume</code> is read-only; the hardware buttons control volume. So the volume ramp, the per-key loudness and the 0.06 hum level do nothing there. The hum plays at full device volume.</li>
+        <li><b>The pitch never changes.</b> <code>audio.playbackRate</code> on an audio element keeps pitch by default (<code>preservesPitch</code> is true in modern browsers). The ±8 percent "pitch variation" only stretches the clip's length.</li>
+        <li><b>72 audio elements.</b> Each of six sections creates 3 elements for each of 4 files. Audio elements also start with variable latency, which makes fast typing sound uneven.</li>
+      </ul>
+      <p>The Web Audio API fixes all three. Decode the four clips once into buffers, play each keystroke as a buffer source with a small detune and a stereo position, and route everything through gain nodes that work on every platform. Mute becomes a 60 ms ramp on one master gain.</p>
+    </div>
+    <div class="mermaid-wrap"><pre class="mermaid">
+flowchart LR
+  K["Key clips, decoded once"] --> V["BufferSource per key&lt;br/&gt;detune +/- 60 cents"]
+  V --> PAN["StereoPanner&lt;br/&gt;left hand -0.25, right +0.25"]
+  PAN --> SFX["SFX bus"]
+  UI["UI sounds: enter, error, success, boot"] --> SFX
+  HUMN["Hum: oscillators + filtered noise"] --> AMB["Ambient bus"]
+  SFX --> COMP["Compressor"]
+  AMB --> COMP
+  COMP --> MASTER["Master gain&lt;br/&gt;mute = ramp to 0"]
+  MASTER --> OUT(("Speakers"))
+  TTS["Agent speaking"] -. "ducks hum by 12 dB" .-> AMB
+</pre></div>
+    <div class="col">
+<pre class="code"><span class="c">// lib/audioEngine.ts — one per page</span>
+<span class="k">class</span> AudioEngine {
+  ctx = <span class="k">new</span> AudioContext()
+  master = <span class="k">this</span>.ctx.createGain()
+  sfx = <span class="k">this</span>.ctx.createGain()
+  buffers = <span class="k">new</span> Map&lt;string, AudioBuffer&gt;()
+
+  <span class="k">async</span> load(url: string) {
+    <span class="k">const</span> data = <span class="k">await</span> (<span class="k">await</span> fetch(url)).arrayBuffer()
+    <span class="k">this</span>.buffers.set(url, <span class="k">await this</span>.ctx.decodeAudioData(data))
+  }
+  key(url: string, { pan = 0, gain = 0.4 } = {}) {
+    <span class="k">const</span> src = <span class="k">this</span>.ctx.createBufferSource()
+    src.buffer = <span class="k">this</span>.buffers.get(url)!
+    src.detune.value = (Math.random() - 0.5) * 120     <span class="c">// real pitch change</span>
+    <span class="k">const</span> g = <span class="k">new</span> GainNode(<span class="k">this</span>.ctx, { gain })          <span class="c">// works on iOS</span>
+    <span class="k">const</span> p = <span class="k">new</span> StereoPannerNode(<span class="k">this</span>.ctx, { pan })
+    src.connect(g).connect(p).connect(<span class="k">this</span>.sfx)
+    src.start()
+  }
+  setMuted(m: boolean) {
+    <span class="k">this</span>.master.gain.setTargetAtTime(m ? 0 : 1, <span class="k">this</span>.ctx.currentTime, 0.02)
+  }
+}</pre>
+    </div>
+
+    <figure class="bench">
+      <div class="bench-head"><h4>Sound lab</h4><span class="eyebrow">all sounds synthesised in your browser</span></div>
+      <div class="grid2">
+        <div>
+          <div class="eyebrow" style="margin-bottom:8px">Keystrokes · type "cat role.txt"</div>
+          <div class="row">
+            <button class="btn" id="sOld">Current style: fixed pitch, centred</button>
+            <button class="btn" id="sNew">Web Audio: detune + stereo + ramp</button>
+          </div>
+          <div class="eyebrow" style="margin:16px 0 8px">Interface sounds</div>
+          <div class="row">
+            <button class="btn" data-snd="enter">Enter</button>
+            <button class="btn" data-snd="boot">Boot chime</button>
+            <button class="btn" data-snd="ok">Success</button>
+            <button class="btn" data-snd="err">Command not found</button>
+            <button class="btn" data-snd="think">Agent thinking</button>
+          </div>
+        </div>
+        <div>
+          <div class="eyebrow" style="margin-bottom:8px">Ambient hum · 0 KB</div>
+          <div class="row">
+            <button class="btn" id="humBtn" aria-pressed="false">Start hum</button>
+            <button class="btn" id="duckBtn">Agent speaks (duck)</button>
+          </div>
+          <p class="muted" style="font-size:0.9rem">Three oscillators and filtered noise with a slow drift replace the 882 KB file. Laptop speakers barely reproduce 55 Hz, so the harmonics carry it; use headphones to hear the low end. The duck button drops the hum while the agent talks, then brings it back.</p>
+        </div>
+      </div>
+      <figcaption>Use headphones for the stereo demo: keys typed by the left hand sit slightly left, right-hand keys slightly right, and the space bar sits in the centre. The "current style" button imitates the site's behaviour (no real pitch change, no panning).</figcaption>
+    </figure>
+
+    <div class="col">
+      <h4>Sound rules to adopt</h4>
+      <ul class="tight">
+        <li><b>Ask once, at the boot screen.</b> Two buttons, <code>[ start ]</code> and <code>[ start silent ]</code>. It doubles as the browser's required user gesture, and nobody is surprised by sound in an open-plan office.</li>
+        <li><b>Every sound means something.</b> Keys, Enter, success, error, agent thinking, boot. Nothing else. Keep them within a few dB of each other and run them through one compressor.</li>
+        <li><b>Duck the hum under speech.</b> When the agent talks with speech synthesis, drop the hum by 12 dB and bring it back after.</li>
+        <li><b>Respect the room.</b> Pause the hum when the tab is hidden (<code>visibilitychange</code>), and fade it out after two minutes with no input.</li>
+      </ul>
+
+      <h3>4. Colour: from one green to a real palette</h3>
+      <p>Today the whole site is <code>#00ff41</code>, the brightest, most saturated green a screen can show, at full strength for body text, headings, borders and glows. Two consequences. Long paragraphs in pure saturated green on near-black cause halation (the letters bloom and blur for many readers, especially people with astigmatism). And the per-section tints (<code>#22ff52</code>, <code>#00ff7d</code>, <code>#3aff2a</code>) are so close to the anchor that nobody can see them, so they add code without adding meaning.</p>
+      <p>A better system separates jobs. <b>Text</b> is a softer, slightly desaturated phosphor. <b>Bright</b> is reserved for prompts, the caret and the name. <b>Dim</b> is for hints and must still pass 4.5:1. And the palette gets real semantic colours: amber for warnings and WIP, red for errors, cyan for the agent. The particle canvas and cursor currently hard-code <code>rgba(0, 255, 65, …)</code>; they should read the same CSS variables, so a theme change moves everything at once.</p>
+      <p>Then offer phosphor types as themes through a <code>theme</code> command and a small picker: real CRTs came in green (P1), amber (P3) and white (P4). Add one light theme for daytime readers and print.</p>
+    </div>
+
+    <figure class="bench">
+      <div class="bench-head"><h4>Theme lab</h4><span class="eyebrow">click a theme · contrast is computed live</span></div>
+      <div class="themes" id="themeBtns"></div>
+      <div class="grid2">
+        <div class="screen" id="themeScreen" style="min-width:0">
+          <div class="screen-bar"><i></i><i></i><i></i><span id="themeTitle">visitor@kudzai: ~</span></div>
+          <div class="screen-body" id="themeBody" style="min-height:250px"></div>
+        </div>
+        <div style="min-width:0">
+          <div class="tokens" id="themeTokens"></div>
+          <div class="contrast" id="themeContrast"></div>
+        </div>
+      </div>
+      <figcaption id="themeNote"></figcaption>
+    </figure>
+
+    <div class="col">
+<pre class="code"><span class="c">/* globals.css — one token set, many themes */</span>
+:root, [data-theme=<span class="k">"p1"</span>] {
+  --bg: #07110B;  --surface: #0C1A12;
+  --text: #A8F5C0;  --bright: #4DFF8F;  --dim: #5E9C76;
+  --warn: #FFB454;  --error: #FF6E61;  --agent: #6FD3FF;
+  --glow: 77 255 143;                <span class="c">/* RGB triplet for rgba(var(--glow) / .4) */</span>
+}
+[data-theme=<span class="k">"p3"</span>] { --bg: #120C05; --text: #FFD08A; --bright: #FFB000; <span class="c">/* … */</span> }
+
+<span class="c">// particles.ts — read the theme once per change, not per frame</span>
+<span class="k">const</span> glow = getComputedStyle(document.documentElement).getPropertyValue(<span class="k">'--glow'</span>).trim()
+sprite = makeGlowSprite(<span class="k">`rgb(${glow})`</span>)</pre>
+
+      <h3>5. Typography: pick a terminal face on purpose</h3>
+      <p>The site sets <code>'Courier New', monospace</code> and loads no web font. Courier New is thin and pale on dark backgrounds, and Android and most Linux machines don't have it, so they fall back to whatever monospace they own. Load one face with <code>next/font</code> (self-hosted, no layout shift) and, optionally, a pixel face for the name and section titles only.</p>
+    </div>
+    <figure class="bench">
+      <div class="bench-head"><h4>Font specimen on the proposed P1 palette</h4></div>
+      <div class="screen" style="margin-top:14px"><div class="screen-body fonts" style="min-height:0">
+        <div class="font-row"><span class="nm">Courier New (today)</span><span class="sample" style="font-family:'Courier New',monospace">visitor@kudzai:~$ cat role.txt — 0O 1lI {}[]</span></div>
+        <div class="font-row"><span class="nm">JetBrains Mono · body</span><span class="sample" style="font-family:'JetBrains Mono',monospace">visitor@kudzai:~$ cat role.txt — 0O 1lI {}[]</span></div>
+        <div class="font-row"><span class="nm">IBM Plex Mono · body alt</span><span class="sample" style="font-family:'IBM Plex Mono',monospace">visitor@kudzai:~$ cat role.txt — 0O 1lI {}[]</span></div>
+        <div class="font-row"><span class="nm">VT323 · display only</span><span class="sample" style="font-family:'VT323',monospace;font-size:1.6rem;color:var(--scr-bright)">KUDZAI PRICHARD MATIZIROFA</span></div>
+      </div></div>
+      <figcaption>My pick: JetBrains Mono at weight 400 for everything, VT323 only for the hero name and the boot banner. Both are free on Google Fonts and work with <code>next/font/google</code>.</figcaption>
+    </figure>
+  </section>
+
+  <!-- ======================= PART 3: CLEANUP ======================= -->
+  <section class="part" id="cleanup">
+    <div class="col">
+      <div class="part-head"><span class="eyebrow">03 · Code cleanup · behaviour stays the same</span><h2>About 1,700 lines can go and nothing on screen changes</h2></div>
+      <p>I ran a repo-wide sweep for code nothing uses and code that is copied between files. Every item below was checked with a search across <code>app/</code> and <code>src/</code> and has zero callers, or is a straight duplicate. These are deletions and merges, not redesigns. Do them first: every later change gets easier in a smaller codebase.</p>
+    </div>
+
+    <figure class="bench">
+      <div class="bench-head"><h4>Removable lines by category</h4><span class="eyebrow">≈ 1,700 total</span></div>
+      <div class="tl" id="cleanBars"></div>
+      <figcaption>Dead TypeScript is unused exports, types and methods. Section dedup is the boilerplate repeated in all six sections, minus the shared hook that replaces it. The log file was committed by mistake.</figcaption>
+    </figure>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Remove or merge</th><th>Evidence</th><th>Lines</th></tr></thead>
+        <tbody>
+          <tr><td><b>All of <code>src/lib/utils.ts</code></b> (debounce, throttle, storage helpers, date formatting)</td><td>Nothing imports it. The README's "delay, debounce, throttle" note is out of date.</td><td class="eff">344</td></tr>
+          <tr><td><b><code>src/types/index.ts</code></b>: keep only <code>SectionId</code>, <code>ScrollSectionProps</code>, <code>TerminalContainerProps</code></td><td>Only two files import from it. Its <code>Project</code>, <code>Experience</code> and <code>SkillCategory</code> are second copies of the real ones in <code>src/content/</code>, which also removes the "two interfaces" warning from the README.</td><td class="eff">~175</td></tr>
+          <tr><td><b>Unused glitch modes</b>: <code>applyBorderGlitch</code>, <code>startPeriodicGlitch</code>, <code>startBorderGlitch</code>, <code>randomGlitchEvent</code>, <code>getIntensityPreset</code> and four config fields</td><td><code>startCharacterGlitch</code> is the only function anyone imports.</td><td class="eff">~100</td></tr>
+          <tr><td><b>AnimationController extras</b>: pause/resume and their timing fields, <code>setDebug</code>, <code>combineSteps</code>, the state getters, and the <code>log()</code> helper with its 19 calls</td><td>No caller uses them; all six sections pass <code>debug: false</code>.</td><td class="eff">~90</td></tr>
+          <tr><td><b>Unused hook return values</b>: <code>useAnimationController</code> (pause, resume, state, status, progress…), <code>useKeystrokeAudio</code> (toggleMute, setMuted, isLoaded, isReady), <code>useInView</code> (entry, hasBeenInView)</td><td>Nothing reads them. Dropping <code>setEntry</code> in <code>useInView</code> also removes a re-render on every intersection change.</td><td class="eff">~75</td></tr>
+          <tr><td><b>Dead types in <code>animationTypes.ts</code></b> and small leftovers (<code>calculateDistance</code>, <code>volumeResetDelay</code>)</td><td>Zero references outside their definitions.</td><td class="eff">~50</td></tr>
+          <tr><td><b>Shared <code>useSectionAnimation</code> hook</b></td><td>Each section repeats the same ~60 lines: audio setup, completed ref, typing callback, controller, in-view handler (wrapped in a ref twice), reduced-motion effect and cleanup. One hook replaces six copies.</td><td class="eff">~290</td></tr>
+          <tr><td><b>Copy-pasted section CSS</b>: <code>.X-prompt</code> (6 copies), <code>.X-content</code> (5), <code>.X-command-line</code> (3), identical fade keyframes</td><td>Same rule bodies under different prefixes. Move them to one shared class in <code>globals.css</code>.</td><td class="eff">~80</td></tr>
+          <tr><td><b>Unused CSS in <code>globals.css</code></b>: <code>.command-line</code>, <code>.cta-buttons</code>, <code>.skills-grid</code>, <code>.tech-badge</code>, <code>.typing-text</code>, <code>.glitch-text</code>, utility classes, their media-query and print repeats, and 8 keyframes</td><td>No <code>className</code> anywhere uses them. Classes built from template strings (like <code>boot-screen-line-${type}</code>) were excluded from the sweep.</td><td class="eff">~295</td></tr>
+          <tr><td><b>Unused CSS variables</b>: nine <code>--breakpoint-*</code>, <code>--color-bg-darker</code>, three z-index tokens</td><td>CSS variables can't be used inside <code>@media</code> queries, so the breakpoint tokens could never work.</td><td class="eff">13</td></tr>
+          <tr><td><b><code>prod-server.log</code></b></td><td>Committed in <code>90c6710</code>. Delete it and add <code>*.log</code> to <code>.gitignore</code>.</td><td class="eff">165</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="col">
+      <div class="finding">
+        <h4><span class="chip bug">bug</span> A cursor-blink rule that never matches</h4>
+        <p>All six sections contain <code>.section-cursor-blink about-section-cursor-blink {</code> (with a space, no dot). That is a descendant selector for an HTML element called <code>about-section-cursor-blink</code>, which doesn't exist, so the rule never applies. The cursor still blinks because of the shared <code>.section-cursor-blink</code> rule. Delete the six broken rules.</p>
+        <span class="where">src/components/sections/AboutSection.tsx:417 · HeroSection.tsx:378 · and four more</span>
+      </div>
+
+      <div class="finding">
+        <h4><span class="chip arch">tokens</span> About 70 hard-coded green literals</h4>
+        <p><code>rgba(0, 255, 65, …)</code> appears roughly 70 times (31 in <code>globals.css</code>, 10 each in <code>BootScreen.tsx</code> and <code>particles.ts</code>), plus five <code>#00ff41</code>. This saves no lines, but it blocks theming. Replace them with one RGB token, <code>rgba(var(--glow) / 0.3)</code>. One caution: inside a section, <code>--color-primary</code> is tinted, so replacing a literal with <code>--color-primary</code> would change its hue slightly. Use a separate anchor token to keep things pixel-identical.</p>
+      </div>
+
+      <div class="finding">
+        <h4><span class="chip speed">tooling</span> Keep it clean automatically</h4>
+        <ul class="tight">
+          <li>Run <b>Knip</b> (see Part 4) once to confirm this list, then in CI so dead exports never come back.</li>
+          <li>Turn on the <b>React Compiler</b>, then delete the hand-written <code>useCallback</code> and <code>useMemo</code> calls (about 90 today) one file at a time, checking each with the React DevTools.</li>
+          <li>Drop the 13 "Priority N" comments in <code>CustomCursor.tsx</code>. They refer to a planning list that isn't in the repo. Keep the explanations, lose the numbers.</li>
+          <li>Update the README sections that describe removed code (<code>utils.ts</code>, the two interface systems, Tailwind).</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= PART 4: RESEARCH ======================= -->
+  <section class="part" id="part4">
+    <div class="col">
+      <div class="part-head"><span class="eyebrow">04 · Research · tools and what others are doing</span><h2>What the platform can do now, and what to borrow</h2></div>
+      <p>I checked the current state of the web platform and the tools around Next.js for each idea in this review. Sources are listed at the end of this part. Where sources disagreed or looked dated, I say so.</p>
+
+      <h3>Tools that do the work for you</h3>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Tool or API</th><th>What it gives this site</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td><b>Knip</b></td><td>Finds unused files, exports and dependencies across the whole project. Has a Next.js plugin, so routes aren't flagged as orphans. Run <code>npx knip</code>, review, then fix. depcheck and ts-prune were archived in 2025; Knip is the replacement.</td><td><span class="chip speed">ready</span></td></tr>
+          <tr><td><b>React Compiler</b></td><td>Memoizes components and hooks automatically. The codebase has about 90 <code>useCallback</code> calls, many of them only there to keep dependency arrays stable. Turn on <code>reactCompiler: true</code> in <code>next.config.ts</code>, then remove hand-written memoization gradually. Builds get a little slower because it runs through Babel.</td><td><span class="chip speed">stable in Next 16, opt-in</span></td></tr>
+          <tr><td><b>Cache Components</b></td><td><code>cacheComponents: true</code> plus <code>'use cache'</code> lets the section text be prerendered as a static shell while the terminal stays dynamic. It replaces the old <code>experimental.ppr</code> flag.</td><td><span class="chip speed">Next 16</span></td></tr>
+          <tr><td><b>View Transitions</b></td><td>Same-document transitions for the channel-change effect and for terminal mode switches (normal, vim, matrix), with no animation library. Check for <code>document.startViewTransition</code> and fall back to an instant update.</td><td><span class="chip speed">all major browsers</span> Firefox since 144</td></tr>
+          <tr><td><b>React &lt;ViewTransition&gt;</b></td><td>The React wrapper for the same API, triggered by <code>startTransition</code>. Nicer to use, but my most recent sources still describe it as canary; check react.dev before adopting.</td><td><span class="chip ux">verify first</span></td></tr>
+          <tr><td><b>Scroll-driven animations</b></td><td><code>animation-timeline: view()</code> can drive "standby dimming" and section power-up from scroll position in pure CSS, with no IntersectionObserver. Wrap it in <code>@supports (animation-timeline: view())</code>; unsupported browsers simply show the section normally.</td><td><span class="chip ux">Chrome, Edge, Safari</span> Firefox behind a flag</td></tr>
+          <tr><td><b>OffscreenCanvas in a worker</b></td><td>Moves the particle field off the main thread, so typing and React never compete with it for frame time. Feature-detect <code>transferControlToOffscreen</code> and keep the main-thread path as a fallback.</td><td><span class="chip speed">Baseline 2023</span> Safari 16.4+</td></tr>
+          <tr><td><b>Web Audio API</b></td><td>Every source I found agrees: <code>&lt;audio&gt;</code> was not designed for short, rapid effects, and its volume is unreliable on iPad and Mac. Buffers plus GainNodes fix both. One tap unlocks the AudioContext for the session.</td><td><span class="chip speed">universal</span></td></tr>
+          <tr><td><b>Gemini streaming</b></td><td><code>:streamGenerateContent?alt=sse</code> returns <code>data:</code> lines with text deltas. Caution: forum threads report errors when sending function declarations to the streaming endpoint, and a June 2026 report of empty final text after tool calls with a newer Flash model. Stream round 1, keep the current non-streaming path as a fallback, and test each model in your fallback chain.</td><td><span class="chip ux">test per model</span></td></tr>
+          <tr><td><b>Lighthouse CI, bundle analyzer, Speed Insights</b></td><td>Guards the speed wins on every pull request and shows real-visitor Core Web Vitals.</td><td><span class="chip speed">ready</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="col">
+      <h3>What others are building that you can adapt</h3>
+
+      <div class="finding">
+        <h4><span class="chip ux">visual</span> Real CRT shaders as one optional layer</h4>
+        <p>Several open-source projects now render a convincing CRT in WebGL: screen curvature, bloom, scanlines, chromatic aberration and flicker. <b>cool-retro-term-webgl</b> is a browser port of the well-known desktop terminal and plugs into xterm.js. The <b>Gingerbeardman WebGL CRT shader</b> (open-sourced January 2026) is tuned to run on phones as old as the iPhone XS. <b>CRTFilter</b> applies the effect to any canvas.</p>
+        <p>How to adapt it: keep your DOM text as it is, and add the shader as a single full-screen post-process only for the hero and boot screen, behind a <code>crt on</code> command and off under reduced motion. That replaces several hand-made CSS effects with one coherent look.</p>
+        <p><b>Licence warning:</b> cool-retro-term-webgl is GPL-3.0. Your repo is MIT, so copying its code would force a licence change. Read it for ideas, or use an MIT-licensed shader.</p>
+      </div>
+
+      <div class="finding">
+        <h4><span class="chip arch">agents</span> Let visitors' AI agents use your site: WebMCP</h4>
+        <p>WebMCP is a proposed browser API, developed by Google and Microsoft in a W3C community group, that lets a page register tools for AI agents through <code>navigator.modelContext.registerTool()</code> with a name, description, JSON schema and callback. Chrome has it as an origin trial from version 149.</p>
+        <p>This is almost free for you: your agent already declares <code>download_resume</code>, <code>navigate_to_section</code>, <code>get_repo_stats</code> and <code>send_message</code> in <code>TOOL_DECLARATIONS</code>. Register the same tools with WebMCP, and a recruiter's own browser agent can fetch your CV or project stats without scraping. Pair it with a plain-text <code>/llms.txt</code> summary of your work. Few portfolios do this yet, so it doubles as a demonstration of the AI-integration skills you list in your title.</p>
+<pre class="code"><span class="k">if</span> (<span class="k">'modelContext'</span> <span class="k">in</span> navigator) {
+  navigator.modelContext.registerTool({
+    name: <span class="k">'download_resume'</span>,
+    description: <span class="k">"Download Kudzai's CV as a PDF"</span>,
+    inputSchema: { type: <span class="k">'object'</span>, properties: {} },
+    execute: <span class="k">async</span> () =&gt; ({ url: contact.resumeUrl }),
+  })
+}</pre>
+        <p class="muted" style="font-size:0.9rem">The API is early and sources show two different method names (<code>registerTool</code> and <code>provideContext</code>), so treat this sketch as provisional and feature-detect it.</p>
+      </div>
+
+      <div class="finding">
+        <h4><span class="chip ux">culture</span> The terminal is fashionable again</h4>
+        <p>Coverage of 2026 developer tooling describes a revival of the command line, driven by terminal-based coding agents such as Claude Code and Codex CLI. A terminal portfolio with an agent inside it is right on trend. Design trend roundups for 2026 also name retro-futurism and gamified navigation, while warning that interactivity must not get in the way of finding things. That supports the plain mode and the shorter boot.</p>
+      </div>
+
+      <div class="finding">
+        <h4><span class="chip ux">hiring</span> Substance under the show</h4>
+        <p>Hiring-focused guides for 2026 are blunt: deployed, documented projects with measurable outcomes and a clean GitHub matter more than presentation. Use the terminal as the showcase layer and make sure each project page has a live link, a README, and one number that shows impact.</p>
+      </div>
+
+      <div class="finding">
+        <h4><span class="chip ux">play</span> Achievements for easter eggs</h4>
+        <p>You already hide <code>~/.secret</code>, <code>sl</code>, <code>hack</code>, Snake and an adventure game. Most visitors will never find them. An <code>achievements</code> command (found 3 of 9), with a quiet chime when one unlocks, turns hidden effort into something people talk about and share.</p>
+      </div>
+
+      <div class="finding">
+        <h4><span class="chip arch">option</span> xterm.js: borrow, don't switch</h4>
+        <p>xterm.js has a built-in <code>screenReaderMode</code> and a minimum-contrast option. Swapping your custom terminal for it would be a large rewrite and a heavier bundle, so I don't recommend it. But copy its two ideas: a screen-reader mode that mirrors output into a live region, and an enforced minimum contrast ratio for every theme.</p>
+      </div>
+
+      <h4>Sources</h4>
+      <ul class="tight" style="font-size:0.9rem;overflow-wrap:anywhere">
+        <li>Knip: <a href="https://knip.dev">knip.dev</a> · <a href="https://blog.openreplay.com/remove-unused-files-dependencies-knip/">OpenReplay guide</a> · <a href="https://recca0120.github.io/en/2026/05/02/knip-dead-code-detector/">Knip blind spots (2026)</a></li>
+        <li>React Compiler: <a href="https://nextjs.org/docs/app/api-reference/config/next-config-js/reactCompiler">Next.js reactCompiler docs</a> · <a href="https://nextjs.org/blog/next-16-beta">Next.js 16 beta post</a></li>
+        <li>Cache Components: <a href="https://noqta.tn/en/tutorials/nextjs-16-cache-components-use-cache-guide-2026">Next.js 16 use cache guide</a></li>
+        <li>View Transitions: <a href="https://developer.chrome.com/blog/view-transitions-in-2025">Chrome: view transitions in 2025</a> · <a href="https://www.trevorlasn.com/blog/view-transitions-api">fallback pattern</a></li>
+        <li>Scroll-driven animations: <a href="https://developer.mozilla.org/docs/Web/CSS/animation-timeline/view">MDN view()</a> · <a href="https://www.drweb.de/css-scroll-animationen-ohne-javascript/">support overview (drweb.de)</a></li>
+        <li>OffscreenCanvas: <a href="https://docs.w3cub.com/dom/htmlcanvaselement/transfercontroltooffscreen">transferControlToOffscreen compatibility</a></li>
+        <li>Web Audio vs audio element: <a href="https://bugs.webkit.org/show_bug.cgi?id=132691">WebKit bug 132691</a> · <a href="https://github.com/cwtickle/danoniplus-docs/wiki/Audio">danoniplus audio notes</a> · <a href="https://www.w3.org/community/coremob/wiki/Quality_of_Implementation/Audio.html">W3C Core Mobile audio</a></li>
+        <li>Gemini streaming: <a href="https://ai.google.dev/api/generate-content">Gemini generateContent API</a> · <a href="https://discuss.ai.google.dev/t/function-calling-stream-model/6778">function calling with streams</a> · <a href="https://discuss.ai.google.dev/t/gemini-3-5-flash-with-streamgeneratecontent-automatic-function-calling-stops-after-tool-execution-and-returns-empty-final-text/170528">empty text after tool call (June 2026)</a></li>
+        <li>CRT shaders: <a href="https://dev.to/remojansen/i-have-open-sourced-a-webgl-front-end-for-your-terminal-that-emulates-a-crt-monitor-2icd">cool-retro-term-webgl</a> · <a href="https://blog.gingerbeardman.com/2026/01/04/webgl-crt-shader/">Gingerbeardman WebGL CRT shader</a> · <a href="https://redinvader.itch.io/crtfilter">CRTFilter</a></li>
+        <li>WebMCP: <a href="https://www.debugbear.com/blog/webmcp">DebugBear on WebMCP</a> · <a href="https://mcpcat.io/guides/register-first-webmcp-tool">registerTool guide</a> · <a href="https://amitmerchant.com/webmcp-in-chrome-101/">WebMCP in Chrome</a></li>
+        <li>Trends: <a href="https://platform.uno/blog/ai-tooling-trends-shaping-how-we-build/">developer AI tooling in 2026</a> · <a href="https://elements.envato.com/learn/portfolio-trends">portfolio design trends 2026</a> · <a href="https://www.techademy.com/ai-agents-portfolio-projects">AI agent portfolio projects</a></li>
+        <li>xterm.js: <a href="https://xtermjs.org">xtermjs.org</a></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ======================= PART 5 ======================= -->
+  <section class="part" id="part3">
+    <div class="col">
+      <div class="part-head"><span class="eyebrow">05 · Other suggestions</span><h2>Make it work for the people who hire</h2></div>
+
+      <h4>A fast lane for recruiters</h4>
+      <p>Add a visible <code>--no-tty</code> switch in the corner that turns the site into a clean, fast, readable page: same content, no boot, no typing, no sound, normal scrolling. Remember the choice. Put <code>[ download CV ]</code> on the first screen of both modes. The terminal is the hook; the plain mode is what gets forwarded to a hiring manager.</p>
+
+      <h4>Pages for projects</h4>
+      <p>The sitemap has exactly one URL. Give each project its own page (<code>/projects/aura</code>) with a screenshot or short clip, the problem, what you built, and one measured result. They become shareable links, they rank on their own, and the terminal's <code>cat projects/aura/README.md</code> can render the same content, which also removes the hand-written README copies in <code>useTerminalInput.ts</code> that drift from <code>projects.ts</code>.</p>
+
+      <h4>Measure before you tune</h4>
+      <p>Add Vercel Analytics and Speed Insights, plus a few custom events: boot skipped, boot completed, sound muted, first command typed, agent question asked, CV downloaded. In a month you will know how many visitors leave during the boot screen, which is the single most useful number for this site.</p>
+
+      <h4>Tests where they protect the most</h4>
+      <ul class="tight">
+        <li>Vitest unit tests for <code>toAgentAction()</code> (the safety whitelist), the command parser and alias map, and the typing delay function.</li>
+        <li>One Playwright smoke test: load, skip boot, see the hero name, scroll to the terminal, run <code>help</code>, run <code>snake</code> and exit.</li>
+        <li>Run both, plus Lighthouse CI, on every pull request.</li>
+      </ul>
+
+      <h4>The AI agent</h4>
+      <ul class="tight">
+        <li>Move the rate limit to a shared store (Upstash Redis from the Vercel Marketplace). In-memory limits reset on every cold start and differ per instance.</li>
+        <li>Protect <code>send_message</code> with Cloudflare Turnstile or a honeypot field; it is a spam path to your inbox.</li>
+        <li>Label it plainly: "AI agent, answers from this site's content". People trust a clearly labelled agent more than one pretending to be you.</li>
+        <li>Mention that voice input in Chrome sends audio to Google for recognition. One line next to the mic button is enough.</li>
+      </ul>
+
+      <h4>Accessibility</h4>
+      <ul class="tight">
+        <li>Use a real, visible <code>&lt;input&gt;</code> for the terminal prompt instead of synthesising key events from a hidden proxy. Screen readers, autocorrect, voice dictation and non-Latin keyboards (IME) then work for free.</li>
+        <li>Announce agent replies through an <code>aria-live="polite"</code> region once each reply finishes, not character by character.</li>
+        <li>Check the dim tiers. The 40 percent green used for ghost suggestions lands near 3.0:1 against the background; fine for a hint, too low for anything people must read.</li>
+      </ul>
+
+      <h3>Roadmap</h3>
+    </div>
+    <div class="road">
+      <div class="phase"><div class="when">Week 1</div><div><h4>Quick wins</h4><ul><li>Cleanup pass: delete the ~1,700 dead lines from Part 3, run Knip, add <code>*.log</code> to <code>.gitignore</code></li><li>Cursor on touch laptops, single ripple, frame-rate independent cursor</li><li>Hum re-encoded and loaded after boot; <code>100dvh</code></li><li>JetBrains Mono through <code>next/font</code></li><li>Boot: 1.6 s, any key continues, <code>localStorage</code> for returning visitors, start or start silent</li><li>Analytics and custom events</li></ul></div></div>
+      <div class="phase"><div class="when">Week 2</div><div><h4>Feel</h4><ul><li>Web Audio engine with detune, stereo, compressor, ducking</li><li>Typing v2 with bursts, rare corrections, line-streamed output, skip</li><li>Theme tokens, <code>theme</code> command, canvas and cursor reading tokens</li><li>Motion tokens, CRT power-on, afterglow, channel change, tmux bar</li></ul></div></div>
+      <div class="phase"><div class="when">Week 3</div><div><h4>Architecture</h4><ul><li>Server-rendered sections with client reveal islands; remove <code>SEOContent</code> duplication</li><li>Split <code>useTerminalInput</code>; one store; lazy games</li><li>Particles: sprite, grid, DPR, worker if needed</li><li>Streamed agent replies; shared rate limit</li></ul></div></div>
+      <div class="phase"><div class="when">Week 4</div><div><h4>Reach</h4><ul><li><code>--no-tty</code> plain mode</li><li>Project pages with media and outcomes</li><li>Vitest, Playwright and Lighthouse CI on pull requests</li></ul></div></div>
+    </div>
+    <div class="col">
+      <p class="muted" style="margin-top:28px;font-size:0.9rem">Timings in this review are estimates calculated from the delays in the source code, not measurements from a browser. File and line references point at commit <code>a864e02</code>.</p>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const RM = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ================= Audio engine ================= */
+  const A = { ctx: null, sfx: null, amb: null, noise: null, on: false };
+  function ensure() {
+    if (!A.ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      const ctx = new AC();
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -18; comp.ratio.value = 4;
+      const master = ctx.createGain(); master.gain.value = 0.9;
+      const sfx = ctx.createGain(); const amb = ctx.createGain(); amb.gain.value = 0;
+      sfx.connect(comp); amb.connect(comp); comp.connect(master); master.connect(ctx.destination);
+      const buf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      Object.assign(A, { ctx, sfx, amb, noise: buf });
+    }
+    if (A.ctx.state === 'suspended') A.ctx.resume();
+    return A.ctx;
+  }
+  function out(pan) {
+    if (A.ctx.createStereoPanner && pan) {
+      const p = A.ctx.createStereoPanner(); p.pan.value = pan; p.connect(A.sfx); return p;
+    }
+    return A.sfx;
+  }
+  function key({ pan = 0, rate = 1, gain = 0.45, kind = 'key' } = {}) {
+    const ctx = ensure(); if (!ctx) return;
+    const t = ctx.currentTime;
+    const dur = kind === 'enter' ? 0.09 : kind === 'space' ? 0.06 : 0.042;
+    const dest = out(pan);
+    const src = ctx.createBufferSource(); src.buffer = A.noise; src.playbackRate.value = rate;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass';
+    bp.frequency.value = (kind === 'space' ? 1700 : kind === 'enter' ? 2300 : 3300) * rate; bp.Q.value = 1.1;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(bp); bp.connect(g); g.connect(dest);
+    const o = ctx.createOscillator(); o.type = 'sine';
+    const f0 = (kind === 'space' ? 150 : kind === 'enter' ? 120 : 220) * rate;
+    o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(55, t + dur * 1.4);
+    const og = ctx.createGain();
+    og.gain.setValueAtTime(0.0001, t); og.gain.exponentialRampToValueAtTime(gain * 0.7, t + 0.003);
+    og.gain.exponentialRampToValueAtTime(0.0001, t + dur * 1.5);
+    o.connect(og); og.connect(dest);
+    src.start(t, Math.random() * 0.5, dur + 0.03);
+    o.start(t); o.stop(t + dur * 1.6 + 0.03);
+  }
+  function tone(freqs, { type = 'sine', dur = 0.14, gain = 0.14, gap = 0.08, lp = 0 } = {}) {
+    const ctx = ensure(); if (!ctx) return;
+    freqs.forEach((f, i) => {
+      const t = ctx.currentTime + i * gap;
+      const o = ctx.createOscillator(); o.type = type; o.frequency.value = f;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      let node = o;
+      if (lp) { const f2 = ctx.createBiquadFilter(); f2.type = 'lowpass'; f2.frequency.value = lp; o.connect(f2); node = f2; }
+      node.connect(g); g.connect(A.sfx);
+      o.start(t); o.stop(t + dur + 0.05);
+    });
+  }
+  const SND = {
+    enter: () => key({ kind: 'enter', gain: 0.55 }),
+    boot: () => tone([523.25, 783.99, 1046.5], { dur: 0.5, gap: 0.11, gain: 0.1 }),
+    ok: () => tone([880, 1318.5], { dur: 0.12, gap: 0.07, gain: 0.1 }),
+    err: () => tone([110, 103], { type: 'square', dur: 0.24, gap: 0, gain: 0.07, lp: 900 }),
+    think: () => {
+      const ctx = ensure(); if (!ctx) return;
+      for (let i = 0; i < 9; i++) {
+        const t = ctx.currentTime + i * 0.13;
+        const s = ctx.createBufferSource(); s.buffer = A.noise;
+        const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 5200 + (i % 3) * 600; f.Q.value = 6;
+        const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.18, t + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
+        s.connect(f); f.connect(g); g.connect(A.sfx); s.start(t, Math.random(), 0.04);
+      }
+    },
+  };
+  const LEFT = new Set('qwertasdfgzxcvb12345`~!@#$%');
+  const RIGHT = new Set('yuiophjklnm67890-=[]\\;\',./^&*()_+{}|:"<>?');
+  function panFor(ch) {
+    const c = ch.toLowerCase();
+    if (c === ' ') return 0;
+    if (LEFT.has(c)) return -0.28 + Math.random() * 0.06;
+    if (RIGHT.has(c)) return 0.22 + Math.random() * 0.06;
+    return 0;
+  }
+  function keyFor(ch, style) {
+    if (!A.on) return;
+    const kind = ch === ' ' ? 'space' : ch === '\n' ? 'enter' : 'key';
+    if (style === 'old') key({ kind, gain: 0.4 * (0.92 + Math.random() * 0.16) });
+    else key({ kind, pan: panFor(ch), rate: 0.94 + Math.random() * 0.12, gain: 0.42 * (0.9 + Math.random() * 0.2) });
+  }
+
+  const pill = $('#soundPill');
+  function setSound(on) {
+    A.on = on; if (on) ensure();
+    pill.setAttribute('aria-pressed', String(on));
+    pill.textContent = on ? 'Demo sound: on' : 'Demo sound: off';
+  }
+  pill.addEventListener('click', () => setSound(!A.on));
+
+  /* ================= Timeline ================= */
+  const TL = [
+    { label: 'Today', sub: 'first visit', segs: [['boot', 5.8, 'boot log 5.8 s'], ['wait', 1.0, 'click'], ['exit', 4.3, 'exit 4.3 s'], ['type', 9.8, 'hero typing 9.8 s']] },
+    { label: 'Proposed', sub: 'first visit', segs: [['boot', 1.6, 'boot 1.6'], ['exit', 0.6, ''], ['type', 2.6, 'hero 2.6 s']] },
+    { label: 'Proposed', sub: 'returning visitor', segs: [['type', 1.2, 'hero 1.2 s']] },
+  ];
+  const MAX = 22;
+  const tl = $('#timeline');
+  TL.forEach(r => {
+    const total = r.segs.reduce((a, s) => a + s[1], 0);
+    const row = document.createElement('div'); row.className = 'tl-row';
+    row.innerHTML = '<div class="tl-label">' + r.label + ' <b>' + r.sub + ' · ' + total.toFixed(1) + ' s</b></div>';
+    const bar = document.createElement('div'); bar.className = 'tl-bar';
+    r.segs.forEach(s => {
+      const seg = document.createElement('div');
+      seg.className = 'tl-seg ' + s[0]; seg.style.width = (s[1] / MAX * 100) + '%';
+      seg.textContent = s[2]; seg.title = s[2] || (s[1] + ' s');
+      bar.appendChild(seg);
+    });
+    row.appendChild(bar); tl.appendChild(row);
+  });
+  const ticks = $('#ticks');
+  for (let s = 0; s <= 20; s += 5) {
+    const t = document.createElement('span'); t.style.left = (s / MAX * 100) + '%'; t.textContent = s + ' s'; ticks.appendChild(t);
+  }
+
+  const CLEAN = [['Dead TypeScript', 835], ['Section dedup', 370], ['Dead CSS', 310], ['Committed log', 165]];
+  const cb = $('#cleanBars');
+  CLEAN.forEach(([n, v]) => {
+    const row = document.createElement('div'); row.className = 'tl-row';
+    row.innerHTML = '<div class="tl-label">' + n + ' <b>' + v + ' lines</b></div><div class="tl-bar"><div class="tl-seg type" style="width:' + (v / 900 * 100) + '%">' + v + '</div></div>';
+    cb.appendChild(row);
+  });
+
+  /* ================= Typing demo ================= */
+  const SCRIPT = [
+    { cmd: 'whoami', out: ['Kudzai Prichard Matizirofa'] },
+    { cmd: 'cat role.txt', out: ['Backend Software Engineer · Distributed Systems · AI Integration'] },
+    { cmd: 'ls projects/', out: ['[WIP]  AURA            [LIVE] Coin Compass', '[WIP]  SENTRY          [LIVE] UBot MT4', '[WIP]  METIS           [LIVE] Spring Real Estate API'] },
+  ];
+  const charMult = c => c === ' ' ? 0.72 : /[a-z]/.test(c) ? 1 : /[A-Z]/.test(c) ? 1.25 : /[0-9]/.test(c) ? 1.35 : /[-_\/\\|~.;]/.test(c) ? 1.45 : 1.55;
+  function oldDelay(ch, i, s) {
+    let d = 90 * charMult(ch);
+    const hasExt = /\.[a-z]{2,4}$/i.test(s); const es = s.lastIndexOf('.');
+    const inExt = hasExt && i >= es;
+    if (hasExt && i - es >= 0) {
+      const off = i - es;
+      if (off <= 1) d *= 4;
+      else { const len = s.length - es, rc = len - 2, ri = off - 2; d *= 4 + (1 - 4) * ((ri + 1) / rc); }
+    }
+    if (i < 3) d *= 2.2;
+    const ms = Math.floor(s.length * 0.3), me = Math.floor(s.length * 0.7);
+    if (i >= ms && i <= me && !inExt) d *= 0.7;
+    if (i > s.length - 4 && !inExt) d *= 1.3;
+    if ('./\\-_~|'.includes(ch)) d *= 1.5;
+    if (i > 0 && s[i - 1] === ch) d *= 0.8;
+    if (Math.random() < 0.1 && !inExt) d *= 2.5;
+    const v = d * 0.3; d += Math.random() * 2 * v - v;
+    return Math.max(10, d);
+  }
+  const BIG = new Set(['th','he','in','er','an','re','on','at','en','nd','st','es','or','te','ti','is','it','ar','ca','ls','ro','ol','le','xt','pr','oj','ec','ts','wh','ho','am','mi','ct','je']);
+  const NEIGH = { a:'s', b:'v', c:'x', d:'s', e:'w', f:'d', g:'f', h:'j', i:'u', j:'h', k:'l', l:'k', m:'n', n:'m', o:'i', p:'o', q:'w', r:'t', s:'a', t:'r', u:'y', v:'c', w:'e', x:'z', y:'t', z:'x' };
+  function newDelay(ch, i, s) {
+    let d = 52;
+    if (i === 0 || s[i - 1] === ' ') d *= 1.6;
+    if (i > 0 && BIG.has((s[i - 1] + ch).toLowerCase())) d *= 0.6;
+    if (ch === ' ') d = d * 0.8 + 40 + Math.random() * 60;
+    if ('./-_'.includes(ch)) d *= 1.35;
+    return d * (0.8 + Math.random() * 0.4);
+  }
+
+  const runs = { old: null, new: null };
+  function makeState() {
+    const st = { skip: false, dead: false, timer: 0, res: null };
+    st.wait = ms => (st.skip || st.dead) ? Promise.resolve() : new Promise(r => { st.res = r; st.timer = setTimeout(r, ms); });
+    st.finish = () => { st.skip = true; clearTimeout(st.timer); if (st.res) st.res(); };
+    st.kill = () => { st.dead = true; clearTimeout(st.timer); if (st.res) st.res(); };
+    return st;
+  }
+  function prompt(body) {
+    const line = document.createElement('div');
+    line.innerHTML = '<span class="p">visitor@kudzai:~$ </span>';
+    const typed = document.createElement('span'); line.appendChild(typed);
+    const caret = document.createElement('span'); caret.className = 'caret'; line.appendChild(caret);
+    body.appendChild(line);
+    return { line, typed, caret };
+  }
+  function clock(el, st) {
+    const t0 = performance.now();
+    const f = () => { if (st.dead) return; el.textContent = ((performance.now() - t0) / 1000).toFixed(1) + ' s'; if (!st.done) requestAnimationFrame(f); };
+    requestAnimationFrame(f);
+    return () => ((performance.now() - t0) / 1000);
+  }
+  async function runOld() {
+    if (runs.old) runs.old.kill();
+    const st = makeState(); runs.old = st;
+    const body = $('#tOldB'); body.textContent = '';
+    const elapsed = clock($('#tOldT'), st);
+    const gaps = [[500, 350], [800, 350], [1300, 350]];
+    for (let c = 0; c < SCRIPT.length; c++) {
+      const { cmd, out } = SCRIPT[c];
+      await st.wait(gaps[c][0]); if (st.dead) return;
+      const p = prompt(body);
+      for (let i = 0; i < cmd.length; i++) {
+        await st.wait(oldDelay(cmd[i], i, cmd)); if (st.dead) return;
+        p.typed.textContent += cmd[i]; if (!st.skip) keyFor(cmd[i], 'old');
+      }
+      if (!st.skip) keyFor('\n', 'old');
+      await st.wait(gaps[c][1]); if (st.dead) return;
+      p.caret.remove();
+      out.forEach(o => { const l = document.createElement('div'); l.textContent = o; body.appendChild(l); });
+    }
+    st.done = true;
+    $('#tOldT').textContent = 'readable at ' + elapsed().toFixed(1) + ' s';
+  }
+  async function runNew() {
+    if (runs.new) runs.new.kill();
+    const st = makeState(); runs.new = st;
+    const body = $('#tNewB'); body.textContent = '';
+    const elapsed = clock($('#tNewT'), st);
+    const typoCmd = 1 + Math.floor(Math.random() * 2);
+    const tc = SCRIPT[typoCmd].cmd;
+    const letterIdx = [];
+    for (let i = 4; i < tc.length; i++) if (/[a-z]/.test(tc[i]) && NEIGH[tc[i]]) letterIdx.push(i);
+    const typoAt = letterIdx[Math.floor(Math.random() * letterIdx.length)];
+    const hint = document.createElement('div'); hint.className = 'd'; hint.textContent = '# press any key to skip';
+    body.appendChild(hint);
+    for (let c = 0; c < SCRIPT.length; c++) {
+      const { cmd, out } = SCRIPT[c];
+      await st.wait(c === 0 ? 350 : 260); if (st.dead) return;
+      const p = prompt(body);
+      for (let i = 0; i < cmd.length; i++) {
+        const ch = cmd[i];
+        if (c === typoCmd && i === typoAt && !st.skip) {
+          const wrong = document.createElement('span'); wrong.className = 'k'; wrong.textContent = NEIGH[ch];
+          p.typed.appendChild(wrong); keyFor(NEIGH[ch], 'new');
+          await st.wait(newDelay(ch, i, cmd) + 170 + Math.random() * 110); if (st.dead) return;
+          wrong.remove(); keyFor('x', 'new');
+          await st.wait(80); if (st.dead) return;
+        }
+        await st.wait(newDelay(ch, i, cmd)); if (st.dead) return;
+        const s = document.createElement('span'); s.textContent = ch;
+        if (!st.skip && !RM) s.className = 'k';
+        p.typed.appendChild(s); if (!st.skip) keyFor(ch, 'new');
+      }
+      if (!st.skip) keyFor('\n', 'new');
+      await st.wait(200); if (st.dead) return;
+      p.caret.remove();
+      for (const o of out) {
+        const l = document.createElement('div'); l.textContent = o;
+        if (o.includes('[WIP]')) l.innerHTML = o.replace(/\[WIP\]/g, '<span class="w">[WIP]</span>').replace(/\[LIVE\]/g, '<span class="p">[LIVE]</span>');
+        if (!st.skip && !RM) l.className = 'ln-in';
+        body.appendChild(l);
+        await st.wait(30); if (st.dead) return;
+      }
+    }
+    hint.remove();
+    st.done = true;
+    $('#tNewT').textContent = 'readable at ' + elapsed().toFixed(1) + ' s';
+    if (A.on && !st.skip) SND.ok();
+  }
+  $$('[data-run]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); b.dataset.run === 'old' ? runOld() : runNew(); }));
+  $('#runBoth').addEventListener('click', () => { runOld(); runNew(); });
+  const tNew = $('#tNew');
+  tNew.addEventListener('click', () => { if (runs.new && !runs.new.done) runs.new.finish(); });
+  tNew.addEventListener('keydown', e => { if (runs.new && !runs.new.done) { e.preventDefault(); runs.new.finish(); } });
+  $('#tOld').addEventListener('keydown', () => {});
+  // Show a finished frame at rest so the page is complete without interaction
+  (function staticFrames() {
+    ['#tOldB', '#tNewB'].forEach((sel, k) => {
+      const body = $(sel); body.textContent = '';
+      SCRIPT.forEach(({ cmd, out }) => {
+        const l = document.createElement('div'); l.innerHTML = '<span class="p">visitor@kudzai:~$ </span>' + cmd; body.appendChild(l);
+        out.forEach(o => { const d = document.createElement('div'); d.textContent = o; body.appendChild(d); });
+      });
+    });
+    $('#tOldT').textContent = 'press Run'; $('#tNewT').textContent = 'press Run';
+  })();
+
+  /* ================= Specimens ================= */
+  function replay(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+  function glowType() {
+    const t = $('#spGlowT'); t.textContent = '';
+    const s = 'Phosphor cools from white to green';
+    let i = 0;
+    const step = () => {
+      if (i >= s.length) return;
+      const sp = document.createElement('span'); sp.className = 'k'; sp.textContent = s[i]; t.appendChild(sp);
+      keyFor(s[i], 'new'); i++; setTimeout(step, 38 + Math.random() * 40);
+    };
+    step();
+  }
+  $$('[data-spec]').forEach(b => b.addEventListener('click', () => {
+    const k = b.dataset.spec;
+    if (k === 'on') { replay($('#spOn'), 'crt-on'); if (A.on) SND.boot(); }
+    if (k === 'glow') glowType();
+    if (k === 'rgb') replay($('#spRgb'), 'rgb');
+    if (k === 'scan') {
+      const box = $('#spScanBox'); const on = !box.classList.contains('scan');
+      box.classList.toggle('scan', on); b.setAttribute('aria-pressed', String(on)); b.textContent = on ? 'Scanlines on' : 'Scanlines off';
+    }
+  }));
+  if (RM) { $('#spScanBox').classList.remove('scan'); const sb = $('[data-spec="scan"]'); sb.setAttribute('aria-pressed', 'false'); sb.textContent = 'Scanlines off'; }
+  $('#spGlowT').textContent = 'Phosphor cools from white to green';
+  const SECT = [['cd home', 'section 1 of 5'], ['cd about', 'section 2 of 5'], ['cd projects', 'section 3 of 5'], ['cd experience', 'section 4 of 5'], ['cd contact', 'section 5 of 5']];
+  $('#spChanT').textContent = SECT[0][0]; $('#spChanS').textContent = SECT[0][1];
+  $$('#tmux button').forEach(b => b.addEventListener('click', () => {
+    $$('#tmux button').forEach(x => x.setAttribute('aria-current', String(x === b)));
+    const i = +b.dataset.i;
+    const box = $('#spChan'); replay(box, 'chan');
+    if (A.on) key({ kind: 'enter', gain: 0.35 });
+    setTimeout(() => { $('#spChanT').textContent = SECT[i][0]; $('#spChanS').textContent = SECT[i][1]; }, RM ? 0 : 150);
+  }));
+  $('#keycap').addEventListener('pointerdown', e => {
+    e.currentTarget.style.transform = 'translateY(1px)';
+    e.currentTarget.style.boxShadow = '0 0 14px rgba(77,255,143,.45)';
+    if (A.on) key({ kind: 'enter', gain: 0.5 });
+  });
+  ['pointerup', 'pointerleave'].forEach(ev => $('#keycap').addEventListener(ev, e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }));
+
+  /* ================= Sound lab ================= */
+  function typeSound(style) {
+    if (!A.on) setSound(true);
+    const s = 'cat role.txt'; let t = 0;
+    for (let i = 0; i < s.length; i++) {
+      t += style === 'old' ? 95 : newDelay(s[i], i, s) * 1.2;
+      setTimeout(() => keyFor(s[i], style), t);
+    }
+    setTimeout(() => keyFor('\n', style), t + 160);
+  }
+  $('#sOld').addEventListener('click', () => typeSound('old'));
+  $('#sNew').addEventListener('click', () => typeSound('new'));
+  $$('[data-snd]').forEach(b => b.addEventListener('click', () => { if (!A.on) setSound(true); SND[b.dataset.snd](); }));
+  let hum = null;
+  function humStart() {
+    const ctx = ensure(); if (!ctx || hum) return;
+    const bus = ctx.createGain(); bus.gain.value = 1;
+    const mk = (type, f, g) => { const o = ctx.createOscillator(); o.type = type; o.frequency.value = f; const gg = ctx.createGain(); gg.gain.value = g; o.connect(gg); gg.connect(bus); return o; };
+    const o1 = mk('sine', 55, 0.6), o2 = mk('triangle', 110, 0.22), o3 = mk('sine', 165, 0.08);
+    const n = ctx.createBufferSource(); n.buffer = A.noise; n.loop = true;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 380;
+    const ng = ctx.createGain(); ng.gain.value = 0.18; n.connect(lp); lp.connect(ng); ng.connect(bus);
+    const lfo = ctx.createOscillator(); lfo.frequency.value = 0.13; const lg = ctx.createGain(); lg.gain.value = 0.18;
+    lfo.connect(lg); lg.connect(bus.gain);
+    bus.connect(A.amb);
+    [o1, o2, o3, n, lfo].forEach(x => x.start());
+    A.amb.gain.cancelScheduledValues(ctx.currentTime);
+    A.amb.gain.setTargetAtTime(0.11, ctx.currentTime, 0.7);
+    hum = [o1, o2, o3, n, lfo];
+  }
+  function humStop() {
+    if (!hum) return;
+    A.amb.gain.cancelScheduledValues(A.ctx.currentTime);
+    A.amb.gain.setTargetAtTime(0, A.ctx.currentTime, 0.15);
+    const h = hum; hum = null;
+    setTimeout(() => h.forEach(x => { try { x.stop(); } catch (e) {} }), 900);
+  }
+  $('#humBtn').addEventListener('click', e => {
+    if (!A.on) setSound(true);
+    const b = e.currentTarget;
+    if (hum) { humStop(); b.setAttribute('aria-pressed', 'false'); b.textContent = 'Start hum'; }
+    else { humStart(); b.setAttribute('aria-pressed', 'true'); b.textContent = 'Stop hum'; }
+  });
+  $('#duckBtn').addEventListener('click', () => {
+    if (!hum) return;
+    const t = A.ctx.currentTime;
+    A.amb.gain.cancelScheduledValues(t);
+    A.amb.gain.setTargetAtTime(0.028, t, 0.08);
+    A.amb.gain.setTargetAtTime(0.11, t + 2.2, 0.5);
+    SND.think();
+  });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && hum) { humStop(); const b = $('#humBtn'); b.setAttribute('aria-pressed', 'false'); b.textContent = 'Start hum'; } });
+
+  /* ================= Theme lab ================= */
+  const THEMES = [
+    { id: 'now', name: 'Today · #00ff41', note: 'The current site: one saturated green for text, prompts and glow. The "dim" here is the 40% tier (--color-primary-dimmer) composited on the background. Semantic colours do not exist, so WIP, errors and the agent all look the same.',
+      bg: '#0A0F0A', surface: '#0D1A0D', text: '#00FF41', bright: '#00FF41', dim: '#066F20', warn: '#00FF41', error: '#00FF41', info: '#00FF41' },
+    { id: 'p1', name: 'P1 Phosphor, tuned', note: 'Recommended default. Same identity, but body text is a softer green, the bright green is kept for prompts and the name, and warnings, errors and agent replies get their own colours.',
+      bg: '#07110B', surface: '#0C1A12', text: '#A8F5C0', bright: '#4DFF8F', dim: '#5E9C76', warn: '#FFB454', error: '#FF6E61', info: '#6FD3FF' },
+    { id: 'p3', name: 'P3 Amber', note: 'Amber terminals (IBM 3270, early DEC VT) were easier on the eyes than green. Warm, distinctive, and rare on portfolios.',
+      bg: '#120C05', surface: '#1C140A', text: '#FFD08A', bright: '#FFB000', dim: '#A8834C', warn: '#FF7A45', error: '#FF5D5D', info: '#8FD8FF' },
+    { id: 'p4', name: 'P4 Ice white', note: 'The paper-white phosphor of monochrome monitors, with a cool blue accent. Calm and professional; a good theme for a recruiter mode.',
+      bg: '#0A0E14', surface: '#111823', text: '#D9E6F2', bright: '#FFFFFF', dim: '#7D8FA3', warn: '#FFC46B', error: '#FF7A85', info: '#7CC8FF' },
+    { id: 'night', name: 'Night shift', note: 'A synth palette for an easter egg (unlock it with a command). Cyan prompts and a magenta agent.',
+      bg: '#0F0B1A', surface: '#181229', text: '#E6DCFF', bright: '#5CF2FF', dim: '#8D80B3', warn: '#FFC15E', error: '#FF6B8B', info: '#FF7FDF' },
+    { id: 'paper', name: 'Daylight paper', note: 'A light theme for daytime reading and printing. The same structure, inverted: ink-green on warm paper.',
+      bg: '#F3F1E7', surface: '#E8E5D6', text: '#1D3325', bright: '#0A6B39', dim: '#5F6E62', warn: '#9A5200', error: '#B3261E', info: '#0F5E8C' },
+  ];
+  function lum(hex) {
+    const v = hex.replace('#', ''); const c = [0, 2, 4].map(i => parseInt(v.substr(i, 2), 16) / 255)
+      .map(x => x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4));
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  }
+  const ratio = (a, b) => { const A1 = lum(a), B1 = lum(b); return (Math.max(A1, B1) + 0.05) / (Math.min(A1, B1) + 0.05); };
+  const btns = $('#themeBtns');
+  THEMES.forEach((t, i) => {
+    const b = document.createElement('button'); b.className = 'btn theme-btn'; b.dataset.i = i;
+    b.innerHTML = '<span class="sw" style="background:' + t.bright + ';box-shadow:inset 0 0 0 3px ' + t.bg + '"></span>' + t.name;
+    b.addEventListener('click', () => applyTheme(i));
+    btns.appendChild(b);
+  });
+  function applyTheme(i) {
+    const t = THEMES[i];
+    $$('.theme-btn').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.i === i)));
+    const sc = $('#themeScreen');
+    sc.style.background = t.bg; sc.style.borderColor = t.dim; sc.style.color = t.text;
+    sc.querySelector('.screen-bar').style.borderColor = t.surface;
+    sc.querySelector('.screen-bar').style.color = t.dim;
+    sc.querySelector('.screen-bar').style.background = t.surface;
+    sc.style.boxShadow = t.id === 'paper' ? 'none' : '';
+    const P = '<span style="color:' + t.bright + '">visitor@kudzai:~$ </span>';
+    const glow = t.id === 'now' ? 'text-shadow:0 0 6px ' + t.bright + ';' : '';
+    $('#themeBody').innerHTML =
+      P + 'cat role.txt\n' +
+      '<span style="' + glow + '">Backend Software Engineer · Distributed Systems · AI Integration</span>\n' +
+      P + 'ls projects/\n' +
+      '<span style="color:' + t.bright + '">[LIVE]</span> Coin Compass   <span style="color:' + t.warn + '">[WIP]</span> AURA\n' +
+      '<span style="color:' + t.bright + '">[LIVE]</span> UBot MT4       <span style="color:' + t.warn + '">[WIP]</span> SENTRY\n' +
+      P + 'sl\n' +
+      '<span style="color:' + t.error + '">bash: sl: command not found.</span> Did you mean <span style="color:' + t.bright + '">ls</span>?\n' +
+      P + 'what do you work on?\n' +
+      '<span style="color:' + t.info + '">agent ›</span> Mostly backend systems: APIs, queues and AI integrations.\n' +
+      '<span style="color:' + t.dim + '"># tip: type "theme amber" to switch phosphor</span>\n' +
+      P + '<span class="caret" style="background:' + t.bright + '"></span>';
+    const toks = [['bg', t.bg], ['surface', t.surface], ['text', t.text], ['bright', t.bright], ['dim', t.dim], ['warn', t.warn], ['error', t.error], ['agent', t.info]];
+    $('#themeTokens').innerHTML = toks.map(([n, v]) => '<div class="tok"><div class="s" style="background:' + v + '"></div><div class="l"><b>--' + n + '</b>' + v + '</div></div>').join('');
+    const checks = [['Body text', t.text], ['Dim / hints', t.dim], ['Warning', t.warn], ['Agent', t.info]];
+    $('#themeContrast').innerHTML = checks.map(([n, v]) => {
+      const r = ratio(v, t.bg); const ok = r >= 4.5;
+      return '<div class="ctr">' + n + ' on bg<div class="v">' + r.toFixed(1) + ':1</div><span class="' + (ok ? 'pass' : 'fail') + '">' + (ok ? 'passes AA' : 'below 4.5:1') + '</span></div>';
+    }).join('');
+    $('#themeNote').textContent = t.note;
+    $('#themeTitle').textContent = 'visitor@kudzai: ~ · theme ' + t.id;
+  }
+  applyTheme(1);
+
+  /* ================= Particle bench ================= */
+  const cv = $('#pcv'), ctx2 = cv.getContext('2d');
+  let W = 0, H = 0;
+  function size() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = cv.clientWidth; H = cv.clientHeight;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    ctx2.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  size(); window.addEventListener('resize', size);
+  const N = 200, D = 95, D2 = D * D;
+  const P = [];
+  for (let i = 0; i < N; i++) {
+    const hub = Math.random() < 0.2;
+    P.push({ x: Math.random() * W, y: Math.random() * H, vx: (Math.random() - 0.5) * 0.5, vy: (Math.random() - 0.5) * 0.5, r: hub ? 2.6 + Math.random() * 1.6 : 0.6 + Math.random() * 1.8, hub, o: hub ? 0.75 : 0.25 + Math.random() * 0.35 });
+  }
+  const sprite = document.createElement('canvas'); sprite.width = sprite.height = 64;
+  (function () {
+    const s = sprite.getContext('2d'); const g = s.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgba(210,255,225,1)'); g.addColorStop(0.12, 'rgba(77,255,143,0.95)');
+    g.addColorStop(0.35, 'rgba(77,255,143,0.28)'); g.addColorStop(1, 'rgba(77,255,143,0)');
+    s.fillStyle = g; s.fillRect(0, 0, 64, 64);
+  })();
+  let mode = 'old', running = !RM, visible = false, samples = [], raf = 0;
+  function update() {
+    for (const p of P) {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0 || p.x > W) p.vx *= -1;
+      if (p.y < 0 || p.y > H) p.vy *= -1;
+    }
+  }
+  function drawOld() {
+    ctx2.lineWidth = 0.7;
+    for (let a = 0; a < N; a++) for (let b = a + 1; b < N; b++) {
+      const dx = P[a].x - P[b].x, dy = P[a].y - P[b].y, dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < D) {
+        ctx2.strokeStyle = 'rgba(77,255,143,' + ((1 - dist / D) * 0.35).toFixed(3) + ')';
+        ctx2.beginPath(); ctx2.moveTo(P[a].x, P[a].y); ctx2.lineTo(P[b].x, P[b].y); ctx2.stroke();
+      }
+    }
+    ctx2.shadowColor = 'rgba(77,255,143,0.9)';
+    for (const p of P) {
+      ctx2.shadowBlur = p.hub ? 15 : 7;
+      ctx2.fillStyle = 'rgba(77,255,143,' + p.o + ')';
+      ctx2.beginPath(); ctx2.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx2.fill();
+    }
+    ctx2.shadowBlur = 0;
+  }
+  function drawNew() {
+    const cols = Math.ceil(W / D) + 1, rows = Math.ceil(H / D) + 1;
+    const grid = new Array(cols * rows);
+    for (let i = 0; i < N; i++) {
+      const cx = Math.max(0, Math.min(cols - 1, Math.floor(P[i].x / D))), cy = Math.max(0, Math.min(rows - 1, Math.floor(P[i].y / D)));
+      const k = cy * cols + cx; (grid[k] || (grid[k] = [])).push(i);
+    }
+    const paths = [new Path2D(), new Path2D(), new Path2D()];
+    const t0 = (D * 0.45) ** 2, t1 = (D * 0.75) ** 2;
+    const NB = [[0, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
+    for (let cy = 0; cy < rows; cy++) for (let cx = 0; cx < cols; cx++) {
+      const cell = grid[cy * cols + cx]; if (!cell) continue;
+      for (const [ox, oy] of NB) {
+        const nx = cx + ox, ny = cy + oy; if (nx < 0 || nx >= cols || ny >= rows) continue;
+        const other = grid[ny * cols + nx]; if (!other) continue;
+        const same = ox === 0 && oy === 0;
+        for (let ai = 0; ai < cell.length; ai++) {
+          const a = P[cell[ai]];
+          for (let bi = same ? ai + 1 : 0; bi < other.length; bi++) {
+            const b = P[other[bi]]; const dx = a.x - b.x, dy = a.y - b.y, d2 = dx * dx + dy * dy;
+            if (d2 < D2) { const path = paths[d2 < t0 ? 0 : d2 < t1 ? 1 : 2]; path.moveTo(a.x, a.y); path.lineTo(b.x, b.y); }
+          }
+        }
+      }
+    }
+    ctx2.lineWidth = 0.7;
+    [0.3, 0.17, 0.07].forEach((al, i) => { ctx2.strokeStyle = 'rgba(77,255,143,' + al + ')'; ctx2.stroke(paths[i]); });
+    for (const p of P) {
+      const s = p.r * (p.hub ? 7 : 5);
+      ctx2.globalAlpha = p.o; ctx2.drawImage(sprite, p.x - s / 2, p.y - s / 2, s, s);
+    }
+    ctx2.globalAlpha = 1;
+  }
+  function frame() {
+    raf = 0;
+    if (!running || !visible) return;
+    update();
+    const t = performance.now();
+    ctx2.clearRect(0, 0, W, H);
+    mode === 'old' ? drawOld() : drawNew();
+    samples.push(performance.now() - t); if (samples.length > 60) samples.shift();
+    if (samples.length >= 10) {
+      const avg = samples.reduce((a, b) => a + b, 0) / samples.length;
+      $('#pRead').textContent = (mode === 'old' ? 'current' : 'proposed') + ' · ' + avg.toFixed(2) + ' ms per frame';
+    }
+    raf = requestAnimationFrame(frame);
+  }
+  function kick() { if (!raf && running && visible) raf = requestAnimationFrame(frame); }
+  function drawStill() { ctx2.clearRect(0, 0, W, H); mode === 'old' ? drawOld() : drawNew(); }
+  drawStill();
+  if (RM) { $('#pRun').textContent = 'Run'; $('#pRead').textContent = 'paused (reduced motion) · press Run'; }
+  new IntersectionObserver(es => { visible = es[0].isIntersecting; kick(); }).observe(cv);
+  function setMode(m) {
+    mode = m; samples = [];
+    $('#pOld').setAttribute('aria-pressed', String(m === 'old')); $('#pNew').setAttribute('aria-pressed', String(m === 'new'));
+    $('#pRead').textContent = 'measuring…';
+    if (!running) drawStill();
+  }
+  $('#pOld').addEventListener('click', () => setMode('old'));
+  $('#pNew').addEventListener('click', () => setMode('new'));
+  $('#pRun').addEventListener('click', e => { running = !running; e.currentTarget.textContent = running ? 'Pause' : 'Run'; kick(); });
+})();
+</script>
+
+<!--claude-mermaid-runtime-begin:3477-->
+<style>.mermaid-diagram{margin-block:4px}.mermaid-diagram svg{display:block;margin:0 auto;max-width:100%;height:auto}</style>
+<script src="/_runtime/mermaid-11.16.1.min.js"></script>
+<script>(function(){
+var CFG={"palettes":{"light":{"surface":"#f4efe4","text":"#42392e","line":"#8a7f6d","border":"#7a6c52","bg":"#fffdf8"},"dark":{"surface":"#262b34","text":"#f2f3f5","line":"#a8adb8","border":"#9aa4b8","bg":"#1f232b"}}};
+if(typeof mermaid==='undefined')return;
+var pres=Array.prototype.slice.call(document.querySelectorAll('pre.mermaid')).filter(function(p){if(p.hasAttribute('data-claude-mermaid-claimed'))return false;p.setAttribute('data-claude-mermaid-claimed','1');return true;});
+if(!pres.length)return;
+var mq=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)'):null;
+var root=document.documentElement;
+var items=pres.map(function(pre){
+var mount=document.createElement('div');mount.className='mermaid-diagram';
+return {pre:pre,mount:mount,src:pre.textContent||''};
+});
+var seq=0;
+var renderGen=0;
+var lastKey='';
+function pageBg(fallback){
+var els=[document.body,document.documentElement];
+for(var i=0;i<els.length;i++){
+var c=els[i]&&getComputedStyle(els[i]).backgroundColor;
+if(c&&c!=='transparent'&&c!=='rgba(0, 0, 0, 0)')return c;
+}
+return fallback;
+}
+function render(){
+var theme=root.getAttribute('data-theme');
+var dark=theme==='dark'||(!!(mq&&mq.matches)&&theme!=='light');
+var pal=dark?CFG.palettes.dark:CFG.palettes.light;
+var bg=pageBg(pal.bg);
+var key=(dark?'d':'l')+'|'+bg;
+if(key===lastKey)return;
+lastKey=key;
+var gen=++renderGen;
+var font=getComputedStyle(document.body).fontFamily||'sans-serif';
+var nat={useMaxWidth:false};
+mermaid.initialize({
+startOnLoad:false,securityLevel:'strict',theme:'base',
+flowchart:nat,sequence:nat,er:nat,state:nat,class:nat,pie:nat,
+gantt:nat,journey:nat,timeline:nat,gitGraph:nat,mindmap:nat,xyChart:nat,
+quadrantChart:nat,sankey:nat,c4:nat,requirement:nat,block:nat,
+packet:nat,kanban:nat,architecture:nat,radar:nat,
+themeVariables:{background:bg,mainBkg:pal.surface,primaryColor:pal.surface,
+primaryTextColor:pal.text,lineColor:pal.line,primaryBorderColor:pal.border,
+nodeBorder:pal.border,clusterBorder:pal.border,edgeLabelBackground:bg,
+clusterBkg:'rgba(127,127,127,0.07)',titleColor:pal.text,
+darkMode:dark,rowOdd:bg,rowEven:'rgba(127,127,127,0.07)',
+attributeBackgroundColorOdd:bg,attributeBackgroundColorEven:'rgba(127,127,127,0.07)',
+fontSize:'16px',fontFamily:font},
+themeCSS:'.node rect, .node circle, .node polygon, .node path, .cluster rect { stroke-width: 2px; }'
+});
+items.forEach(function(it){
+var id='claude-mermaid-'+seq++;
+mermaid.render(id,it.src).then(function(r){
+if(gen!==renderGen)return;
+var prev=it.pre.previousElementSibling;
+if(prev&&prev.className==='mermaid-diagram'&&prev!==it.mount)return;
+it.mount.innerHTML=r.svg;
+if(!it.mount.parentNode)it.pre.parentNode.insertBefore(it.mount,it.pre);
+it.pre.style.display='none';
+},function(){
+var scratch=document.getElementById(id);
+if(scratch)scratch.parentNode.removeChild(scratch);
+scratch=document.getElementById('d'+id);
+if(scratch)scratch.parentNode.removeChild(scratch);
+if(gen!==renderGen)return;
+if(it.mount.parentNode)it.mount.parentNode.removeChild(it.mount);
+it.pre.style.display='';
+});
+});
+}
+render();
+if(mq&&mq.addEventListener)mq.addEventListener('change',render);
+if(typeof MutationObserver!=='undefined')new MutationObserver(render).observe(root,{attributes:true,attributeFilter:['data-theme']});
+})();</script>
+<!--claude-mermaid-runtime-end-->
+
+</body></html>

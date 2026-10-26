@@ -48,7 +48,6 @@ next-env.d.ts
 # local notes / scratch
 audit.md
 cursor.md
-.docs/
 
 # test output
 /test-results/
