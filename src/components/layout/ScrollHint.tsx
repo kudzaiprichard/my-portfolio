@@ -2,6 +2,7 @@
 "use client"
 
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 
 const IDLE_DELAY_MS = 3000
 
@@ -36,6 +37,7 @@ function Chevron({ direction }: { direction: 'up' | 'down' }) {
 }
 
 export default function ScrollHint() {
+    const pathname = usePathname()
     const [homeVisible, setHomeVisible] = useState(true)
     const [contactVisible, setContactVisible] = useState(false)
     const [terminalVisible, setTerminalVisible] = useState(false)
@@ -97,6 +99,9 @@ export default function ScrollHint() {
     const showTop = !homeVisible && isIdle
     const showBottom = !contactVisible && !terminalVisible && isIdle
 
+    // Only the home page has sections to scroll between
+    if (pathname !== '/') return null
+
     return (
         <>
             <div className={`scroll-hint scroll-hint-top ${showTop ? 'visible' : 'hidden'}`}>
@@ -113,7 +118,7 @@ export default function ScrollHint() {
                     left: 50%;
                     transform: translateX(-50%);
                     z-index: 50;
-                    transition: opacity 0.6s ease, visibility 0.6s ease;
+                    transition: opacity var(--dur-phosphor) var(--ease-out), visibility var(--dur-phosphor) var(--ease-out);
                     opacity: 1;
                     visibility: visible;
                     pointer-events: none;
@@ -132,12 +137,12 @@ export default function ScrollHint() {
                 }
 
                 .scroll-hint-bottom {
-                    bottom: 12px;
+                    bottom: 40px; /* above the tmux bar */
                 }
 
                 .scroll-hint-chevron {
-                    color: rgb(0, 255, 65);
-                    filter: drop-shadow(0 0 4px rgba(0, 255, 65, 0.35));
+                    color: var(--bright);
+                    filter: drop-shadow(0 0 4px rgb(var(--glow) / 0.35));
                 }
 
                 .scroll-hint-chevron-down {
@@ -172,7 +177,7 @@ export default function ScrollHint() {
 
                 @media (max-width: 480px) {
                     .scroll-hint-top { top: 8px; }
-                    .scroll-hint-bottom { bottom: 8px; }
+                    .scroll-hint-bottom { bottom: 36px; }
 
                     .scroll-hint-chevron {
                         width: 16px;
