@@ -1,14 +1,15 @@
 // components/layout/CustomCursor.tsx
 "use client"
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { useReducedMotion } from '@/src/hooks/useReducedMotion'
+import { onFrame } from '@/src/lib/fxScheduler'
 
 const TEXT_INPUT_TYPES = new Set([
     '', 'text', 'email', 'password', 'search', 'url', 'tel', 'number'
 ])
 
-// Priority 8: Section energy levels — derived from typingConfig pacing.
+// Section energy levels — derived from typingConfig pacing.
 // hero (90ms/char, dramatic) → brighter; about/experience (reading) → dimmer;
 // terminal (25ms/char, direct manipulation) → brightest.
 const SECTION_GLOW_MULTIPLIERS: Record<string, number> = {
@@ -20,13 +21,33 @@ const SECTION_GLOW_MULTIPLIERS: Record<string, number> = {
     terminal: 1.3,
 }
 
-// Priority 7: Terminal section types at 25ms/char (machine-like),
-// so it uses the faster blink rate matching .typing-text (0.75s).
-// All other sections use 1s matching .cursor / .name-cursor.
+// Terminal section types at 25ms/char (machine-like), so it uses a faster
+// caret blink (0.75s). All other sections use 1s.
 const SECTION_BLINK_RATES: Record<string, string> = {
     terminal: '0.75s',
 }
 const DEFAULT_BLINK_RATE = '1s'
+
+// Set on <html> while a mouse is driving the page; the CSS only hides the
+// system cursor under this class. Touch and pen input remove it, so a
+// touchscreen laptop always has a cursor of one kind or the other.
+const ACTIVE_CLASS = 'has-custom-cursor'
+
+// One 60 Hz frame. Per-frame constants are scaled by (deltaTime / FRAME_MS)
+// so the cursor feels the same at 60, 120 or 144 Hz.
+const FRAME_MS = 1000 / 60
+
+// Controls the ring wraps around on hover (inline text links keep the circle)
+const HUG_SELECTOR = 'button, [role="button"], [role="menuitemradio"], summary, .keycap'
+
+function getHugTarget(target: Element): HTMLElement | null {
+    const el = target.closest<HTMLElement>(HUG_SELECTOR)
+    if (el) return el
+    // Links that are laid out as blocks or buttons (not inline text)
+    const link = target.closest<HTMLElement>('a')
+    if (link && getComputedStyle(link).display !== 'inline') return link
+    return null
+}
 
 function getInteractiveType(target: Element): 'link' | 'input' | null {
     // Text inputs → caret
@@ -46,7 +67,7 @@ function getInteractiveType(target: Element): 'link' | 'input' | null {
 
     // Clickable elements → pointer ring
     if (target.closest(
-        'a, button, select, summary, [role="button"], label[for], .cta-btn, [tabindex]:not([tabindex="-1"])'
+        'a, button, select, summary, [role="button"], label[for], [tabindex]:not([tabindex="-1"])'
     )) {
         return 'link'
     }
@@ -56,56 +77,39 @@ function getInteractiveType(target: Element): 'link' | 'input' | null {
 
 export default function CustomCursor() {
     const cursorRef = useRef<HTMLDivElement>(null)
-    const [isTouchDevice, setIsTouchDevice] = useState(false)
     const reducedMotion = useReducedMotion()
 
     useEffect(() => {
-        const check = () => {
-            const hasTouch = (
-                ('ontouchstart' in window) ||
-                (navigator.maxTouchPoints > 0)
-            )
-            const hasCoarsePointer = window.matchMedia('(pointer: coarse)').matches
-            setIsTouchDevice(hasTouch || hasCoarsePointer)
-        }
-        check()
-        window.addEventListener('resize', check)
-        return () => window.removeEventListener('resize', check)
-    }, [])
-
-    useEffect(() => {
-        if (isTouchDevice) return
-
         const cursor = cursorRef.current
         if (!cursor) return
 
         const dot = cursor.querySelector('.custom-cursor__dot') as HTMLElement
-        if (!dot) return
+        const ring = cursor.querySelector('.custom-cursor__ring') as HTMLElement
+        if (!dot || !ring) return
+
+        const root = document.documentElement
 
         let mouseX = 0
         let mouseY = 0
         let cursorX = 0
         let cursorY = 0
         let visible = false
+        let mouseActive = false
         let currentState = 'default'
-        let rafId: number
+        let stopFrames: (() => void) | null = null
 
-        // Priority 1: Idle tracking — modeled on hub-particle pulse (0.03 rad/frame)
-        let idleFrames = 0
-        const IDLE_THRESHOLD = 1.5   // px — below this delta the cursor is "stopped"
-        const IDLE_FRAMES_TO_PULSE = 30  // ~0.5s at 60fps before pulse engages
+        // Idle tracking — modeled on hub-particle pulse (0.03 rad/frame)
+        const IDLE_THRESHOLD = 1.5       // px — below this delta the cursor is "stopped"
+        const IDLE_MS_TO_PULSE = 500     // stillness before the pulse engages
+        let idleTimeMs = 0
+        let pulsing = false
         let pulsePhase = 0
 
-        // Priority 6: Micro-glitch — rarer (8–15s) and briefer (2–4 frames) than
-        // the text glitch system's low-intensity preset (3s interval, 2s display)
-        let idleTimeMs = 0
-        let lastFrameTime = 0
-        let nextGlitchTime = 8000 + Math.random() * 7000
-        let glitchFramesRemaining = 0
-        let glitchOffsetX = 0
-        let glitchOffsetY = 0
+        // Button the ring is hugging (null: the ring is a circle on the pointer)
+        let hugTarget: HTMLElement | null = null
+        let hugging = false
 
-        // Priority 8: Section tracking
+        // Section tracking
         let currentSectionId: string | null = null
         let sectionGlowMultiplier = 1.0
 
@@ -114,7 +118,7 @@ export default function CustomCursor() {
             currentState = state
             cursor.dataset.state = state
 
-            // Priority 7: Update blink rate when entering input state
+            // Update blink rate when entering input state
             if (state === 'input') {
                 const rate = currentSectionId
                     ? (SECTION_BLINK_RATES[currentSectionId] ?? DEFAULT_BLINK_RATE)
@@ -143,7 +147,7 @@ export default function CustomCursor() {
                 delete cursor.dataset.section
             }
 
-            // Priority 7: Re-evaluate blink rate if already in input state
+            // Re-evaluate blink rate if already in input state
             if (currentState === 'input') {
                 const rate = sectionId
                     ? (SECTION_BLINK_RATES[sectionId] ?? DEFAULT_BLINK_RATE)
@@ -152,7 +156,35 @@ export default function CustomCursor() {
             }
         }
 
-        const handleMouseMove = (e: MouseEvent) => {
+        const hide = () => {
+            visible = false
+            cursor.style.opacity = '0'
+        }
+
+        const activateMouse = (e: PointerEvent) => {
+            if (!mouseActive) {
+                mouseActive = true
+                root.classList.add(ACTIVE_CLASS)
+                // Jump to the pointer instead of sliding in from the last position
+                cursorX = e.clientX
+                cursorY = e.clientY
+                stopFrames = onFrame(animate)
+            }
+        }
+
+        const deactivateMouse = () => {
+            if (!mouseActive) return
+            mouseActive = false
+            root.classList.remove(ACTIVE_CLASS)
+            hide()
+            stopFrames?.()
+            stopFrames = null
+        }
+
+        const handlePointerMove = (e: PointerEvent) => {
+            if (e.pointerType !== 'mouse') return
+            activateMouse(e)
+
             mouseX = e.clientX
             mouseY = e.clientY
 
@@ -164,17 +196,20 @@ export default function CustomCursor() {
             const type = getInteractiveType(e.target as Element)
             setState(type || 'default')
             updateSection(e.target as Element)
+            hugTarget = type === 'link' ? getHugTarget(e.target as Element) : null
         }
 
         // Catches state changes from DOM mutations or scroll
         // without requiring mouse movement
-        const handleMouseOver = (e: MouseEvent) => {
+        const handlePointerOver = (e: PointerEvent) => {
+            if (e.pointerType !== 'mouse') return
             const type = getInteractiveType(e.target as Element)
             setState(type || 'default')
             updateSection(e.target as Element)
+            hugTarget = type === 'link' ? getHugTarget(e.target as Element) : null
         }
 
-        // Priority 4: Click ripple — uses existing @keyframes mouse-ripple
+        // Click ripple — uses existing @keyframes mouse-ripple
         // and .mouse-ripple class from globals.css (300px ring, 1s ease-out)
         const spawnRipple = () => {
             const ripple = document.createElement('div')
@@ -188,68 +223,80 @@ export default function CustomCursor() {
             }, 1000)
         }
 
-        const handleMouseDown = () => {
+        const handlePointerDown = (e: PointerEvent) => {
+            // Touch or pen takes over: hand the screen back to the system cursor
+            if (e.pointerType !== 'mouse') {
+                deactivateMouse()
+                return
+            }
             setPressed(true)
             spawnRipple()
         }
-        const handleMouseUp = () => setPressed(false)
+        const handlePointerUp = (e: PointerEvent) => {
+            if (e.pointerType === 'mouse') setPressed(false)
+        }
 
         const handleMouseLeave = () => {
-            visible = false
-            cursor.style.opacity = '0'
+            if (mouseActive) hide()
         }
 
-        const handleMouseEnter = () => {
-            // Visibility restored on next mousemove
-        }
-
-        const animate = (timestamp: number) => {
-            if (!lastFrameTime) lastFrameTime = timestamp
-            const deltaTime = Math.min(timestamp - lastFrameTime, 100)
-            lastFrameTime = timestamp
+        // Driven by the shared FX loop (lib/fxScheduler), which supplies the frame delta
+        const animate = (_now: number, deltaTime: number) => {
+            const frames = deltaTime / FRAME_MS
 
             const dx = mouseX - cursorX
             const dy = mouseY - cursorY
             const dist = Math.sqrt(dx * dx + dy * dy)
 
-            // Priority 3: Adaptive trailing — fast flicks (dist ≫ 0) → snappy 0.35,
+            // Adaptive trailing — fast flicks (dist ≫ 0) → snappy 0.35,
             // slow precision (dist ≈ 0) → heavy 0.12. Smooth ramp over 300px.
             // Mirrors typing config's character-class multipliers principle.
-            // Priority 2: Reduced motion → instant positioning (lerp 1.0)
-            let lerp: number
+            // Reduced motion → instant positioning (lerp 1.0)
+            let k: number
             if (reducedMotion) {
-                lerp = 1.0
+                k = 1.0
             } else {
-                lerp = 0.12 + Math.min(dist / 300, 1) * (0.35 - 0.12)
+                const lerp = 0.12 + Math.min(dist / 300, 1) * (0.35 - 0.12)
+                k = 1 - Math.pow(1 - lerp, frames)
             }
 
-            cursorX += dx * lerp
-            cursorY += dy * lerp
+            cursorX += dx * k
+            cursorY += dy * k
 
-            // Priority 6: Apply micro-glitch position offset
-            let translateX = cursorX
-            let translateY = cursorY
+            cursor.style.transform = `translate(${cursorX}px, ${cursorY}px)`
 
-            if (glitchFramesRemaining > 0) {
-                translateX += glitchOffsetX
-                translateY += glitchOffsetY
-                glitchFramesRemaining--
+            // Ring hugs the hovered button: it morphs to the button's box
+            // (size and corners spring via CSS, --ease-spring)
+            if (hugTarget && hugTarget.isConnected && currentState === 'link') {
+                const r = hugTarget.getBoundingClientRect()
+                const pad = 6
+                ring.style.width = `${r.width + pad * 2}px`
+                ring.style.height = `${r.height + pad * 2}px`
+                ring.style.transform = `translate(${r.left + r.width / 2 - cursorX}px, ${r.top + r.height / 2 - cursorY}px) translate(-50%, -50%)`
+                if (!hugging) {
+                    hugging = true
+                    cursor.dataset.hug = 'true'
+                }
+            } else if (hugging) {
+                hugging = false
+                delete cursor.dataset.hug
+                ring.style.width = ''
+                ring.style.height = ''
+                ring.style.transform = ''
             }
-
-            cursor.style.transform = `translate(${translateX}px, ${translateY}px)`
 
             // Idle detection
             if (dist < IDLE_THRESHOLD) {
-                idleFrames++
                 idleTimeMs += deltaTime
 
-                // Priority 1: Idle glow pulse — sinusoidal on box-shadow,
+                // Idle glow pulse — sinusoidal on box-shadow,
                 // modeled on hub-particle pulsing (0.03 rad/frame, ±0.12 amplitude).
                 // ±10% random variation on phase increment prevents mechanical feel.
                 // Only in default state (link has its own brighter glow, input hides dot).
-                if (idleFrames > IDLE_FRAMES_TO_PULSE && !reducedMotion && currentState === 'default') {
+                if (idleTimeMs > IDLE_MS_TO_PULSE && !reducedMotion && currentState === 'default') {
+                    pulsing = true
                     const variation = 1 + (Math.random() - 0.5) * 0.2
-                    pulsePhase += 0.03 * variation
+                    pulsePhase += 0.03 * variation * frames
 
                     const t = Math.sin(pulsePhase)
                     // Oscillate blur: 8→12px (inner), 15→18px (outer)
@@ -260,69 +307,36 @@ export default function CustomCursor() {
                     const o2 = Math.min((0.15 + t * 0.08) * sectionGlowMultiplier, 1)
 
                     dot.style.boxShadow =
-                        `0 0 ${blur1.toFixed(1)}px rgba(0, 255, 65, ${o1.toFixed(3)}), ` +
-                        `0 0 ${blur2.toFixed(1)}px rgba(0, 255, 65, ${o2.toFixed(3)})`
-                }
-
-                // Priority 6: Micro-glitch — fires after 8–15s idle (randomized).
-                // 2–4 frame position offset (1–3px) + opacity flash (~66ms).
-                // Rarer and briefer than low-intensity text glitch (3s/2s).
-                // Closest duration reference: chromatic aberration (200ms), digital noise (180ms).
-                if (!reducedMotion && currentState === 'default' &&
-                    idleTimeMs > nextGlitchTime && glitchFramesRemaining === 0) {
-
-                    glitchFramesRemaining = 2 + Math.floor(Math.random() * 3) // 2–4 frames
-                    const angle = Math.random() * Math.PI * 2
-                    const magnitude = 1 + Math.random() * 2 // 1–3px
-                    glitchOffsetX = Math.cos(angle) * magnitude
-                    glitchOffsetY = Math.sin(angle) * magnitude
-
-                    // Brief opacity flash — sub-100ms, a CRT scanline hit
-                    dot.style.opacity = '0.4'
-                    setTimeout(() => {
-                        if (currentState === 'default') {
-                            dot.style.opacity = ''
-                        }
-                    }, 66)
-
-                    // Schedule next glitch
-                    idleTimeMs = 0
-                    nextGlitchTime = 8000 + Math.random() * 7000
+                        `0 0 ${blur1.toFixed(1)}px rgb(var(--glow) / ${o1.toFixed(3)}), ` +
+                        `0 0 ${blur2.toFixed(1)}px rgb(var(--glow) / ${o2.toFixed(3)})`
                 }
             } else {
                 // Moving — reset idle state, clear pulse glow back to CSS default
-                if (idleFrames > IDLE_FRAMES_TO_PULSE) {
+                if (pulsing) {
                     dot.style.boxShadow = ''
+                    pulsing = false
                 }
-                idleFrames = 0
                 idleTimeMs = 0
                 pulsePhase = 0
             }
-
-            rafId = requestAnimationFrame(animate)
         }
 
-        document.addEventListener('mousemove', handleMouseMove)
-        document.addEventListener('mouseover', handleMouseOver)
-        document.addEventListener('mousedown', handleMouseDown)
-        document.addEventListener('mouseup', handleMouseUp)
+        document.addEventListener('pointermove', handlePointerMove)
+        document.addEventListener('pointerover', handlePointerOver)
+        document.addEventListener('pointerdown', handlePointerDown)
+        document.addEventListener('pointerup', handlePointerUp)
         document.body.addEventListener('mouseleave', handleMouseLeave)
-        document.body.addEventListener('mouseenter', handleMouseEnter)
-
-        rafId = requestAnimationFrame(animate)
 
         return () => {
-            document.removeEventListener('mousemove', handleMouseMove)
-            document.removeEventListener('mouseover', handleMouseOver)
-            document.removeEventListener('mousedown', handleMouseDown)
-            document.removeEventListener('mouseup', handleMouseUp)
+            document.removeEventListener('pointermove', handlePointerMove)
+            document.removeEventListener('pointerover', handlePointerOver)
+            document.removeEventListener('pointerdown', handlePointerDown)
+            document.removeEventListener('pointerup', handlePointerUp)
             document.body.removeEventListener('mouseleave', handleMouseLeave)
-            document.body.removeEventListener('mouseenter', handleMouseEnter)
-            cancelAnimationFrame(rafId)
+            stopFrames?.()
+            root.classList.remove(ACTIVE_CLASS)
         }
-    }, [isTouchDevice, reducedMotion])
-
-    if (isTouchDevice) return null
+    }, [reducedMotion])
 
     return (
         <div
@@ -331,6 +345,7 @@ export default function CustomCursor() {
             data-state="default"
             data-pressed="false"
             style={{ opacity: 0 }}
+            aria-hidden="true"
         >
             <div className="custom-cursor__dot" />
             <div className="custom-cursor__ring" />

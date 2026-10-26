@@ -1,302 +1,208 @@
 // components/layout/BootScreen.tsx
 "use client"
 
-import { useEffect, useState, useRef, useCallback } from 'react'
-import {useBootContext} from "@/src/components/layout/context/BootContext";
+/**
+ * The boot: the BIOS log streams in, then the site powers on like a CRT
+ * (dot → line → picture, --dur-crt). Settings in constants/bootConfig.ts:
+ *
+ * - it waits for [ start ] / [ start silent ] or any key / click — the
+ *   gesture that unlocks Web Audio, so the first section's typing is heard
+ *   (bootBehaviour.autoContinue can make it start on its own instead)
+ * - once per tab (bootBehaviour.oncePerTab): the first visit and every new
+ *   tab boot; a refresh goes straight to the sections typing out
+ *   (sessionStorage, applied before paint as html.booted by the <head> script)
+ * - deep links (project pages) and plain mode never boot
+ */
+
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { flushSync } from 'react-dom'
+import { useBootContext } from '@/src/components/layout/context/BootContext'
+import { ANALYTICS_EVENTS, trackEvent } from '@/src/lib/analytics'
+import { audioEngine, setAudioMuted } from '@/src/lib/audioEngine'
+import { runTransition, canTransition } from '@/src/lib/viewTransition'
+import { BOOTED_KEY, TAB_BOOTED_KEY, bootBehaviour, bootTimings } from '@/src/constants/bootConfig'
+
+// Read once per page load: finishing this boot sets the key, and must not
+// turn the current visit into a "returning" one halfway through.
+let bootedAtLoad: boolean | null = null
+const readBooted = () => {
+    if (bootedAtLoad === null) {
+        // Plain mode never boots, and nor do deep links (a project page)
+        try {
+            bootedAtLoad = (bootBehaviour.skipForReturningVisitors && localStorage.getItem(BOOTED_KEY) === '1')
+                || (bootBehaviour.oncePerTab && sessionStorage.getItem(TAB_BOOTED_KEY) === '1')
+                || document.documentElement.dataset.mode === 'plain'
+                || window.location.pathname !== '/'
+        } catch { bootedAtLoad = false }
+    }
+    return bootedAtLoad
+}
+const noopSubscribe = () => () => {}
 
 interface BootLine {
     text: string
-    delay: number
-    type: 'system' | 'success' | 'info' | 'warning' | 'ready'
+    type: 'system' | 'success' | 'info' | 'ready'
 }
 
 const bootSequence: BootLine[] = [
-    { text: 'BIOS v3.2.1 — System Check', delay: 0, type: 'system' },
-    { text: 'Memory Test .......... 16384 MB OK', delay: 400, type: 'info' },
-    { text: 'Loading kernel modules .......... done', delay: 700, type: 'info' },
-    { text: 'Mounting /dev/portfolio .......... done', delay: 500, type: 'info' },
-    { text: 'Initializing neural-engine v2.4 .......... done', delay: 600, type: 'info' },
-    { text: 'Loading AI subsystems .......... done', delay: 500, type: 'info' },
-    { text: 'Compiling project modules .......... done', delay: 400, type: 'info' },
-    { text: 'Establishing network interfaces .......... done', delay: 500, type: 'info' },
-    { text: 'All systems nominal.', delay: 600, type: 'success' },
-    { text: '', delay: 300, type: 'system' },
-    { text: 'Ready.', delay: 400, type: 'ready' },
+    { text: 'BIOS v3.2.1 — System Check', type: 'system' },
+    { text: 'Memory Test .......... 16384 MB OK', type: 'info' },
+    { text: 'Loading kernel modules .......... done', type: 'info' },
+    { text: 'Mounting /dev/portfolio .......... done', type: 'info' },
+    { text: 'Initializing neural-engine v2.4 .......... done', type: 'info' },
+    { text: 'Loading AI subsystems .......... done', type: 'info' },
+    { text: 'Compiling project modules .......... done', type: 'info' },
+    { text: 'Establishing network interfaces .......... done', type: 'info' },
+    { text: 'All systems nominal.', type: 'success' },
+    { text: 'Ready.', type: 'ready' },
 ]
 
-const shutdownLines = [
-    '> Initializing portfolio environment...',
-    '> Loading components [████████████████] 100%',
-    '> Establishing connections...',
-    '> All services online.',
-    '> Launching interface...',
-]
+// Keys that never count as "any key"
+const NOT_A_SKIP = new Set(['Shift', 'Control', 'Alt', 'Meta', 'Tab', 'CapsLock'])
 
-type ExitPhase = 'idle' | 'scrolling' | 'clearing' | 'scanline' | 'flash' | 'done'
+type Exit = 'auto' | 'skip' | 'sound' | 'silent'
 
 export default function BootScreen() {
     const { completeBoot } = useBootContext()
-    const [visibleLines, setVisibleLines] = useState<number>(0)
-    const [bootComplete, setBootComplete] = useState(false)
+    const [visibleLines, setVisibleLines] = useState(0)
     const [dismissed, setDismissed] = useState(false)
-    const [exitPhase, setExitPhase] = useState<ExitPhase>('idle')
-    const [exitLines, setExitLines] = useState<string[]>([])
-    const [showSkip, setShowSkip] = useState(false)
-    const timeoutsRef = useRef<NodeJS.Timeout[]>([])
-    const hasBootedRef = useRef(false)
-    const isSkippingRef = useRef(false)
+    const exitedRef = useRef(false)
+    const countdownRef = useRef<HTMLSpanElement>(null)
 
-    // Check sessionStorage on mount
+    // Returning visitor? Server render and hydration assume not; the <head>
+    // script has already hidden the overlay with CSS if so.
+    const returning = useSyncExternalStore(noopSubscribe, readBooted, () => false)
+
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const hasBooted = sessionStorage.getItem('portfolio-booted')
-            if (hasBooted === 'true') {
-                setDismissed(true)
-                hasBootedRef.current = true
-                completeBoot()
-            }
+        if (returning) completeBoot({ returning: true })
+    }, [returning, completeBoot])
+
+    const powerOn = (how: Exit) => {
+        if (exitedRef.current) return
+        exitedRef.current = true
+        try {
+            localStorage.setItem(BOOTED_KEY, '1')
+            sessionStorage.setItem(TAB_BOOTED_KEY, '1')
+        } catch { /* storage blocked */ }
+
+        if (how === 'sound' || how === 'silent') setAudioMuted(how === 'silent')
+        // A key or click is a gesture too: unlock the audio (the stored mute
+        // choice still applies) so the first section's typing is heard
+        if (how !== 'silent' && how !== 'auto') {
+            audioEngine.unlock()
+            audioEngine.play('boot')
         }
-    }, [completeBoot])
+        trackEvent(how === 'skip' ? ANALYTICS_EVENTS.bootSkipped : ANALYTICS_EVENTS.bootCompleted)
 
-    // Run boot sequence
+        const finish = () => {
+            document.body.style.overflow = ''
+            setDismissed(true)
+            completeBoot()
+        }
+        if (canTransition()) {
+            // The whole screen (particles included) powers on from a dot
+            void runTransition('crton', () => flushSync(finish))
+        } else {
+            finish()
+            // No View Transitions: play the power-on on the page itself
+            const root = document.documentElement
+            root.classList.add('crt-power-on')
+            setTimeout(() => root.classList.remove('crt-power-on'), bootTimings.powerOnMs)
+        }
+    }
+
+    // Stream the log; then wait for the visitor (or, with autoContinue, go on)
     useEffect(() => {
-        if (dismissed || hasBootedRef.current) return
-
+        if (returning || dismissed) return
         document.body.style.overflow = 'hidden'
+        // The 1.6 s is counted from landing, not from when this script ran
+        const remaining = Math.max(bootTimings.minVisibleMs, bootTimings.autoContinueMs - performance.now())
+        const lineMs = bootBehaviour.autoContinue ? Math.min(bootTimings.lineMs, remaining / bootSequence.length) : bootTimings.lineMs
+        if (countdownRef.current) countdownRef.current.style.animationDuration = `${remaining}ms`
+        const timers = bootSequence.map((_, i) =>
+            setTimeout(() => setVisibleLines(i + 1), i * lineMs))
+        if (bootBehaviour.autoContinue) timers.push(setTimeout(() => powerOn('auto'), remaining))
 
-        // Show skip button after 1.5 seconds
-        const skipTimer = setTimeout(() => setShowSkip(true), 1500)
-        timeoutsRef.current.push(skipTimer)
-
-        let cumulativeDelay = 500
-
-        bootSequence.forEach((line, index) => {
-            cumulativeDelay += line.delay
-
-            const timeout = setTimeout(() => {
-                setVisibleLines(index + 1)
-
-                if (index === bootSequence.length - 1) {
-                    setTimeout(() => setBootComplete(true), 400)
-                }
-            }, cumulativeDelay)
-
-            timeoutsRef.current.push(timeout)
-        })
-
-        return () => {
-            timeoutsRef.current.forEach(clearTimeout)
-            timeoutsRef.current = []
+        // Any key starts it (buttons handle their own Enter/Space as clicks)
+        const onKey = (e: KeyboardEvent) => {
+            if (NOT_A_SKIP.has(e.key)) return
+            const onButton = (e.target as HTMLElement | null)?.closest?.('.boot-screen-start-btn')
+            if (onButton && (e.key === 'Enter' || e.key === ' ')) return
+            powerOn('skip')
         }
-    }, [dismissed])
+        window.addEventListener('keydown', onKey)
+        return () => {
+            timers.forEach(clearTimeout)
+            window.removeEventListener('keydown', onKey)
+        }
+        // powerOn is guarded by exitedRef; this runs once per boot
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [returning, dismissed])
 
-    const skipBoot = useCallback(() => {
-        if (isSkippingRef.current || dismissed || hasBootedRef.current) return
-        if (exitPhase !== 'idle') return
-        isSkippingRef.current = true
-
-        // Clear all pending boot timeouts
-        timeoutsRef.current.forEach(clearTimeout)
-        timeoutsRef.current = []
-
-        // Complete immediately
-        document.body.style.overflow = ''
-        sessionStorage.setItem('portfolio-booted', 'true')
-        hasBootedRef.current = true
-        setExitPhase('done')
-        completeBoot()
-        setTimeout(() => setDismissed(true), 100)
-    }, [dismissed, exitPhase, completeBoot])
-
-    const runExitSequence = useCallback(() => {
-        // Phase 1: Scroll up — existing boot text scrolls away
-        setExitPhase('scrolling')
-
-        setTimeout(() => {
-            // Phase 2: Clear screen — show shutdown/launch lines one by one
-            setExitPhase('clearing')
-            setExitLines([])
-
-            let delay = 200
-            shutdownLines.forEach((line, index) => {
-                const t = setTimeout(() => {
-                    setExitLines(prev => [...prev, line])
-                }, delay)
-                timeoutsRef.current.push(t)
-                delay += 300
-            })
-
-            // Phase 3: Scanline wipe after all lines shown
-            const scanlineTimer = setTimeout(() => {
-                setExitPhase('scanline')
-            }, delay + 200)
-            timeoutsRef.current.push(scanlineTimer)
-
-            // Phase 4: CRT power-off — starts after scanline reaches center
-            const flashTimer = setTimeout(() => {
-                setExitPhase('flash')
-            }, delay + 1300)
-            timeoutsRef.current.push(flashTimer)
-
-            // Phase 5: Done — remove from DOM, signal boot complete
-            const doneTimer = setTimeout(() => {
-                setExitPhase('done')
-                document.body.style.overflow = ''
-                sessionStorage.setItem('portfolio-booted', 'true')
-                completeBoot()
-                setTimeout(() => setDismissed(true), 100)
-            }, delay + 2000)
-            timeoutsRef.current.push(doneTimer)
-
-        }, 600) // Wait for scroll-up to finish
-
-    }, [completeBoot])
-
-    const handleStart = useCallback(() => {
-        if (!bootComplete || exitPhase !== 'idle') return
-        runExitSequence()
-    }, [bootComplete, exitPhase, runExitSequence])
-
-    if (dismissed) return null
+    if (dismissed || returning) return null
 
     return (
         <>
             <div
-                className={`boot-screen boot-screen-phase-${exitPhase}`}
-                onClick={exitPhase === 'idle' ? skipBoot : undefined}
+                className="boot-screen"
+                onClick={() => powerOn('skip')}
                 aria-modal="true"
                 role="dialog"
                 aria-label="Portfolio boot sequence"
             >
-                {/* Scanline overlay — persists through scanline and flash phases */}
-                {(exitPhase === 'scanline' || exitPhase === 'flash') && (
-                    <div className={`boot-screen-scanline ${exitPhase === 'flash' ? 'boot-screen-scanline-shrink' : ''}`} />
-                )}
-
-                {/* CRT power-off overlay */}
-                {exitPhase === 'done' && (
-                    <div className="boot-screen-crt-off" />
-                )}
-
                 <div className="boot-screen-container">
-                    {/* Boot log — visible during idle phase */}
-                    {(exitPhase === 'idle' || exitPhase === 'scrolling') && (
-                        <div className={`boot-screen-log ${exitPhase === 'scrolling' ? 'boot-screen-log-scrolling' : ''}`}>
-                            {bootSequence.slice(0, visibleLines).map((line, index) => (
-                                <div
-                                    key={index}
-                                    className={`boot-screen-line boot-screen-line-${line.type}`}
-                                >
-                                    {line.type !== 'ready' && line.text && (
-                                        <span className="boot-screen-prefix">[{line.type.toUpperCase()}]</span>
-                                    )}
-                                    {line.text}
-                                </div>
-                            ))}
+                    <div className="boot-screen-log">
+                        {bootSequence.slice(0, visibleLines).map((line, index) => (
+                            <div key={index} className={`boot-screen-line boot-screen-line-${line.type}`}>
+                                {line.type !== 'ready' && (
+                                    <span className="boot-screen-prefix">[{line.type.toUpperCase()}]</span>
+                                )}
+                                {line.text}
+                            </div>
+                        ))}
+                    </div>
 
-                            {/* Start button */}
-                            {bootComplete && exitPhase === 'idle' && (
-                                <div className="boot-screen-prompt">
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleStart()
-                                        }}
-                                        className="boot-screen-start-btn"
-                                        autoFocus
-                                    >
-                                        <span className="boot-screen-prompt-symbol">&gt;</span>
-                                        ./start_portfolio.sh
-                                    </button>
-                                </div>
-                            )}
-
-                            {/* Skip button — appears after 1.5s during boot sequence */}
-                            {showSkip && !bootComplete && exitPhase === 'idle' && (
-                                <div className="boot-screen-skip-container">
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation()
-                                            skipBoot()
-                                        }}
-                                        className="boot-screen-skip-btn"
-                                    >
-                                        skip &gt;
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Exit sequence lines — visible during clearing phase */}
-                    {(exitPhase === 'clearing' || exitPhase === 'scanline' || exitPhase === 'flash' || exitPhase === 'done') && (
-                        <div className="boot-screen-exit-log">
-                            {exitLines.map((line, index) => (
-                                <div key={index} className="boot-screen-exit-line">
-                                    {line}
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                    {/* Sound consent: either button starts the site now */}
+                    <div className="boot-screen-prompt" role="group" aria-label="Start the portfolio">
+                        <button
+                            onClick={(e) => { e.stopPropagation(); powerOn('sound') }}
+                            className="boot-screen-start-btn"
+                            autoFocus
+                        >
+                            <span className="boot-screen-prompt-symbol">&gt;</span>
+                            [ start ]
+                            {bootBehaviour.autoContinue && <span ref={countdownRef} className="boot-screen-countdown" aria-hidden="true" />}
+                        </button>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); powerOn('silent') }}
+                            className="boot-screen-start-btn boot-screen-start-silent"
+                            aria-label="Start silent (sound off)"
+                        >
+                            [ start silent ]
+                        </button>
+                    </div>
+                    <div className="boot-screen-hint">{bootBehaviour.autoContinue ? 'press any key to skip' : 'press any key to start'}</div>
                 </div>
             </div>
 
             <style>{`
                 .boot-screen {
                     position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
+                    inset: 0;
                     z-index: 99999;
-                    background: var(--color-bg-dark);
+                    background: var(--bg);
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     font-family: var(--font-mono);
-                    color: var(--color-primary);
+                    color: var(--text);
                     overflow: hidden;
                     cursor: pointer;
                 }
 
-                /* Phase: CRT power-off — compress then fade */
-                .boot-screen-phase-flash {
-                    animation: boot-screen-crt-compress 0.6s cubic-bezier(0.4, 0, 1, 1) forwards;
-                    cursor: default;
-                }
-
-                .boot-screen-phase-done {
-                    animation: boot-screen-crt-compress 0.6s cubic-bezier(0.4, 0, 1, 1) forwards;
-                    opacity: 0;
-                    visibility: hidden;
-                    cursor: default;
-                }
-
-                .boot-screen-phase-scrolling,
-                .boot-screen-phase-clearing,
-                .boot-screen-phase-scanline {
-                    cursor: default;
-                }
-
-                @keyframes boot-screen-crt-compress {
-                    0% {
-                        transform: scaleY(1) scaleX(1);
-                        filter: brightness(1);
-                    }
-                    40% {
-                        transform: scaleY(0.01) scaleX(1.02);
-                        filter: brightness(1.5);
-                    }
-                    70% {
-                        transform: scaleY(0.01) scaleX(0.3);
-                        filter: brightness(2);
-                    }
-                    100% {
-                        transform: scaleY(0) scaleX(0);
-                        filter: brightness(0);
-                        opacity: 0;
-                        visibility: hidden;
-                    }
+                /* Returning visitors: hidden from first paint (html.booted, set in <head>) */
+                html.booted .boot-screen {
+                    display: none;
                 }
 
                 .boot-screen-container {
@@ -306,296 +212,110 @@ export default function BootScreen() {
                     position: relative;
                 }
 
-                /* ==================
-                   BOOT LOG
-                   ================== */
-
                 .boot-screen-log {
-                    margin-bottom: var(--spacing-xl);
                     min-height: 200px;
-                    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-                                opacity 0.4s ease;
+                    margin-bottom: var(--spacing-lg);
                 }
 
-                .boot-screen-log-scrolling {
-                    transform: translateY(-120%);
-                    opacity: 0;
+                /* The banner line (BIOS header) uses the pixel CRT face */
+                .boot-screen-log .boot-screen-line:first-child {
+                    font-family: var(--font-display);
+                    font-size: calc(var(--font-size-sm) * 1.8);
+                    color: var(--bright);
                 }
 
                 .boot-screen-line {
                     font-size: var(--font-size-sm);
                     line-height: var(--line-height-relaxed);
-                    opacity: 0;
-                    animation: boot-screen-line-appear 0.3s ease forwards;
                     white-space: nowrap;
                     overflow: hidden;
                     text-overflow: ellipsis;
-                }
-
-                @keyframes boot-screen-line-appear {
-                    from {
-                        opacity: 0;
-                        transform: translateY(4px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
+                    animation: lnin var(--dur-lnin) var(--ease-out) both;
                 }
 
                 .boot-screen-prefix {
-                    color: var(--color-primary-dim);
+                    color: var(--dim);
                     margin-right: 8px;
                     font-size: var(--font-size-xs);
                 }
 
-                .boot-screen-line-system { color: var(--color-primary-dim); }
-                .boot-screen-line-info { color: var(--color-primary-dim); }
-                .boot-screen-line-success { color: var(--color-primary); }
-                .boot-screen-line-warning { color: #ffa500; }
+                .boot-screen-line-system { color: var(--dim); }
+                .boot-screen-line-info { color: var(--dim); }
+                .boot-screen-line-success { color: var(--text); }
 
                 .boot-screen-line-ready {
-                    color: var(--color-primary);
+                    color: var(--text);
                     font-weight: bold;
                     font-size: var(--font-size-md);
                     margin-top: var(--spacing-sm);
                 }
 
-                /* ==================
-                   START BUTTON
-                   ================== */
-
                 .boot-screen-prompt {
                     display: flex;
+                    flex-wrap: wrap;
                     align-items: center;
-                    margin-top: var(--spacing-md);
-                    opacity: 0;
-                    animation: boot-screen-prompt-appear 0.6s ease 0.2s forwards;
-                }
-
-                @keyframes boot-screen-prompt-appear {
-                    from { opacity: 0; transform: translateY(8px); }
-                    to { opacity: 1; transform: translateY(0); }
+                    gap: var(--spacing-sm);
                 }
 
                 .boot-screen-start-btn {
+                    position: relative;
+                    overflow: hidden;
                     background: transparent;
-                    border: 1px solid var(--color-primary);
-                    color: var(--color-primary);
+                    border: 1px solid var(--bright);
+                    color: var(--text);
                     font-family: var(--font-mono);
                     font-size: var(--font-size-md);
                     padding: var(--spacing-sm) var(--spacing-lg);
                     cursor: pointer;
-                    transition: all 0.2s ease;
                     display: inline-flex;
                     align-items: center;
                     gap: 8px;
                     min-height: var(--min-touch-target);
+                    transition: background var(--dur-quick) var(--ease-out), box-shadow var(--dur-quick) var(--ease-out);
                 }
 
                 .boot-screen-start-btn:hover,
                 .boot-screen-start-btn:focus {
-                    background: rgba(0, 255, 65, 0.1);
-                    box-shadow: 0 0 15px rgba(0, 255, 65, 0.3), 0 0 30px rgba(0, 255, 65, 0.1);
-                    transform: translateY(-2px);
+                    background: rgb(var(--glow) / 0.1);
+                    box-shadow: 0 0 15px rgb(var(--glow) / 0.3), 0 0 30px rgb(var(--glow) / 0.1);
                 }
 
                 .boot-screen-start-btn:focus-visible {
-                    outline: 3px solid var(--color-primary);
+                    outline: 3px solid var(--bright);
                     outline-offset: 3px;
                 }
 
-                .boot-screen-start-btn:active {
-                    transform: translateY(0);
-                }
-
                 .boot-screen-prompt-symbol {
-                    color: var(--color-primary-dim);
+                    color: var(--dim);
                 }
 
-                /* ==================
-                   SKIP BUTTON
-                   ================== */
-
-                .boot-screen-skip-container {
-                    position: fixed;
-                    bottom: 24px;
-                    right: 24px;
-                    opacity: 0;
-                    animation: boot-screen-skip-appear 0.4s ease forwards;
+                .boot-screen-start-silent {
+                    border-color: rgb(var(--glow) / 0.4);
+                    color: var(--dim);
                 }
 
-                @keyframes boot-screen-skip-appear {
-                    from { opacity: 0; transform: translateY(4px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-
-                .boot-screen-skip-btn {
-                    background: transparent;
-                    border: 1px solid var(--color-primary-dimmer);
-                    color: var(--color-primary-dim);
-                    font-family: var(--font-mono);
-                    font-size: var(--font-size-sm);
-                    padding: 6px 14px;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                    min-height: var(--min-touch-target);
-                }
-
-                .boot-screen-skip-btn:hover,
-                .boot-screen-skip-btn:focus {
-                    color: var(--color-primary);
-                    border-color: var(--color-primary);
-                    background: rgba(0, 255, 65, 0.05);
-                }
-
-                .boot-screen-skip-btn:focus-visible {
-                    outline: 2px solid var(--color-primary);
-                    outline-offset: 2px;
-                }
-
-                /* ==================
-                   EXIT SEQUENCE LINES
-                   ================== */
-
-                .boot-screen-exit-log {
-                    min-height: 200px;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: center;
-                }
-
-                .boot-screen-exit-line {
-                    font-size: var(--font-size-sm);
-                    line-height: var(--line-height-relaxed);
-                    color: var(--color-primary);
-                    opacity: 0;
-                    animation: boot-screen-exit-line-appear 0.25s ease forwards;
-                }
-
-                @keyframes boot-screen-exit-line-appear {
-                    from {
-                        opacity: 0;
-                        transform: translateX(-8px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateX(0);
-                    }
-                }
-
-                /* ==================
-                   SCANLINE WIPE
-                   ================== */
-
-                .boot-screen-scanline {
+                /* Fills while the boot waits, then the site starts on its own */
+                .boot-screen-countdown {
                     position: absolute;
-                    top: 0;
                     left: 0;
-                    width: 100%;
-                    height: 4px;
-                    background: linear-gradient(
-                        180deg,
-                        transparent 0%,
-                        rgba(0, 255, 65, 0.8) 50%,
-                        transparent 100%
-                    );
-                    box-shadow: 0 0 30px rgba(0, 255, 65, 0.6),
-                               0 0 60px rgba(0, 255, 65, 0.3);
-                    z-index: 10;
-                    animation: boot-screen-scanline-sweep 1s ease-in-out forwards;
-                }
-
-                @keyframes boot-screen-scanline-sweep {
-                    0% {
-                        top: 0;
-                        opacity: 1;
-                    }
-                    45% {
-                        top: 100%;
-                        opacity: 0.8;
-                    }
-                    55% {
-                        top: 100%;
-                        opacity: 0.8;
-                    }
-                    100% {
-                        top: 50%;
-                        opacity: 1;
-                    }
-                }
-
-                .boot-screen-scanline-shrink {
-                    top: 50% !important;
-                    animation: boot-screen-line-shrink 0.6s ease 0.1s forwards !important;
-                }
-
-                @keyframes boot-screen-line-shrink {
-                    0% {
-                        width: 100%;
-                        left: 0;
-                        opacity: 1;
-                        height: 4px;
-                    }
-                    40% {
-                        width: 50%;
-                        left: 25%;
-                        opacity: 0.9;
-                        height: 3px;
-                    }
-                    80% {
-                        width: 10%;
-                        left: 45%;
-                        opacity: 0.6;
-                        height: 2px;
-                    }
-                    100% {
-                        width: 0%;
-                        left: 50%;
-                        opacity: 0;
-                        height: 1px;
-                    }
-                }
-
-                /* ==================
-                   CRT POWER-OFF LINE (fallback)
-                   ================== */
-
-                .boot-screen-crt-off {
-                    position: absolute;
-                    top: 50%;
-                    left: 0;
-                    width: 100%;
+                    bottom: 0;
                     height: 2px;
-                    background: rgba(0, 255, 65, 0.8);
-                    box-shadow: 0 0 15px rgba(0, 255, 65, 0.6),
-                               0 0 40px rgba(0, 255, 65, 0.3);
-                    z-index: 11;
-                    transform: translateY(-50%);
-                    animation: boot-screen-crt-line-fade 0.5s ease 0.4s forwards;
-                    opacity: 1;
+                    width: 100%;
+                    background: var(--bright);
+                    transform-origin: left;
+                    animation: boot-screen-countdown ${bootTimings.autoContinueMs}ms linear both;
                 }
 
-                @keyframes boot-screen-crt-line-fade {
-                    0% {
-                        opacity: 1;
-                        width: 100%;
-                    }
-                    60% {
-                        opacity: 0.8;
-                        width: 40%;
-                        margin-left: 30%;
-                    }
-                    100% {
-                        opacity: 0;
-                        width: 0%;
-                        margin-left: 50%;
-                    }
+                @keyframes boot-screen-countdown {
+                    from { transform: scaleX(0); }
+                    to { transform: scaleX(1); }
                 }
 
-                /* ==================
-                   RESPONSIVE
-                   ================== */
+                .boot-screen-hint {
+                    margin-top: var(--spacing-md);
+                    color: var(--dim);
+                    font-size: var(--font-size-xs);
+                }
 
                 @media (max-width: 480px) {
                     .boot-screen-container {
@@ -603,8 +323,7 @@ export default function BootScreen() {
                         padding: var(--spacing-md);
                     }
 
-                    .boot-screen-line,
-                    .boot-screen-exit-line {
+                    .boot-screen-line {
                         font-size: 10px;
                     }
 
@@ -622,21 +341,10 @@ export default function BootScreen() {
                         width: 100%;
                         justify-content: center;
                     }
-
-                    .boot-screen-skip-container {
-                        bottom: 16px;
-                        right: 16px;
-                    }
-
-                    .boot-screen-skip-btn {
-                        font-size: var(--font-size-xs);
-                        padding: 5px 12px;
-                    }
                 }
 
                 @media (min-width: 768px) {
-                    .boot-screen-line,
-                    .boot-screen-exit-line {
+                    .boot-screen-line {
                         font-size: var(--font-size-md);
                     }
 
@@ -655,40 +363,8 @@ export default function BootScreen() {
 
                 @media (prefers-reduced-motion: reduce) {
                     .boot-screen-line,
-                    .boot-screen-exit-line {
+                    .boot-screen-countdown {
                         animation: none;
-                        opacity: 1;
-                    }
-
-                    .boot-screen-prompt {
-                        animation: none;
-                        opacity: 1;
-                    }
-
-                    .boot-screen-log-scrolling {
-                        transition-duration: 0.01ms;
-                    }
-
-                    .boot-screen-scanline {
-                        animation-duration: 0.01ms;
-                    }
-
-                    .boot-screen-flash {
-                        animation-duration: 0.01ms;
-                    }
-
-                    .boot-screen-phase-flash,
-                    .boot-screen-phase-done {
-                        animation-duration: 0.01ms;
-                    }
-
-                    .boot-screen-crt-off {
-                        animation-duration: 0.01ms;
-                    }
-
-                    .boot-screen-skip-container {
-                        animation: none;
-                        opacity: 1;
                     }
                 }
             `}</style>

@@ -1,26 +1,29 @@
 "use client"
 
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react'
+import { createContext, useContext, useState, ReactNode } from 'react'
 
 interface BootContextType {
     isBooted: boolean
-    completeBoot: () => void
+    /** A returning visitor: the boot was skipped and sections print instantly. */
+    isReturning: boolean
+    completeBoot: (options?: { returning?: boolean }) => void
 }
 
 const BootContext = createContext<BootContextType>({
     isBooted: false,
+    isReturning: false,
     completeBoot: () => {},
 })
 
 export function BootProvider({ children }: { children: ReactNode }) {
-    const [isBooted, setIsBooted] = useState(false)
+    const [state, setState] = useState({ isBooted: false, isReturning: false })
 
-    const completeBoot = useCallback(() => {
-        setIsBooted(true)
-    }, [])
+    const completeBoot = (options?: { returning?: boolean }) => {
+        setState({ isBooted: true, isReturning: !!options?.returning })
+    }
 
     return (
-        <BootContext.Provider value={{ isBooted, completeBoot }}>
+        <BootContext.Provider value={{ ...state, completeBoot }}>
             {children}
         </BootContext.Provider>
     )
