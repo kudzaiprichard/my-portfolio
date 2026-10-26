@@ -14,7 +14,8 @@ function contrast(a: string, b: string): number {
     return (hi + 0.05) / (lo + 0.05)
 }
 
-const css = readFileSync('app/globals.css', 'utf8')
+// Normalise CRLF (Windows checkouts with core.autocrlf) so selectors match
+const css = readFileSync('app/globals.css', 'utf8').replace(/\r\n/g, '\n')
 
 /** Token values for one theme, read from its block in globals.css. */
 function cssTokens(id: string): Record<string, string> {
