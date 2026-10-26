@@ -1,7 +1,7 @@
 // app/layout.tsx
 import type { Metadata } from 'next'
 import './globals.css'
-import { JetBrains_Mono, VT323 } from 'next/font/google'
+import localFont from 'next/font/local'
 import { DEFAULT_THEME, THEMES, THEME_STORAGE_KEY } from '@/src/lib/themes'
 import { CRT_STORAGE_KEY } from '@/src/lib/crtStore'
 import { PLAIN_STORAGE_KEY } from '@/src/lib/plainMode'
@@ -25,10 +25,11 @@ import CrtShader from "@/src/components/layout/CrtShader";
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 
-// Self-hosted by next/font: no layout shift, no request to Google at runtime.
+// Self-hosted from app/fonts (Latin subset, Fontsource 5.3.0): no layout shift,
+// and no request to Google at build or run time.
 // JetBrains Mono for everything; VT323 only for the hero name and boot banner.
-const mono = JetBrains_Mono({ subsets: ['latin'], weight: ['400', '600'], variable: '--font-jetbrains', display: 'swap' })
-const display = VT323({ subsets: ['latin'], weight: '400', variable: '--font-vt323', display: 'swap' })
+const mono = localFont({ src: './fonts/JetBrainsMono-latin-wght.woff2', weight: '100 800', variable: '--font-jetbrains', display: 'swap' })
+const display = localFont({ src: './fonts/VT323-latin-400.woff2', weight: '400', variable: '--font-vt323', display: 'swap' })
 
 // Runs before first paint: apply the stored theme (or the default) so there is
 // no flash of the wrong palette; restore the opt-in CRT look; mark returning

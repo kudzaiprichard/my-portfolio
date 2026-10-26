@@ -48,7 +48,7 @@ The terminal is also **conversational**. A built-in AI agent (Google Gemini, gro
 | UI runtime       | **React 19**. Sections are **Server Components**; interactivity lives in small client islands. **React Compiler** (`reactCompiler: true`) memoizes automatically — there is no hand-written `useCallback`/`useMemo`. |
 | Language         | **TypeScript 5** (strict mode, `@/*` path alias to repo root)                    |
 | Styling          | Custom CSS (CSS custom properties, five switchable themes) + per-component scoped `<style>` blocks. No CSS framework. |
-| Fonts            | **JetBrains Mono** + **VT323** via `next/font/google` |
+| Fonts            | **JetBrains Mono** + **VT323** via `next/font/local` (`app/fonts`) |
 | Email            | **Resend** + `@react-email/components` for the contact pipeline                  |
 | AI agent         | **Google Gemini** (AI Studio REST API: `streamGenerateContent?alt=sse`, with `generateContent` as the fallback) behind a server-only `/api/chat` route that streams Server-Sent Events — function calling, grounded on the site's own content. No SDK; called over `fetch`. |
 | Rate limits      | **Upstash Redis** (`@upstash/ratelimit`, via the Vercel Marketplace) — shared across instances; in-memory fallback in development |
@@ -876,7 +876,7 @@ To add a theme: add a block to the THEMES section of `globals.css` and an entry 
 
 ### Typography
 
-Loaded with `next/font/google` (self-hosted at build time, no layout shift): **JetBrains Mono** 400/600 for everything, **VT323** only for the hero name and the boot banner.
+Loaded with `next/font/local` from `app/fonts` (Latin subset from Fontsource; no layout shift, and the build needs no network): **JetBrains Mono** 400/600 for everything, **VT323** only for the hero name and the boot banner.
 
 ### Component-scoped styles
 
