@@ -49,3 +49,14 @@ next-env.d.ts
 audit.md
 cursor.md
 .docs/
+
+# test output
+/test-results/
+/playwright-report/
+/blob-report/
+
+# logs
+*.log
+
+# Lighthouse CI
+.lighthouseci/

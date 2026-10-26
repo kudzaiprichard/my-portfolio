@@ -9,24 +9,37 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "knip": "knip",
+    "typecheck": "tsc --noEmit",
+    "check:gemini": "node scripts/check-gemini-stream.mjs"
   },
   "dependencies": {
     "@react-email/components": "^1.0.8",
     "@react-email/render": "^2.0.4",
+    "@upstash/ratelimit": "^2.2.0",
+    "@upstash/redis": "^1.39.0",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "next": "^16.1.1",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "resend": "^6.9.3"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
+    "@next/bundle-analyzer": "^16.1.1",
+    "@playwright/test": "^1.64.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "babel-plugin-react-compiler": "^1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.0.1",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "knip": "^6.43.0",
+    "typescript": "^5",
+    "vitest": "^4.0.18"
   }
 }
