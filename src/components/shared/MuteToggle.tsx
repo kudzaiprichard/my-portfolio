@@ -1,40 +1,39 @@
 // components/shared/MuteToggle.tsx
 "use client"
 
-import { useState, useEffect, useCallback } from 'react'
+import { useSyncExternalStore } from 'react'
+import { ANALYTICS_EVENTS, trackEvent } from '@/src/lib/analytics'
+import { setAudioMuted } from '@/src/lib/audioEngine'
 
 const MUTE_KEY = 'keystroke-audio-muted'
+const MUTE_EVENT = 'audio-mute-change'
+
+// Mute state lives in localStorage. Other tabs report changes through the
+// storage event; this tab's components through MUTE_EVENT.
+function subscribe(onChange: () => void) {
+    const onStorage = (e: StorageEvent) => { if (e.key === MUTE_KEY) onChange() }
+    window.addEventListener('storage', onStorage)
+    window.addEventListener(MUTE_EVENT, onChange)
+    return () => {
+        window.removeEventListener('storage', onStorage)
+        window.removeEventListener(MUTE_EVENT, onChange)
+    }
+}
+
+const readMuted = () => localStorage.getItem(MUTE_KEY) === 'true'
+const noopSubscribe = () => () => {}
 
 export default function MuteToggle() {
-    const [isMuted, setIsMuted] = useState(false)
-    const [hasMounted, setHasMounted] = useState(false)
+    // Server render and hydration both see "not muted, not mounted", then the
+    // client snapshot takes over — no hydration mismatch.
+    const isMuted = useSyncExternalStore(subscribe, readMuted, () => false)
+    const hasMounted = useSyncExternalStore(noopSubscribe, () => true, () => false)
 
-    // Sync muted state from localStorage after mount to avoid hydration mismatch
-    useEffect(() => {
-        setIsMuted(localStorage.getItem(MUTE_KEY) === 'true')
-        setHasMounted(true)
-    }, [])
-
-    // Listen for mute changes from other components (useKeystrokeAudio)
-    useEffect(() => {
-        const onStorage = (e: StorageEvent) => {
-            if (e.key === MUTE_KEY) {
-                setIsMuted(e.newValue === 'true')
-            }
-        }
-        window.addEventListener('storage', onStorage)
-        return () => window.removeEventListener('storage', onStorage)
-    }, [])
-
-    const toggle = useCallback(() => {
-        setIsMuted(prev => {
-            const next = !prev
-            localStorage.setItem(MUTE_KEY, String(next))
-            // Dispatch a custom event so same-tab listeners can react
-            window.dispatchEvent(new CustomEvent('audio-mute-change', { detail: { muted: next } }))
-            return next
-        })
-    }, [])
+    const toggle = () => {
+        const next = !readMuted()
+        setAudioMuted(next)
+        if (next) trackEvent(ANALYTICS_EVENTS.soundMuted)
+    }
 
     return (
         <>
@@ -85,24 +84,24 @@ export default function MuteToggle() {
                     top: 16px;
                     right: 16px;
                     z-index: 9999;
-                    background: rgba(0, 10, 0, 0.8);
-                    border: 1px solid var(--color-primary-dimmer);
-                    color: var(--color-primary);
+                    background: rgb(var(--surface-rgb) / 0.8);
+                    border: 1px solid rgb(var(--glow) / 0.4);
+                    color: var(--text);
                     width: 40px;
                     height: 40px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     cursor: pointer;
-                    transition: all 0.2s ease;
+                    transition: all var(--dur-quick) var(--ease-out);
                     font-family: var(--font-mono);
                     padding: 0;
                 }
 
                 .mute-toggle-btn:hover {
-                    border-color: var(--color-primary);
-                    background: rgba(0, 255, 65, 0.08);
-                    box-shadow: 0 0 12px rgba(0, 255, 65, 0.15);
+                    border-color: var(--bright);
+                    background: rgb(var(--glow) / 0.08);
+                    box-shadow: 0 0 12px rgb(var(--glow) / 0.15);
                 }
 
                 .mute-toggle-btn:active {
@@ -111,7 +110,7 @@ export default function MuteToggle() {
 
                 .mute-toggle-btn svg {
                     opacity: 0.8;
-                    transition: opacity 0.2s ease;
+                    transition: opacity var(--dur-quick) var(--ease-out);
                 }
 
                 .mute-toggle-btn:hover svg {

@@ -6,6 +6,7 @@ type AudioEventCallback = () => void
 class GlobalAudioController {
     private activeSection: string | null = null
     private listeners: Map<string, Set<AudioEventCallback>> = new Map()
+    private releaseListeners = new Set<AudioEventCallback>()
 
     setActiveSection(sectionId: string) {
         if (this.activeSection === sectionId) return
@@ -26,7 +27,15 @@ class GlobalAudioController {
         if (this.activeSection === sectionId) {
             this.activeSection = null
             this.notifyListeners(sectionId)
+            // The channel is free: a section still on screen may claim it
+            this.releaseListeners.forEach(callback => callback())
         }
+    }
+
+    /** Called whenever the keystroke channel becomes free. */
+    onRelease(callback: AudioEventCallback): () => void {
+        this.releaseListeners.add(callback)
+        return () => this.releaseListeners.delete(callback)
     }
 
     hasControl(sectionId: string): boolean {
