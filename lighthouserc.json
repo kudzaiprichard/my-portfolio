@@ -5,7 +5,7 @@
       "startServerReadyPattern": "Ready",
       "url": [
         "http://localhost:3100/",
-        "http://localhost:3100/projects/sentry"
+        "http://localhost:3100/projects/sentinel"
       ],
       "numberOfRuns": 3,
       "settings": {
