@@ -1,6 +1,6 @@
 import {
     Html, Head, Body, Container, Section,
-    Text, Hr, Link, Font
+    Text, Link, Font
 } from '@react-email/components'
 
 interface Props {
@@ -14,7 +14,7 @@ export default function ContactNotification({ name, email, message }: Props) {
         <Html>
             <Head>
                 <Font
-                    fontFamily="Courier New"
+                    fontFamily="JetBrains Mono"
                     fallbackFontFamily="monospace"
                     webFont={undefined}
                     fontWeight={400}
@@ -74,24 +74,24 @@ export default function ContactNotification({ name, email, message }: Props) {
 
 const body = {
     backgroundColor: '#f4f4f4',
-    fontFamily: "'Courier New', monospace",
+    fontFamily: "'JetBrains Mono', 'Courier New', monospace",
     margin: '0',
     padding: '40px 20px',
 }
 
 const container = {
-    backgroundColor: '#111111',
+    backgroundColor: '#07110B',
     maxWidth: '700px',
     margin: '0 auto',
-    border: '1px solid rgba(52, 211, 153, 0.25)',
+    border: '1px solid rgba(77, 255, 143, 0.25)',
     borderRadius: '8px',
     overflow: 'hidden' as const,
 }
 
 const topbar = {
-    backgroundColor: '#161616',
+    backgroundColor: '#0C1A12',
     padding: '10px 24px',
-    borderBottom: '1px solid rgba(52, 211, 153, 0.12)',
+    borderBottom: '1px solid rgba(77, 255, 143, 0.12)',
 }
 
 const dots = {
@@ -156,20 +156,20 @@ const replyHint = {
 
 const replyBtn = {
     display: 'inline-block' as const,
-    border: '1px solid rgba(52, 211, 153, 0.4)',
+    border: '1px solid rgba(77, 255, 143, 0.4)',
     padding: '12px 32px',
     fontSize: '12px',
-    color: '#34d399',
+    color: '#4DFF8F',
     letterSpacing: '1.5px',
-    fontFamily: "'Courier New', monospace",
+    fontFamily: "'JetBrains Mono', 'Courier New', monospace",
     textDecoration: 'none',
     borderRadius: '4px',
-    backgroundColor: 'rgba(52, 211, 153, 0.06)',
+    backgroundColor: 'rgba(77, 255, 143, 0.06)',
     fontWeight: 'bold' as const,
 }
 
 const greenLink = {
-    color: '#34d399',
+    color: '#4DFF8F',
     textDecoration: 'none',
 }
 
