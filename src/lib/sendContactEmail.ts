@@ -6,6 +6,7 @@
 
 import { Resend } from 'resend'
 import { ContactConfirmation, ContactNotification } from '@/src/components/shared/email-templates'
+import { contact } from '@/src/content'
 
 export interface ContactPayload {
     name: string
@@ -39,9 +40,10 @@ export async function sendContactEmail(payload: ContactPayload): Promise<SendRes
     }
 
     const apiKey = process.env.RESEND_API_KEY
-    const ownerEmail = process.env.NEXT_PUBLIC_EMAIL
-    if (!apiKey || !ownerEmail) {
-        console.error('[sendContactEmail] Missing RESEND_API_KEY or NEXT_PUBLIC_EMAIL')
+    // From src/content: NEXT_PUBLIC_EMAIL when set, else the address in personal.ts
+    const ownerEmail = contact.email
+    if (!apiKey) {
+        console.error('[sendContactEmail] Missing RESEND_API_KEY')
         return { success: false, error: 'Messaging is not configured right now.' }
     }
 
@@ -49,15 +51,17 @@ export async function sendContactEmail(payload: ContactPayload): Promise<SendRes
 
     try {
         const [notification, confirmation] = await Promise.all([
+            // Replying to the notification answers the sender directly
             resend.emails.send({
                 from: 'Portfolio Contact <noreply@prichard.co.zw>',
-                replyTo: ownerEmail,
+                replyTo: email,
                 to: ownerEmail,
                 subject: `New message from ${name}`,
                 react: ContactNotification({ name, email, message }),
             }),
             resend.emails.send({
                 from: 'Kudzai Prichard Matizirofa <noreply@prichard.co.zw>',
+                replyTo: ownerEmail,
                 to: email,
                 subject: 'Message received — kudzai@portfolio',
                 react: ContactConfirmation({ name, email, message }),
