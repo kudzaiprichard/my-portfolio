@@ -15,27 +15,6 @@
    ============================================ */
 
 :root {
-  /* ========================================
-     BREAKPOINTS - Mobile First Approach
-     ======================================== */
-  --breakpoint-xs: 320px;      /* Small mobile */
-  --breakpoint-sm: 375px;      /* Mobile portrait (iPhone SE) */
-  --breakpoint-md: 480px;      /* Large mobile */
-  --breakpoint-lg: 667px;      /* Mobile landscape */
-  --breakpoint-xl: 768px;      /* Tablet portrait */
-  --breakpoint-2xl: 1024px;    /* Tablet landscape */
-  --breakpoint-3xl: 1280px;    /* Small desktop */
-  --breakpoint-4xl: 1440px;    /* Desktop */
-  --breakpoint-5xl: 1920px;    /* Large desktop */
-
-  /* Colors */
-  --color-primary: #00ff41;
-  --color-primary-dim: rgba(0, 255, 65, 0.7);
-  --color-primary-dimmer: rgba(0, 255, 65, 0.4);
-  --color-primary-dimmest: rgba(0, 255, 65, 0.2);
-  --color-bg-dark: #0a0f0a;
-  --color-bg-darker: #0d1a0d;
-
   /* Spacing - Mobile-first baseline */
   --spacing-xs: 6px;
   --spacing-sm: 10px;
@@ -45,7 +24,9 @@
   --spacing-2xl: 40px;
 
   /* Typography - Mobile-first baseline */
-  --font-mono: 'Courier New', monospace;
+  --font-mono: var(--font-jetbrains), ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  /* Pixel CRT face — hero name and boot banner only */
+  --font-display: var(--font-vt323), var(--font-mono);
 
   --font-size-xs: 10px;
   --font-size-sm: 11px;
@@ -65,19 +46,24 @@
   --border-width: 1px;
   --border-radius: 2px;
 
-  /* Transitions */
-  --transition-fast: 0.2s ease;
-  --transition-normal: 0.3s ease;
-  --transition-slow: 0.6s ease;
+  /* Motion — one vocabulary, borrowed from the CRT (Phosphor review §2).
+     Use these everywhere; no ad-hoc durations or easings. */
+  --dur-key: 80ms;        /* key press feedback, caret jump */
+  --dur-quick: 160ms;     /* hover, button press, chip appear */
+  --dur-base: 280ms;      /* panel open, card expand */
+  --dur-lnin: 360ms;      /* an output line's flare */
+  --dur-phosphor: 520ms;  /* afterglow on new glyphs */
+  --dur-chan: 420ms;      /* channel change */
+  --dur-crt: 900ms;       /* power-on, at most once per screen */
+  --ease-out: cubic-bezier(.16, 1, .3, 1);       /* anything entering */
+  --ease-crt: cubic-bezier(.7, 0, .3, 1);        /* power-on/off, channel change */
+  --ease-spring: cubic-bezier(.22, 1.2, .36, 1); /* cursor ring */
 
   /* Z-index layers */
   --z-background: 0;
   --z-grid: 1;
   --z-particles: 2;
-  --z-vignette: 3;
-  --z-code-snippets: 5;
   --z-content: 10;
-  --z-indicators: 100;
   --z-cursor: 100000;
 
   /* Touch target minimum (accessibility) */
@@ -95,53 +81,105 @@
 }
 
 /* ============================================
-   PER-SECTION PHOSPHOR TINTS
+   THEMES
 
-   Subtle hue shifts within the green spectrum. Each variant
-   keeps S=100% / L≈50% so contrast against #0a0f0a is identical
-   to the anchor — the shift is hue-only and never reduces legibility.
-
-   Home and contact stay at the anchor (#00ff41) — they are the
-   entry point and the action point; visitors should feel grounded.
-
-   Hardcoded rgba(0, 255, 65, …) values inside component <style>
-   blocks (skill-card washes, tech-badge fills) stay anchor-green
-   on purpose: section backgrounds hold the unified theme while
-   text and primary borders take on each section's tint. This is
-   what stops the per-section variation from feeling like five
-   different sites.
-
-   The cursor, particle canvas, grid overlay, and gradient
-   background all live outside <section> elements and stay anchor —
-   they form the constant ambient layer.
+   One token set, five phosphor themes. data-theme on <html> is set before
+   first paint by the inline script in app/layout.tsx (stored choice, or p1).
+   Roles:
+     --text    body copy               --bright  prompts, caret, the name, [LIVE]
+     --dim     hints and comments      --warn    [WIP] and warnings
+     --error   "command not found", form errors
+     --agent   agent replies and the agent label
+     --surface terminal panels         --glow    --bright as "R G B" (borders, glows)
+   Glow (text-shadow / box-shadow) is reserved for --bright elements.
+   Values come from the Phosphor Portfolio Review theme lab; contrast is
+   pinned by tests/unit/themes.test.ts.
    ============================================ */
 
-section[id="about"] {
-  --color-primary: #22ff52;
-  --color-primary-dim: rgba(34, 255, 82, 0.7);
-  --color-primary-dimmer: rgba(34, 255, 82, 0.4);
-  --color-primary-dimmest: rgba(34, 255, 82, 0.2);
+:root[data-theme="p1"] {
+  /* P1 Phosphor, tuned */
+  --bg: #07110B;
+  --surface: #0C1A12;
+  --text: #A8F5C0;
+  --bright: #4DFF8F;
+  --dim: #5E9C76;
+  --warn: #FFB454;
+  --error: #FF6E61;
+  --agent: #6FD3FF;
+  /* "R G B" triplets for rgb(var(--x) / alpha) */
+  --glow: 77 255 143;
+  --bg-rgb: 7 17 11;
+  --surface-rgb: 12 26 18;
+  color-scheme: dark;
 }
 
-section[id="projects"] {
-  --color-primary: #00ff7d;
-  --color-primary-dim: rgba(0, 255, 125, 0.7);
-  --color-primary-dimmer: rgba(0, 255, 125, 0.4);
-  --color-primary-dimmest: rgba(0, 255, 125, 0.2);
+:root[data-theme="p3"] {
+  /* P3 Amber */
+  --bg: #120C05;
+  --surface: #1C140A;
+  --text: #FFD08A;
+  --bright: #FFB000;
+  --dim: #A8834C;
+  --warn: #FF7A45;
+  --error: #FF5D5D;
+  --agent: #8FD8FF;
+  /* "R G B" triplets for rgb(var(--x) / alpha) */
+  --glow: 255 176 0;
+  --bg-rgb: 18 12 5;
+  --surface-rgb: 28 20 10;
+  color-scheme: dark;
 }
 
-section[id="experience"] {
-  --color-primary: #3aff2a;
-  --color-primary-dim: rgba(58, 255, 42, 0.7);
-  --color-primary-dimmer: rgba(58, 255, 42, 0.4);
-  --color-primary-dimmest: rgba(58, 255, 42, 0.2);
+:root[data-theme="p4"] {
+  /* P4 Ice white */
+  --bg: #0A0E14;
+  --surface: #111823;
+  --text: #D9E6F2;
+  --bright: #FFFFFF;
+  --dim: #7D8FA3;
+  --warn: #FFC46B;
+  --error: #FF7A85;
+  --agent: #7CC8FF;
+  /* "R G B" triplets for rgb(var(--x) / alpha) */
+  --glow: 255 255 255;
+  --bg-rgb: 10 14 20;
+  --surface-rgb: 17 24 35;
+  color-scheme: dark;
 }
 
-section[id="terminal"] {
-  --color-primary: #00ff70;
-  --color-primary-dim: rgba(0, 255, 112, 0.7);
-  --color-primary-dimmer: rgba(0, 255, 112, 0.4);
-  --color-primary-dimmest: rgba(0, 255, 112, 0.2);
+:root,
+:root[data-theme="night"] {
+  /* Night shift (default) */
+  --bg: #0F0B1A;
+  --surface: #181229;
+  --text: #E6DCFF;
+  --bright: #5CF2FF;
+  --dim: #8D80B3;
+  --warn: #FFC15E;
+  --error: #FF6B8B;
+  --agent: #FF7FDF;
+  /* "R G B" triplets for rgb(var(--x) / alpha) */
+  --glow: 92 242 255;
+  --bg-rgb: 15 11 26;
+  --surface-rgb: 24 18 41;
+  color-scheme: dark;
+}
+
+:root[data-theme="paper"] {
+  /* Daylight paper */
+  --bg: #F3F1E7;
+  --surface: #E8E5D6;
+  --text: #1D3325;
+  --bright: #0A6B39;
+  --dim: #5F6E62;
+  --warn: #9A5200;
+  --error: #B3261E;
+  --agent: #0F5E8C;
+  /* "R G B" triplets for rgb(var(--x) / alpha) */
+  --glow: 10 107 57;
+  --bg-rgb: 243 241 231;
+  --surface-rgb: 232 229 214;
+  color-scheme: light;
 }
 
 /* ============================================
@@ -153,51 +191,47 @@ html {
   scrollbar-width: none;
   -ms-overflow-style: none;
   height: 100vh;
+  height: 100dvh; /* excludes mobile browser toolbars */
   overflow: hidden;
 }
 
-html::-webkit-scrollbar {
+/* The page itself never shows a scrollbar (sections snap); only a terminal
+   box's inner content area does, styled in TerminalContainer */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
   display: none;
+  width: 0;
 }
 
 body {
-  background: var(--color-bg-dark);
+  background: var(--bg);
   font-family: var(--font-mono);
-  color: var(--color-primary);
+  color: var(--text);
   font-size: var(--font-size-base);
   line-height: var(--line-height-normal);
   -ms-overflow-style: none;
   scrollbar-width: none;
   height: 100vh;
+  height: 100dvh;
   overflow-y: scroll;
   overflow-x: hidden;
   scroll-snap-type: y mandatory;
 }
 
 /* ============================================
-   CUSTOM CURSOR STYLES (Desktop Only)
+   CUSTOM CURSOR STYLES (Mouse only)
+
+   CustomCursor adds html.has-custom-cursor while a mouse drives the page and
+   removes it on touch or pen input. The system cursor is hidden only then, so
+   touchscreen laptops always show one cursor or the other.
    ============================================ */
 
-/* Hide system cursor on desktop — no exceptions */
-@media (hover: hover) and (pointer: fine) {
-  * {
-    cursor: none !important;
-  }
+html.has-custom-cursor * {
+  cursor: none !important;
 }
 
-/* Restore system cursor on touch devices */
-@media (hover: none) and (pointer: coarse) {
-  body {
-    cursor: auto !important;
-  }
-
-  a, button, .cta-btn {
-    cursor: pointer !important;
-  }
-
-  .custom-cursor {
-    display: none !important;
-  }
+html:not(.has-custom-cursor) .custom-cursor {
+  display: none;
 }
 
 /* Cursor container — zero-size anchor driven by transform in JS */
@@ -210,7 +244,7 @@ body {
   pointer-events: none;
   z-index: var(--z-cursor);
   will-change: transform;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--dur-quick) var(--ease-out);
 }
 
 /* Dot — default: small, dim */
@@ -219,11 +253,11 @@ body {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--color-primary);
-  box-shadow: 0 0 8px rgba(0, 255, 65, 0.4), 0 0 15px rgba(0, 255, 65, 0.15);
+  background: var(--bright);
+  box-shadow: 0 0 8px rgb(var(--glow) / 0.4), 0 0 15px rgb(var(--glow) / 0.15);
   transform: translate(-50%, -50%);
   opacity: 0.7;
-  transition: transform 0.35s cubic-bezier(0.22, 1.2, 0.36, 1), opacity 0.12s ease;
+  transition: transform var(--dur-base) cubic-bezier(0.22, 1.2, 0.36, 1), opacity var(--dur-quick) var(--ease-out);
   will-change: transform, opacity;
 }
 
@@ -232,11 +266,11 @@ body {
   position: absolute;
   width: 36px;
   height: 36px;
-  border: 1.5px solid rgba(0, 255, 65, 0.55);
+  border: 1.5px solid rgb(var(--glow) / 0.55);
   border-radius: 50%;
   transform: translate(-50%, -50%) scale(0.4);
   opacity: 0;
-  transition: transform 0.25s cubic-bezier(0.22, 1.2, 0.36, 1), opacity 0.15s ease;
+  transition: transform var(--dur-quick) cubic-bezier(0.22, 1.2, 0.36, 1), opacity var(--dur-quick) var(--ease-out);
   will-change: transform, opacity;
 }
 
@@ -245,41 +279,58 @@ body {
   position: absolute;
   width: 2px;
   height: 18px;
-  background: var(--color-primary);
-  box-shadow: 0 0 4px rgba(0, 255, 65, 0.4);
+  background: var(--bright);
+  box-shadow: 0 0 4px rgb(var(--glow) / 0.4);
   transform: translate(-50%, -50%);
   opacity: 0;
-  transition: opacity 0.1s ease;
+  transition: opacity var(--dur-key) var(--ease-out);
   will-change: opacity;
 }
 
-/* ---- Section-aware default glow (Priority 8) ---- */
+/* ---- Section-aware default glow ---- */
 /* 15–25% opacity shift per section energy level. Only default state —
    link/input have their own fixed glow. Values derived from particle
    depth tier vocabulary (close: 7px/0.4, hub: 15px/0.7). */
 .custom-cursor[data-state="default"][data-section="home"] .custom-cursor__dot {
-  box-shadow: 0 0 8px rgba(0, 255, 65, 0.48), 0 0 15px rgba(0, 255, 65, 0.18);
+  box-shadow: 0 0 8px rgb(var(--glow) / 0.48), 0 0 15px rgb(var(--glow) / 0.18);
 }
 
 .custom-cursor[data-state="default"][data-section="about"] .custom-cursor__dot,
 .custom-cursor[data-state="default"][data-section="experience"] .custom-cursor__dot {
-  box-shadow: 0 0 8px rgba(0, 255, 65, 0.32), 0 0 15px rgba(0, 255, 65, 0.12);
+  box-shadow: 0 0 8px rgb(var(--glow) / 0.32), 0 0 15px rgb(var(--glow) / 0.12);
 }
 
 .custom-cursor[data-state="default"][data-section="terminal"] .custom-cursor__dot {
-  box-shadow: 0 0 8px rgba(0, 255, 65, 0.52), 0 0 15px rgba(0, 255, 65, 0.195);
+  box-shadow: 0 0 8px rgb(var(--glow) / 0.52), 0 0 15px rgb(var(--glow) / 0.195);
 }
 
 /* ---- Link state: bright dot + visible ring ---- */
 .custom-cursor[data-state="link"] .custom-cursor__dot {
   opacity: 1;
   transform: translate(-50%, -50%) scale(1.25);
-  box-shadow: 0 0 12px rgba(0, 255, 65, 0.6), 0 0 22px rgba(0, 255, 65, 0.2);
+  box-shadow: 0 0 12px rgb(var(--glow) / 0.6), 0 0 22px rgb(var(--glow) / 0.2);
 }
 
 .custom-cursor[data-state="link"] .custom-cursor__ring {
   opacity: 1;
   transform: translate(-50%, -50%) scale(1);
+}
+
+/* ---- Hug: the ring takes the hovered button's box ---- */
+.custom-cursor[data-hug="true"] .custom-cursor__ring {
+  border-radius: 4px;
+  border-width: 1px;
+  opacity: 0.9;
+  transition:
+    width var(--dur-base) var(--ease-spring),
+    height var(--dur-base) var(--ease-spring),
+    border-radius var(--dur-base) var(--ease-spring),
+    opacity var(--dur-quick) var(--ease-out);
+}
+
+.custom-cursor[data-hug="true"] .custom-cursor__dot {
+  opacity: 0.5;
+  transform: translate(-50%, -50%) scale(0.75);
 }
 
 /* ---- Input state: dot hidden, caret blinking ---- */
@@ -299,7 +350,7 @@ body {
 /* ---- Click: fast snap down, spring back on release ---- */
 .custom-cursor[data-pressed="true"] .custom-cursor__dot {
   transform: translate(-50%, -50%) scale(0.4);
-  transition: transform 0.06s cubic-bezier(0.4, 0, 1, 1), opacity 0.12s ease;
+  transition: transform var(--dur-key) cubic-bezier(0.4, 0, 1, 1), opacity var(--dur-quick) var(--ease-out);
 }
 
 .custom-cursor[data-state="link"][data-pressed="true"] .custom-cursor__dot {
@@ -308,7 +359,7 @@ body {
 
 .custom-cursor[data-state="link"][data-pressed="true"] .custom-cursor__ring {
   transform: translate(-50%, -50%) scale(0.65);
-  transition: transform 0.06s cubic-bezier(0.4, 0, 1, 1), opacity 0.15s ease;
+  transition: transform var(--dur-key) cubic-bezier(0.4, 0, 1, 1), opacity var(--dur-quick) var(--ease-out);
 }
 
 /* ---- Reduced motion: instant positioning, no ambient animations ---- */
@@ -335,9 +386,9 @@ body {
   height: 100%;
   z-index: var(--z-background);
   background:
-          radial-gradient(circle at 20% 30%, rgba(0, 50, 20, 0.3) 0%, transparent 50%),
-          radial-gradient(circle at 80% 70%, rgba(0, 70, 30, 0.2) 0%, transparent 50%),
-          linear-gradient(135deg, #0a0f0a 0%, #0d1a0d 50%, #0a0f0a 100%);
+          radial-gradient(circle at 20% 30%, rgb(var(--glow) / 0.07) 0%, transparent 50%),
+          radial-gradient(circle at 80% 70%, rgb(var(--glow) / 0.05) 0%, transparent 50%),
+          linear-gradient(135deg, var(--bg) 0%, var(--surface) 50%, var(--bg) 100%);
   animation: gradientShift 20s ease infinite;
   pointer-events: none;
 }
@@ -355,8 +406,8 @@ body {
   height: 100%;
   z-index: var(--z-grid);
   background-image:
-          linear-gradient(rgba(0, 255, 65, 0.05) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(0, 255, 65, 0.05) 1px, transparent 1px);
+          linear-gradient(rgb(var(--glow) / 0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgb(var(--glow) / 0.05) 1px, transparent 1px);
   background-size: var(--grid-size) var(--grid-size);
   opacity: var(--grid-opacity);
   pointer-events: none;
@@ -368,11 +419,13 @@ body {
    SECTION SNAP SCROLL
    ============================================ */
 
-section {
+main > section {
   position: relative;
   z-index: var(--z-content);
   min-height: 100vh;
+  min-height: 100dvh;
   height: 100vh;
+  height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -381,22 +434,152 @@ section {
   padding: var(--spacing-xl) var(--container-padding);
 }
 
+/* Small screens: content sections grow to fit instead of scrolling inside
+   their terminal box, and snapping relaxes so long sections read naturally.
+   The interactive terminal keeps its own scrolling log. */
+@media (max-width: 767px) {
+  body {
+    scroll-snap-type: y proximity;
+  }
+
+  main > section:not(#terminal) {
+    height: auto;
+    scroll-snap-stop: normal;
+  }
+
+  main > section:not(#terminal) .terminal-container {
+    max-height: none;
+    overflow-y: visible;
+  }
+}
+
+/* ============================================
+   SECTION REVEAL (components/shared/reveal)
+
+   Section content is server-rendered in full; SectionReveal reveals it.
+   html.reveal-ready is set by an inline <head> script before first paint,
+   unless the visitor prefers reduced motion — without it (no JS, reduced
+   motion) every item is simply visible.
+   ============================================ */
+
+/* Pending items take no space (the terminal grows as content appears, as a
+   real session does) but stay in the accessibility tree and the HTML, like
+   .sr-only. */
+html.reveal-ready [data-reveal]:not(.is-revealed):not(.is-typing) {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Fades inside a pending item wait for its reveal, then play as on mount */
+html.reveal-ready [data-reveal]:not(.is-revealed):not(.is-typing),
+html.reveal-ready [data-reveal]:not(.is-revealed):not(.is-typing) * {
+  animation: none !important;
+}
+
+[data-reveal="type"].is-typing [data-type-full] {
+  display: none;
+}
+
+/* After typing, the typed (still cooling) glyphs stay on screen; the static
+   copy stays in the accessibility tree */
+[data-reveal="type"].has-live [data-type-full] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+/* Machine output: each line flares in ~30 ms after the previous one.
+   (Overrides the per-section fades: output is printed, not faded.) */
+html.reveal-ready .ln-in,
+.terminal-interactive-line.ln-in {
+  animation: lnin var(--dur-lnin) var(--ease-out) both !important;
+  animation-delay: calc(var(--ln, 0) * 30ms) !important;
+}
+
+/* "# press any key to skip" — first intro only */
+.section-skip-hint {
+  color: var(--dim);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+[data-type-live]:empty {
+  display: none;
+}
+
+[data-reveal="type"][data-caret="typing"]:not(.is-typing) [data-type-caret] {
+  display: none;
+}
+
+/* ============================================
+   SHARED SECTION TERMINAL TEXT
+   Rules every section uses identically. Section-specific styles,
+   including breakpoint overrides, stay in each component.
+   ============================================ */
+
+.about-section-prompt,
+.contact-section-prompt,
+.experience-section-prompt,
+.hero-section-prompt,
+.projects-section-prompt {
+  color: var(--bright);
+}
+
+.contact-section-content,
+.experience-section-content,
+.hero-section-content,
+.projects-section-content,
+.terminal-section-content {
+  color: var(--text);
+  font-family: var(--font-mono);
+}
+
+.contact-section-command-line,
+.experience-section-command-line,
+.projects-section-command-line {
+  font-size: var(--font-size-md);
+  margin-bottom: var(--spacing-lg);
+  line-height: var(--line-height-normal);
+}
+
+.about-section-output-block,
+.hero-section-output-block {
+  margin-bottom: var(--spacing-lg);
+}
+
+
+
+
 /* ============================================
    TERMINAL STYLES
    ============================================ */
 
 .terminal-container {
-  background: rgba(5, 15, 5, 0.65);
+  background: rgb(var(--surface-rgb) / 0.65);
   backdrop-filter: blur(5px);
-  border: var(--border-width) solid var(--color-primary-dimmer);
+  border: var(--border-width) solid rgb(var(--glow) / 0.4);
   border-radius: var(--border-radius);
   padding: var(--terminal-padding-y) var(--terminal-padding-x);
   max-width: var(--container-max-width);
   width: 98%;
   max-height: 90vh;
-  overflow-y: auto;
+  max-height: 90dvh;
+  /* Never scrolls itself: .terminal-content inside scrolls. (A scrolling box
+     here gave a second scrollbar on the box edge, e.g. with display scaling.) */
+  overflow: hidden;
   text-align: left;
-  box-shadow: 0 0 1px var(--color-primary);
+  box-shadow: 0 0 1px var(--bright);
 }
 
 /* Disable backdrop-filter on mobile/touch — it forces compositor
@@ -405,7 +588,7 @@ section {
   .terminal-container {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    background: rgba(5, 15, 5, 0.82);
+    background: rgb(var(--surface-rgb) / 0.82);
   }
 }
 
@@ -415,258 +598,26 @@ section {
   gap: var(--spacing-xs);
   margin-bottom: var(--spacing-lg);
   padding-bottom: var(--spacing-sm);
-  border-bottom: var(--border-width) solid var(--color-primary-dimmest);
+  border-bottom: var(--border-width) solid rgb(var(--glow) / 0.2);
 }
 
 .terminal-dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--color-primary-dim);
+  background: rgb(var(--glow) / 0.7);
 }
 
 .terminal-title {
-  color: var(--color-primary-dim);
+  color: var(--dim);
   font-size: var(--font-size-base);
   margin-left: 6px;
   font-weight: normal;
 }
 
-.command-line {
-  color: var(--color-primary);
-  font-size: var(--font-size-md);
-  margin-bottom: var(--spacing-xs);
-  line-height: var(--line-height-normal);
-}
-
-.prompt {
-  color: var(--color-primary-dim);
-}
-
-.output-section {
-  margin-top: var(--spacing-lg);
-  padding-top: var(--spacing-md);
-  border-top: var(--border-width) solid var(--color-primary-dimmest);
-}
-
-/* ============================================
-   BUTTON STYLES
-   ============================================ */
-
-.cta-btn {
-  padding: 10px 20px;
-  background: transparent;
-  border: var(--border-width) solid var(--color-primary);
-  color: var(--color-primary);
-  font-size: var(--font-size-base);
-  font-weight: normal;
-  letter-spacing: 1px;
-  transition: all var(--transition-fast);
-  text-decoration: none;
-  font-family: var(--font-mono);
-  min-height: var(--min-touch-target);
-  min-width: var(--min-touch-target);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.cta-btn:hover {
-  background: rgba(0, 255, 65, 0.1);
-  box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
-  transform: translateY(-2px);
-}
-
-.cta-btn:active {
-  transform: translateY(0);
-}
-
-.cta-btn.primary {
-  background: rgba(0, 255, 65, 0.05);
-}
-
-.cta-buttons {
-  display: flex;
-  gap: var(--spacing-md);
-  margin-top: var(--spacing-md);
-  flex-wrap: wrap;
-}
-
-/* ============================================
-   SKILLS / TECH STACK STYLES
-   ============================================ */
-
-.skills-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-lg);
-}
-
-.skill-category {
-  border: var(--border-width) solid var(--color-primary-dimmest);
-  padding: 14px;
-  background: rgba(0, 255, 65, 0.02);
-  transition: all var(--transition-normal);
-}
-
-.skill-category:hover {
-  background: rgba(0, 255, 65, 0.05);
-  border-color: var(--color-primary);
-  box-shadow: 0 0 15px var(--color-primary-dimmest);
-  transform: translateY(-2px);
-}
-
-.category-title {
-  font-size: var(--font-size-md);
-  margin-bottom: var(--spacing-sm);
-  color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  line-height: var(--line-height-tight);
-}
-
-.category-icon {
-  font-size: 16px;
-}
-
-.tech-stack {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-xs);
-}
-
-.tech-badge {
-  padding: 4px 8px;
-  border: var(--border-width) solid var(--color-primary-dimmer);
-  background: transparent;
-  color: var(--color-primary);
-  font-size: var(--font-size-xs);
-  transition: all var(--transition-fast);
-  cursor: default;
-  line-height: var(--line-height-tight);
-}
-
-.tech-badge:hover {
-  background: rgba(0, 255, 65, 0.1);
-  box-shadow: 0 0 8px rgba(0, 255, 65, 0.3);
-  transform: translateY(-2px);
-}
-
-/* ============================================
-   SPECIALIZATION STYLES
-   ============================================ */
-
-.specializations {
-  margin-top: var(--spacing-lg);
-  padding-top: var(--spacing-lg);
-  border-top: var(--border-width) solid var(--color-primary-dimmest);
-}
-
-.spec-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-sm);
-}
-
-.spec-item {
-  padding: var(--spacing-xs) var(--spacing-md);
-  border: var(--border-width) solid var(--color-primary-dimmer);
-  background: rgba(0, 255, 65, 0.03);
-  color: var(--color-primary);
-  font-size: var(--font-size-sm);
-  line-height: var(--line-height-normal);
-}
-
-.spec-item::before {
-  content: '>';
-  margin-right: var(--spacing-xs);
-  color: var(--color-primary-dim);
-}
-
-/* ============================================
-   TYPOGRAPHY UTILITIES
-   ============================================ */
-
-.text-primary {
-  color: var(--color-primary);
-}
-
-.text-dim {
-  color: var(--color-primary-dim);
-}
-
-.bio-text {
-  font-size: var(--font-size-md);
-  line-height: var(--line-height-relaxed);
-  margin-bottom: var(--spacing-lg);
-  color: var(--color-primary);
-}
-
 /* ============================================
    ANIMATIONS
    ============================================ */
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.fade-in-up {
-  opacity: 0;
-  animation: fadeInUp var(--transition-slow) ease forwards;
-}
-
-@keyframes typing {
-  from { width: 0; }
-  to { width: 100%; }
-}
-
-@keyframes blinkTypingCursor {
-  50% { border-color: transparent; }
-}
-
-.typing-text {
-  display: inline-block;
-  overflow: hidden;
-  border-right: 2px solid var(--color-primary);
-  white-space: nowrap;
-  animation: typing 2s steps(28) forwards,
-  blinkTypingCursor 0.75s step-end infinite;
-  width: 0;
-}
-
-@keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
-}
-
-.cursor {
-  display: inline-block;
-  width: 2px;
-  height: 1em;
-  background: var(--color-primary);
-  margin-left: 4px;
-  animation: blink 1s infinite;
-  vertical-align: baseline;
-}
-
-.name-cursor {
-  display: inline-block;
-  width: 8px;
-  height: 32px;
-  background: var(--color-primary);
-  margin-left: 4px;
-  animation: blink 1s infinite;
-  vertical-align: bottom;
-}
 
 @keyframes section-cursor-blink {
   0%, 50% { opacity: 1; }
@@ -676,30 +627,7 @@ section {
 .section-cursor-blink {
   display: inline-block;
   animation: section-cursor-blink 0.7s infinite;
-}
-
-@keyframes floatCode {
-  0%, 100% {
-    opacity: 0;
-    transform: translateY(0px);
-  }
-  10%, 90% { opacity: 1; }
-  50% { transform: translateY(-20px); }
-}
-
-@keyframes typeCommand {
-  to { width: 100%; }
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.8;
-    transform: scale(1.05);
-  }
+  color: var(--bright);
 }
 
 /* ============================================
@@ -712,38 +640,6 @@ section {
 
 .visible {
   display: block;
-}
-
-.opacity-0 {
-  opacity: 0;
-}
-
-.pointer-events-none {
-  pointer-events: none;
-}
-
-.flex {
-  display: flex;
-}
-
-.flex-col {
-  flex-direction: column;
-}
-
-.items-center {
-  align-items: center;
-}
-
-.justify-center {
-  justify-content: center;
-}
-
-.gap-sm {
-  gap: var(--spacing-sm);
-}
-
-.gap-md {
-  gap: var(--spacing-md);
 }
 
 /* ============================================
@@ -788,14 +684,6 @@ section {
     margin-left: 8px;
   }
 
-  .category-icon {
-    font-size: 17px;
-  }
-
-  .name-cursor {
-    width: 10px;
-    height: 36px;
-  }
 }
 
 /* ========================================
@@ -810,7 +698,7 @@ section {
     --grid-size: 40px;
   }
 
-  section {
+  main > section {
     padding: var(--spacing-xl) var(--spacing-lg);
   }
 }
@@ -852,22 +740,6 @@ section {
     margin-left: 10px;
   }
 
-  .category-icon {
-    font-size: 18px;
-  }
-
-  .skill-category {
-    padding: 16px;
-  }
-
-  .tech-badge {
-    padding: 5px 9px;
-  }
-
-  .name-cursor {
-    width: 11px;
-    height: 40px;
-  }
 }
 
 /* ========================================
@@ -888,26 +760,6 @@ section {
     width: 93%;
   }
 
-  .skill-category {
-    padding: 18px;
-  }
-
-  .tech-badge {
-    padding: 5px 10px;
-  }
-
-  .cta-btn {
-    padding: 12px 28px;
-  }
-
-  .name-cursor {
-    width: 12px;
-    height: 48px;
-  }
-
-  .skills-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 
 /* ========================================
@@ -937,28 +789,6 @@ section {
   }
 }
 
-/* ========================================
-   LEGACY (Max-Width) - Touch-friendly
-   ======================================== */
-
-@media (max-width: 480px) {
-  .cta-buttons {
-    flex-direction: column;
-    gap: var(--spacing-sm);
-  }
-
-  .spec-list {
-    flex-direction: column;
-    gap: var(--spacing-xs);
-  }
-}
-
-@media (max-width: 768px) {
-  .spec-list {
-    flex-direction: column;
-  }
-}
-
 /* ============================================
    ACCESSIBILITY
    ============================================ */
@@ -967,37 +797,29 @@ section {
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
-textarea:focus-visible,
-.cta-btn:focus-visible {
-  outline: 3px solid var(--color-primary);
+textarea:focus-visible {
+  outline: 3px solid var(--bright);
   outline-offset: 3px;
 }
 
 /* Ensure sufficient contrast for all text */
 ::selection {
-  background: var(--color-primary);
-  color: var(--color-bg-dark);
+  background: var(--bright);
+  color: var(--bg);
 }
 
 /* Touch device optimizations */
 @media (hover: none) and (pointer: coarse) {
   /* Larger tap targets on touch devices */
-  a, button, .cta-btn {
+  a, button {
     min-height: 48px;
     min-width: 48px;
   }
 
   /* Better spacing for touch */
-  .cta-buttons {
-    gap: var(--spacing-md);
-  }
 
   /* Disable hover effects on touch */
-  .skill-category:hover,
-  .tech-badge:hover,
-  .cta-btn:hover {
-    transform: none;
-  }
+
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1040,26 +862,26 @@ textarea:focus-visible,
   transform: translateX(-50%);
   z-index: 100000;
   padding: 12px 24px;
-  background: rgba(0, 10, 0, 0.95);
-  border: 2px solid var(--color-primary);
-  color: var(--color-primary);
+  background: rgb(var(--bg-rgb) / 0.95);
+  border: 2px solid var(--bright);
+  color: var(--text);
   font-family: var(--font-mono);
   font-size: var(--font-size-sm);
   text-decoration: none;
-  transition: top 0.2s ease;
+  transition: top var(--dur-quick) var(--ease-out);
 }
 
 .skip-to-content:focus {
   top: 16px;
   outline: none;
-  box-shadow: 0 0 20px rgba(0, 255, 65, 0.4), 0 0 40px rgba(0, 255, 65, 0.15);
+  box-shadow: 0 0 20px rgb(var(--glow) / 0.4), 0 0 40px rgb(var(--glow) / 0.15);
 }
 
 /* Visible focus indicator — terminal-themed green glow */
 *:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--bright);
   outline-offset: 2px;
-  box-shadow: 0 0 12px rgba(0, 255, 65, 0.3);
+  box-shadow: 0 0 12px rgb(var(--glow) / 0.3);
 }
 
 /* Remove default focus for mouse users (focus-visible handles keyboard) */
@@ -1073,9 +895,6 @@ textarea:focus-visible,
    ============================================ */
 
 @media print {
-  .page-indicators,
-  .floating-code,
-  .cta-buttons,
   .custom-cursor,
   .particle-canvas {
     display: none;
@@ -1088,125 +907,6 @@ textarea:focus-visible,
   body {
     cursor: auto;
   }
-}
-
-/* ============================================
-   GLITCH EFFECTS
-   ============================================ */
-
-@keyframes glitch-rgb {
-  0% {
-    text-shadow: 0 0 0 rgba(0, 255, 65, 0);
-  }
-  20% {
-    text-shadow:
-            -2px 0 0 rgba(255, 0, 0, 0.7),
-            2px 0 0 rgba(0, 255, 255, 0.7);
-  }
-  40% {
-    text-shadow:
-            2px 0 0 rgba(255, 0, 0, 0.7),
-            -2px 0 0 rgba(0, 255, 255, 0.7);
-  }
-  60% {
-    text-shadow:
-            -1px 0 0 rgba(255, 0, 0, 0.7),
-            1px 0 0 rgba(0, 255, 255, 0.7);
-  }
-  100% {
-    text-shadow: 0 0 0 rgba(0, 255, 65, 0);
-  }
-}
-
-@keyframes glitch-border {
-  0%, 100% {
-    border-color: var(--color-primary-dimmer);
-    box-shadow: 0 0 1px var(--color-primary);
-  }
-  20% {
-    border-color: rgba(255, 0, 0, 0.5);
-    box-shadow:
-            -2px 0 4px rgba(255, 0, 0, 0.5),
-            2px 0 4px rgba(0, 255, 255, 0.5);
-  }
-  50% {
-    border-color: rgba(0, 255, 255, 0.5);
-    box-shadow:
-            2px 0 4px rgba(255, 0, 0, 0.5),
-            -2px 0 4px rgba(0, 255, 255, 0.5);
-  }
-}
-
-.chromatic-aberration {
-  animation: chromaticAberration 0.2s ease;
-}
-
-@keyframes chromaticAberration {
-  0%, 100% {
-    text-shadow: 0 0 0 transparent;
-  }
-  50% {
-    text-shadow:
-            -1px 0 0 rgba(255, 0, 0, 0.5),
-            1px 0 0 rgba(0, 255, 255, 0.5);
-  }
-}
-
-.digital-noise {
-  animation: digitalNoise 0.18s ease;
-}
-
-@keyframes digitalNoise {
-  0%, 100% { filter: contrast(1); }
-  50% { filter: contrast(1.2); }
-}
-
-.glitch-text {
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  display: inline;
-}
-
-.terminal-container .glitch-text,
-.skills-content .glitch-text,
-.typed-command {
-  white-space: pre-wrap;
-}
-
-/* ============================================
-   GLITCH CHARACTER WRAPPER
-   ============================================ */
-
-.glitch-char-wrapper {
-  position: relative;
-  display: inline-block;
-}
-
-.glitch-char-original {
-  visibility: visible;
-  color: var(--color-primary);
-}
-
-.glitch-char-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  color: var(--color-primary);
-  opacity: 0;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.glitch-char-wrapper.glitching .glitch-char-original {
-  opacity: 0;
-}
-
-.glitch-char-wrapper.glitching .glitch-char-overlay {
-  opacity: 1;
 }
 
 /* ============================================
@@ -1238,9 +938,282 @@ textarea:focus-visible,
 
 .mouse-ripple {
   position: fixed;
-  border: 2px solid var(--color-primary);
+  border: 2px solid var(--bright);
   border-radius: 50%;
   pointer-events: none;
-  animation: mouse-ripple 1s ease-out forwards;
+  animation: mouse-ripple var(--dur-crt) var(--ease-out) forwards;
   z-index: var(--z-particles);
+}
+
+/* ============================================
+   MOTION SPECIMENS (Phosphor review §2)
+   Keyframes and values from the review's reference code.
+   ============================================ */
+
+/* Phosphor afterglow: a fresh glyph lands white-hot and cools */
+.k {
+  animation: phos var(--dur-phosphor) var(--ease-out) both;
+}
+
+@keyframes phos {
+  0% { color: #F2FFF6; text-shadow: 0 0 8px var(--bright), 0 0 2px #fff; }
+  100% { color: inherit; text-shadow: 0 0 0 transparent; }
+}
+
+/* A printed line's short flare */
+@keyframes lnin {
+  0% { opacity: 0.2; color: #F2FFF6; text-shadow: 0 0 10px var(--bright); }
+  100% { opacity: 1; text-shadow: 0 0 0 transparent; }
+}
+
+/* CRT power-on: dot, line, picture */
+@keyframes crton {
+  0% { transform: scale(0.02, 0.004); filter: brightness(6); opacity: 1; }
+  30% { transform: scale(1, 0.006); filter: brightness(4); }
+  60% { transform: scale(1, 1); filter: brightness(1.8); }
+  100% { transform: scale(1, 1); filter: brightness(1); }
+}
+
+/* Channel change: collapse to a line, rebuild (split across old/new frames) */
+@keyframes chan-out {
+  0% { transform: scaleY(1); filter: brightness(1); }
+  100% { transform: scaleY(0.02); filter: brightness(3); }
+}
+
+@keyframes chan-in {
+  0% { transform: scaleY(0.02); filter: brightness(3); }
+  100% { transform: scaleY(1); filter: brightness(1); }
+}
+
+/* The hero name's one restrained glitch: a 160 ms RGB split */
+.rgb {
+  animation: rgb var(--dur-quick) steps(4) both;
+}
+
+@keyframes rgb {
+  0% { text-shadow: -2px 0 rgba(255, 60, 60, 0.8), 2px 0 rgba(60, 220, 255, 0.8); transform: translateX(1px); }
+  50% { text-shadow: 2px 0 rgba(255, 60, 60, 0.8), -2px 0 rgba(60, 220, 255, 0.8); transform: translateX(-1px); }
+  100% { text-shadow: none; transform: none; }
+}
+
+/* Character glitch (GlitchText + lib/glitchDirector): each character has an
+   overlay the glitch writes a glyph into; the real character hides meanwhile */
+.glitch-text {
+  display: inline;
+}
+
+.glitch-text.rgb {
+  display: inline-block;
+}
+
+.gch {
+  position: relative;
+}
+
+.gch-x {
+  position: absolute;
+  left: 0;
+  top: 0;
+  visibility: hidden;
+  color: var(--bright);
+  text-shadow: 0 0 6px rgb(var(--glow) / 0.6);
+  pointer-events: none;
+  user-select: none;
+}
+
+.gch.on {
+  color: transparent;
+}
+
+.gch.on .gch-x {
+  visibility: visible;
+}
+
+@keyframes flick {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
+  51% { opacity: 0.7; }
+  52% { opacity: 1; }
+}
+
+/* ---- View transitions (lib/viewTransition.ts sets html[data-vt]) ---- */
+
+::view-transition {
+  background: var(--bg);
+}
+
+html[data-vt="crton"]::view-transition-old(root) {
+  animation: none;
+  opacity: 0;
+}
+
+html[data-vt="crton"]::view-transition-new(root) {
+  animation: crton var(--dur-crt) var(--ease-crt) both;
+  transform-origin: center;
+}
+
+/* 420 ms in total: 35% collapsing the old picture, 65% rebuilding the new */
+html[data-vt="chan"]::view-transition-old(root) {
+  animation: chan-out calc(var(--dur-chan) * 0.35) var(--ease-crt) both;
+}
+
+html[data-vt="chan"]::view-transition-new(root) {
+  animation: chan-in calc(var(--dur-chan) * 0.65) var(--ease-crt) calc(var(--dur-chan) * 0.35) both;
+}
+
+/* No View Transitions, and the returning visitor's first paint
+   (html.booted from the <head> script): a full-screen tube overlay powers
+   on — a dot, a line, then the picture shows through. The page itself is
+   never transformed, so section visibility (and who owns the keystroke
+   audio) is never fooled. */
+html.crt-power-on body::before,
+html.booted body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 99997;
+  pointer-events: none;
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(ellipse at center, rgb(var(--glow) / 0.9) 0, rgb(var(--glow) / 0.35) 1px, transparent 3px),
+    linear-gradient(to bottom, transparent calc(50% - 1px), rgb(var(--glow) / 0.85) 50%, transparent calc(50% + 1px));
+  background-repeat: no-repeat;
+  background-position: center;
+  animation: crt-cover var(--dur-crt) var(--ease-crt) both;
+}
+
+@keyframes crt-cover {
+  0% { background-size: 4% 0.6%, 0% 100%; opacity: 1; }
+  30% { background-size: 0% 0%, 100% 100%; opacity: 1; }
+  60% { background-size: 0% 0%, 100% 100%; opacity: 0.6; }
+  100% { background-size: 0% 0%, 100% 100%; opacity: 0; visibility: hidden; }
+}
+
+/* ---- Scanlines + slow flicker: opt-in (`crt on`), never under reduced motion ---- */
+
+@media (prefers-reduced-motion: no-preference) {
+  html[data-crt="on"] body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 99998;
+    pointer-events: none;
+    background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.28) 0 1px, transparent 1px 3px);
+    animation: flick 4s steps(40) infinite;
+  }
+}
+
+/* ---- Standby dimming: sections out of focus sit at ~55% and power up as
+   they snap in (scroll-driven; nothing happens where unsupported) ---- */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    main > section {
+      animation: standby linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 100%;
+    }
+  }
+}
+
+@keyframes standby {
+  0% { opacity: 0.55; }
+  30%, 70% { opacity: 1; }
+  100% { opacity: 0.55; }
+}
+
+/* ---- Keycap buttons: press down 1 px with a flash (the Enter sound is
+   played by KeycapFeedback) ---- */
+
+button,
+.keycap,
+a.projects-section-link,
+a.projects-section-footer-link,
+a.contact-section-link {
+  transition:
+    transform var(--dur-key) var(--ease-out),
+    box-shadow var(--dur-quick) var(--ease-out),
+    background var(--dur-quick) var(--ease-out),
+    border-color var(--dur-quick) var(--ease-out),
+    color var(--dur-quick) var(--ease-out);
+}
+
+button:active:not(:disabled),
+.keycap:active,
+a.projects-section-link:active,
+a.projects-section-footer-link:active,
+a.contact-section-link:active,
+.is-keycap-pressed {
+  transform: translateY(1px);
+  box-shadow: 0 0 14px rgb(var(--glow) / 0.45);
+}
+
+/* ============================================
+   PLAIN MODE (`--no-tty`, lib/plainMode)
+   Same content as a clean, fast page: no boot, typing, sound, snap
+   scrolling or ambient effects. html[data-mode="plain"] is set before paint.
+   ============================================ */
+
+html[data-mode="plain"] {
+  height: auto;
+  overflow: visible;
+}
+
+html[data-mode="plain"] body {
+  height: auto;
+  overflow: visible;
+  scroll-snap-type: none;
+}
+
+html[data-mode="plain"] main > section {
+  height: auto;
+  min-height: 0;
+  scroll-snap-align: none;
+  padding: var(--spacing-lg) var(--container-padding);
+}
+
+html[data-mode="plain"] main > section:first-child {
+  padding-top: calc(var(--spacing-2xl) + 40px);
+}
+
+html[data-mode="plain"] .terminal-container {
+  max-height: none;
+  overflow: visible;
+  backdrop-filter: none;
+  background: var(--surface);
+  box-shadow: none;
+}
+
+html[data-mode="plain"] .terminal-content {
+  overflow: visible;
+}
+
+html[data-mode="plain"] .boot-screen,
+html[data-mode="plain"] .gradient-background,
+html[data-mode="plain"] .grid-overlay,
+html[data-mode="plain"] .particle-canvas,
+html[data-mode="plain"] .custom-cursor,
+html[data-mode="plain"] .crt-shader,
+html[data-mode="plain"] .scroll-hint,
+html[data-mode="plain"] .mute-toggle-btn,
+html[data-mode="plain"] body::after,
+html[data-mode="plain"] body::before {
+  display: none !important;
+}
+
+html[data-mode="plain"].has-custom-cursor * {
+  cursor: auto !important;
+}
+
+html[data-mode="plain"] *,
+html[data-mode="plain"] *::before,
+html[data-mode="plain"] *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* The skip link's target: focused programmatically, no frame around the whole page */
+#main-content:focus {
+  outline: none;
+  box-shadow: none;
 }

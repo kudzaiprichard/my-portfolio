@@ -1,24 +1,58 @@
 // app/layout.tsx
 import type { Metadata } from 'next'
 import './globals.css'
+import { JetBrains_Mono, VT323 } from 'next/font/google'
+import { DEFAULT_THEME, THEMES, THEME_STORAGE_KEY } from '@/src/lib/themes'
+import { CRT_STORAGE_KEY } from '@/src/lib/crtStore'
+import { PLAIN_STORAGE_KEY } from '@/src/lib/plainMode'
+import { BOOTED_KEY, TAB_BOOTED_KEY, bootBehaviour } from '@/src/constants/bootConfig'
 import Background from '@/src/components/layout/Background'
 import ScrollHint from '@/src/components/layout/ScrollHint'
 import CustomCursor from '@/src/components/layout/CustomCursor'
 import BootScreen from '@/src/components/layout/BootScreen'
 import { BootProvider } from '@/src/components/layout/context/BootContext'
-import StructuredData from "@/src/components/layout/seo/StructuredData";
-import SEOContent from "@/src/components/layout/seo/SEOContent";
+import { SITE_DESCRIPTION, SITE_TITLE } from "@/src/components/layout/seo/StructuredData";
+import { SITE_URL } from '@/src/lib/site'
+import { owner } from '@/src/content'
 import MuteToggle from "@/src/components/shared/MuteToggle";
-import AmbientHum from "@/src/components/shared/AmbientHum";
+import ThemePicker from "@/src/components/shared/ThemePicker";
+import PlainModeToggle from "@/src/components/shared/PlainModeToggle";
+import AudioSetup from "@/src/components/shared/AudioSetup";
+import KeycapFeedback from "@/src/components/shared/KeycapFeedback";
+import WebMcpTools from "@/src/components/shared/WebMcpTools";
+import TmuxBar from "@/src/components/layout/TmuxBar";
+import CrtShader from "@/src/components/layout/CrtShader";
+import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+// Self-hosted by next/font: no layout shift, no request to Google at runtime.
+// JetBrains Mono for everything; VT323 only for the hero name and boot banner.
+const mono = JetBrains_Mono({ subsets: ['latin'], weight: ['400', '600'], variable: '--font-jetbrains', display: 'swap' })
+const display = VT323({ subsets: ['latin'], weight: '400', variable: '--font-vt323', display: 'swap' })
+
+// Runs before first paint: apply the stored theme (or the default) so there is
+// no flash of the wrong palette; restore the opt-in CRT look; mark returning
+// visitors (html.booted hides the boot screen and plays the power-on); and
+// hide section content SectionReveal will reveal (skipped under reduced motion).
+const THEME_BG = Object.fromEntries(THEMES.map(t => [t.id, t.colors.bg]))
+const BEFORE_PAINT = `try{var d=document.documentElement,b=${JSON.stringify(THEME_BG)},t=null;` +
+    `try{t=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)})}catch(e){}` +
+    `if(!b[t])t=${JSON.stringify(DEFAULT_THEME)};d.dataset.theme=t;` +
+    `var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',b[t]);` +
+    `try{if(localStorage.getItem(${JSON.stringify(CRT_STORAGE_KEY)})==='on')d.dataset.crt='on';` +
+    `if((${bootBehaviour.skipForReturningVisitors}&&localStorage.getItem(${JSON.stringify(BOOTED_KEY)})==='1')||(${bootBehaviour.oncePerTab}&&sessionStorage.getItem(${JSON.stringify(TAB_BOOTED_KEY)})==='1')||location.pathname!=='/')d.classList.add('booted');` +
+    `if(localStorage.getItem(${JSON.stringify(PLAIN_STORAGE_KEY)})==='on')d.dataset.mode='plain'}catch(e){}` +
+    `if(d.dataset.mode!=='plain'&&!matchMedia('(prefers-reduced-motion: reduce)').matches)d.classList.add('reveal-ready')}catch(e){}`
+
+const baseUrl = SITE_URL
 const twitterHandle = process.env.NEXT_PUBLIC_TWITTER_HANDLE || '@kudzaiprichard'
 
 export const metadata: Metadata = {
     metadataBase: new URL(baseUrl),
-    title: 'Kudzai Prichard Matizirofa | AI & Full Stack Software Developer',
-    description:
-        'Kudzai Prichard Matizirofa — Building intelligent systems and scalable applications. Specializing in AI/ML, backend architecture, and full-stack development with Python, Java, and TypeScript.',
+    title: { default: SITE_TITLE, template: `%s | ${owner.fullName}` },
+    description: SITE_DESCRIPTION,
+    applicationName: owner.fullName,
+    category: 'technology',
     keywords: [
         'Kudzai Prichard Matizirofa',
         'Kudzai Prichard',
@@ -26,20 +60,42 @@ export const metadata: Metadata = {
         'Prichard Matizirofa',
         'Kudzai',
         'Matizirofa',
-        'AI Developer',
-        'Full Stack Developer',
+        'AI Engineer Zimbabwe',
+        'AI / ML Engineer',
         'Machine Learning Engineer',
-        'Python Developer',
-        'Java Developer',
-        'TypeScript Developer',
-        'FastAPI Developer',
-        'Spring Boot Developer',
-        'Next.js Developer',
-        'PyTorch Developer',
+        'Computer Vision Engineer',
+        'NLP Engineer',
+        'MLOps',
+        'Co-Founder Teleagents',
+        'Co-Founder OurAfrica',
+        'Teleagents',
+        'OurAfrica',
+        'Voice AI Africa',
+        'Shona speech recognition',
+        'Document AI',
+        'LLM agents',
+        'AWS',
+        'Azure',
+        'Python',
+        'PyTorch',
+        'FastAPI',
+        'Spring Boot',
+        'Next.js',
+        'Whiteboard Studio',
+        'whiteboard animation MCP',
+        'Anvil DSA practice app',
+        'offline LeetCode practice',
+        'Sentinel face recognition',
+        'IndabaX Zimbabwe 2026',
+        'Tauri',
+        'Rust',
+        'University of Zimbabwe',
+        'POTRAZ Innovation Expo 2026',
         'Portfolio',
     ],
-    authors: [{ name: 'Kudzai Prichard Matizirofa', url: baseUrl }],
-    creator: 'Kudzai Prichard Matizirofa',
+    authors: [{ name: owner.fullName, url: baseUrl }],
+    creator: owner.fullName,
+    publisher: owner.fullName,
     alternates: {
         canonical: baseUrl,
     },
@@ -47,25 +103,24 @@ export const metadata: Metadata = {
         type: 'website',
         locale: 'en_US',
         url: baseUrl,
-        title: 'Kudzai Prichard Matizirofa | AI & Full Stack Software Developer',
-        description:
-            'Kudzai Prichard Matizirofa — Building intelligent systems and scalable applications. Specializing in AI/ML, backend architecture, and full-stack development with Python, Java, and TypeScript.',
-        siteName: 'Kudzai Prichard Matizirofa Portfolio',
+        title: SITE_TITLE,
+        description: SITE_DESCRIPTION,
+        siteName: owner.fullName,
         images: [
             {
                 url: '/og-image.png',
                 width: 1200,
                 height: 630,
-                alt: 'Kudzai Prichard Matizirofa — AI & Full Stack Software Developer',
+                alt: SITE_TITLE,
+                type: 'image/png',
             },
         ],
     },
     twitter: {
         card: 'summary_large_image',
         creator: twitterHandle,
-        title: 'Kudzai Prichard Matizirofa | AI & Full Stack Software Developer',
-        description:
-            'Building intelligent systems and scalable applications with Python, Java, and TypeScript.',
+        title: SITE_TITLE,
+        description: SITE_DESCRIPTION,
         images: ['/og-image.png'],
     },
     robots: {
@@ -84,7 +139,8 @@ export const metadata: Metadata = {
 export const viewport = {
     width: 'device-width',
     initialScale: 1,
-    themeColor: '#00ff41',
+    // Browser UI colour for the default theme; themeStore updates it on switch
+    themeColor: THEMES.find(t => t.id === DEFAULT_THEME)!.colors.bg,
 }
 
 export default function RootLayout({
@@ -93,7 +149,7 @@ export default function RootLayout({
     children: React.ReactNode
 }) {
     return (
-        <html lang="en" suppressHydrationWarning>
+        <html lang="en" data-theme={DEFAULT_THEME} className={`${mono.variable} ${display.variable}`} suppressHydrationWarning>
         <head>
             <meta charSet="UTF-8" />
             <link rel="icon" href="/favicon.ico" sizes="32x32" />
@@ -103,17 +159,14 @@ export default function RootLayout({
             <link rel="icon" href="/web-app-manifest-512x512.png" type="image/png" sizes="512x512" />
             <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
             <link rel="manifest" href="/site.webmanifest" />
-            <StructuredData />
+            <script dangerouslySetInnerHTML={{ __html: BEFORE_PAINT }} />
         </head>
         <body suppressHydrationWarning>
         <BootProvider>
             {/* Skip-to-content link for keyboard users */}
-            <a href="#home" className="skip-to-content">
+            <a href="#main-content" className="skip-to-content">
                 Skip to content
             </a>
-
-            {/* Hidden semantic content for crawlers */}
-            <SEOContent />
 
             {/* Boot screen overlay */}
             <BootScreen />
@@ -124,9 +177,19 @@ export default function RootLayout({
             {/* Custom cursor */}
             <CustomCursor />
 
-            {/* Audio controls */}
+            {/* CRT tube shader (opt-in: `crt on`) */}
+            <CrtShader />
+
+            {/* Plain mode, theme and audio controls */}
+            <PlainModeToggle />
+            <ThemePicker />
             <MuteToggle />
-            <AmbientHum />
+            <AudioSetup />
+            <KeycapFeedback />
+            <WebMcpTools />
+
+            {/* tmux-style page indicator */}
+            <TmuxBar />
 
             {/* Scroll hint indicator */}
             <ScrollHint />
@@ -134,6 +197,8 @@ export default function RootLayout({
             {/* Main content */}
             {children}
         </BootProvider>
+        <Analytics />
+        <SpeedInsights />
         </body>
         </html>
     )
