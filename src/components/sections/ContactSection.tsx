@@ -10,6 +10,7 @@ import { contact } from '@/src/content'
 import GlitchText from '@/src/components/shared/GlitchText'
 
 const email = contact.email
+const [emailUser, emailDomain] = email.split('@')
 const githubUrl = contact.githubUrl
 const linkedinUrl = contact.linkedinUrl
 const twitterUrl = contact.twitterUrl
@@ -49,7 +50,10 @@ export default async function ContactSection() {
                                     </svg>
                                     <div className="contact-section-info">
                                         <div className="contact-section-label"><GlitchText text="EMAIL" /></div>
-                                        <div className="contact-section-value">{email}</div>
+                                        {/* Split by <wbr> so Cloudflare's email obfuscation can't rewrite it:
+                                            the rewritten text fails hydration and React re-renders the root,
+                                            dropping html.reveal-ready (all sections show before typing) */}
+                                        <div className="contact-section-value">{emailUser}@<wbr />{emailDomain}</div>
                                     </div>
                                 </a>
 
